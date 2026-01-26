@@ -127,14 +127,26 @@
     <div id="map"></div>
     
     <div id="sidebar">
-        <h1>🗺️ R40 Ring Polygon Tekenen</h1>
+        <h1>🗺️ Polygon/LineString Helper</h1>
         
         <div class="info">
             <strong>Instructies:</strong><br>
-            1. Klik op de kaart om punten toe te voegen<br>
-            2. Volg de R40 ring rond Gent<br>
-            3. Klik "Genereer Code" om JavaScript array te krijgen<br>
-            4. Kopieer en plak in geoUtils.js
+            1. Kies type: Polygon of LineString<br>
+            2. Klik op de kaart om punten toe te voegen<br>
+            3. Klik "Genereer GeoJSON" voor zones.json formaat
+        </div>
+        
+        <div class="stats">
+            <strong>Type:</strong> 
+            <select id="geometry-type" onchange="onTypeChange()" style="padding: 4px; margin-left: 8px; border-radius: 4px; border: 1px solid #cbd5e1;">
+                <option value="Polygon">Polygon (gesloten vorm)</option>
+                <option value="LineString">LineString (lijn)</option>
+            </select>
+        </div>
+        
+        <div class="stats">
+            <strong>Naam:</strong>
+            <input type="text" id="feature-name" placeholder="Bijv: Leie-Schelde Lijn" style="width: 100%; padding: 6px; margin-top: 6px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 13px;">
         </div>
         
         <div class="stats">
@@ -143,10 +155,10 @@
             <span id="last-point">-</span>
         </div>
         
-        <button class="btn-primary" onclick="generateCode()">📋 Genereer Code</button>
+        <button class="btn-primary" onclick="generateCode()">📋 Genereer GeoJSON</button>
         <button class="btn-danger" onclick="undoLastPoint()">↩️ Verwijder Laatste Punt</button>
         <button class="btn-danger" onclick="clearAll()">🗑️ Wis Alles</button>
-        <button class="btn-success" onclick="closePolygon()">✅ Sluit Polygon</button>
+        <button class="btn-success" id="btn-close" onclick="closePolygon()">✅ Sluit Polygon</button>
         
         <div id="output"></div>
         <div id="success-msg"></div>
@@ -189,6 +201,48 @@
         let markers = [];
         let polyline = null;
         let polygon = null;
+        let currentType = 'Polygon';
+        
+        function onTypeChange() {
+            currentType = document.getElementById('geometry-type').value;
+            const closeBtn = document.getElementById('btn-close');
+            
+            if (currentType === 'LineString') {
+                closeBtn.style.display = 'none';
+            } else {
+                closeBtn.style.display = 'block';
+            }
+            
+            // Update visualisatie
+            updateVisualization();
+        }
+        
+        function updateVisualization() {
+            // Verwijder oude visualisatie
+            if (polyline) map.removeLayer(polyline);
+            if (polygon) map.removeLayer(polygon);
+            polyline = null;
+            polygon = null;
+            
+            if (points.length < 2) return;
+            
+            const latlngs = points.map(p => [p.lat, p.lng]);
+            
+            if (currentType === 'Polygon' && points.length >= 3) {
+                polygon = L.polygon(latlngs, {
+                    color: '#ea580c',
+                    fillColor: '#fb923c',
+                    fillOpacity: 0.2,
+                    weight: 2
+                }).addTo(map);
+            } else {
+                polyline = L.polyline(latlngs, {
+                    color: '#2563eb',
+                    weight: 3,
+                    opacity: 0.7
+                }).addTo(map);
+            }
+        }
         
         // Klik op kaart
         map.on('click', function(e) {
@@ -217,26 +271,16 @@
             
             markers.push(marker);
             
-            // Update polyline
-            updatePolyline();
+            // Update visualisatie
+            updateVisualization();
             
             // Update UI
             updateUI();
         });
         
         function updatePolyline() {
-            if (polyline) {
-                map.removeLayer(polyline);
-            }
-            
-            if (points.length > 1) {
-                const latlngs = points.map(p => [p.lat, p.lng]);
-                polyline = L.polyline(latlngs, {
-                    color: '#2563eb',
-                    weight: 3,
-                    opacity: 0.7
-                }).addTo(map);
-            }
+            // Deze functie is vervangen door updateVisualization()
+            updateVisualization();
         }
         
         function updateUI() {
@@ -259,14 +303,8 @@
             const lastMarker = markers.pop();
             map.removeLayer(lastMarker);
             
-            // Update polyline
-            updatePolyline();
-            
-            // Verwijder polygon als die bestaat
-            if (polygon) {
-                map.removeLayer(polygon);
-                polygon = null;
-            }
+            // Update visualisatie
+            updateVisualization();
             
             updateUI();
         }
@@ -297,44 +335,51 @@
                 return;
             }
             
-            if (polygon) {
-                map.removeLayer(polygon);
-            }
+            currentType = 'Polygon';
+            document.getElementById('geometry-type').value = 'Polygon';
+            updateVisualization();
             
-            const latlngs = points.map(p => [p.lat, p.lng]);
-            polygon = L.polygon(latlngs, {
-                color: '#ea580c',
-                fillColor: '#fb923c',
-                fillOpacity: 0.2,
-                weight: 2
-            }).addTo(map);
-            
-            alert('Polygon gesloten! Klik "Genereer Code" om de JavaScript array te krijgen.');
+            alert('Polygon gesloten! Klik "Genereer GeoJSON" om de code te krijgen.');
         }
         
         function generateCode() {
-            if (points.length < 3) {
-                alert('Je hebt minimaal 3 punten nodig!');
+            const minPoints = currentType === 'Polygon' ? 3 : 2;
+            if (points.length < minPoints) {
+                alert(`Je hebt minimaal ${minPoints} punten nodig voor een ${currentType}!`);
                 return;
             }
             
-            let code = 'const R40_POLYGON = [\n';
-            points.forEach((p, i) => {
-                code += `    { lat: ${p.lat.toFixed(4)}, lng: ${p.lng.toFixed(4)} }`;
-                if (i < points.length - 1) code += ',';
-                code += '\n';
-            });
-            code += '];';
+            const name = document.getElementById('feature-name').value || 'Naamloos';
+            
+            // GeoJSON Feature genereren
+            const coordinates = points.map(p => [p.lng, p.lat]);
+            
+            // Voor Polygon: wrap in extra array
+            const coordsData = currentType === 'Polygon' ? [coordinates] : coordinates;
+            
+            const feature = {
+                type: "Feature",
+                properties: {
+                    name: name,
+                    description: ""
+                },
+                geometry: {
+                    type: currentType,
+                    coordinates: coordsData
+                }
+            };
+            
+            const code = JSON.stringify(feature, null, 2);
             
             document.getElementById('output').textContent = code;
             
             // Kopieer naar clipboard
             navigator.clipboard.writeText(code).then(() => {
                 document.getElementById('success-msg').innerHTML = 
-                    '✅ Code gekopieerd naar clipboard!';
+                    `✅ ${currentType} GeoJSON gekopieerd naar clipboard!<br><small>Plak dit in zones.json onder "features" array</small>`;
                 setTimeout(() => {
                     document.getElementById('success-msg').innerHTML = '';
-                }, 3000);
+                }, 5000);
             }).catch(() => {
                 document.getElementById('success-msg').innerHTML = 
                     '⚠️ Kopieer de code handmatig uit het vak hierboven';

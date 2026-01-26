@@ -5,6 +5,7 @@ let map = null;
 let gameZoneCircle = null;
 let inverseMask = null;
 let r40Polygon = null;
+let leieScheldeLine = null;
 let currentLocationMarker = null;
 let accuracyCircle = null;
 
@@ -48,8 +49,12 @@ copySeedBtn.addEventListener('click', handleCopySeed);
 resetGameBtn.addEventListener('click', handleResetGame);
 
 // Initialize
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     console.log('Gent Location Game geladen!');
+    
+    // Laad zone data
+    await loadZones();
+    
     initializeMap();
     initializeControls();
     loadSavedGameData();
@@ -250,6 +255,17 @@ function initializeMap() {
         dashArray: '5, 10'
     }).addTo(map).bindPopup('<b>R40 Ring</b><br>Gentse binnenring');
     
+    // Teken de Leie-Schelde lijn
+    if (LEIE_SCHELDE_LINE.length > 0) {
+        const leieScheldeCoords = LEIE_SCHELDE_LINE.map(point => [point.lat, point.lng]);
+        leieScheldeLine = L.polyline(leieScheldeCoords, {
+            color: '#1e40af',
+            weight: 3,
+            opacity: 0.8,
+            dashArray: '10, 5'
+        }).addTo(map).bindPopup('<b>Leie-Schelde Lijn</b><br>Scheiding Noord-Zuid Gent');
+    }
+    
     // Voeg andere belangrijke locaties toe
     addLocationMarker(LOCATIONS.dampoort, 'Dampoort Station', 'blue');
     addLocationMarker(LOCATIONS.watersportbaan_tip, 'Watersportbaan', 'green');
@@ -295,6 +311,7 @@ function addMapLegend() {
             <h4>Legenda</h4>
             <div><span class="legend-circle" style="background: #3b82f6;"></span> Speelveld (3km)</div>
             <div><span class="legend-line" style="background: #fb923c;"></span> R40 Ring</div>
+            <div><span class="legend-line" style="background: #1e40af;"></span> Leie-Schelde Lijn</div>
             <div><span class="legend-marker" style="background: #dc2626;"></span> Belfort (centrum)</div>
             <div><span class="legend-marker" style="background: #22c55e;"></span> Je locatie</div>
         `;

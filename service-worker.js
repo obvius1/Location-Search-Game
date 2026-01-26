@@ -8,6 +8,7 @@ const urlsToCache = [
   './geoUtils.js',
   './storage.js',
   './manifest.json',
+  './data/zones.json',
   './icons/android-chrome-192x192.png',
   './icons/android-chrome-512x512.png',
   './icons/apple-touch-icon.png',
