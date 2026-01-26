@@ -624,10 +624,16 @@ async function handleCopySeed() {
 }
 
 /**
- * Reset spel - wis alle opgeslagen data
+ * Reset spel - wis alle opgeslagen data met dubbele bevestiging
  */
 function handleResetGame() {
-    if (!confirm('Weet je zeker dat je het spel wilt resetten? Alle voortgang gaat verloren!')) {
+    // Eerste bevestiging
+    if (!confirm('Ben je zeker dat je dit spel wilt verwijderen?')) {
+        return;
+    }
+    
+    // Tweede bevestiging
+    if (!confirm('Nog eens, ben je echt zeker?!')) {
         return;
     }
     
