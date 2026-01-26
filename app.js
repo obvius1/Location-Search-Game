@@ -35,6 +35,7 @@ const nextCardBtn = document.getElementById('next-card-btn');
 
 const currentSeedDisplay = document.getElementById('current-seed');
 const copySeedBtn = document.getElementById('copy-seed-btn');
+const resetGameBtn = document.getElementById('reset-game-btn');
 
 // Event Listeners
 generateSeedBtn.addEventListener('click', handleGenerateSeed);
@@ -44,13 +45,118 @@ confirmLocationBtn.addEventListener('click', handleConfirmLocation);
 prevCardBtn.addEventListener('click', handlePreviousCard);
 nextCardBtn.addEventListener('click', handleNextCard);
 copySeedBtn.addEventListener('click', handleCopySeed);
+resetGameBtn.addEventListener('click', handleResetGame);
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
     console.log('Gent Location Game geladen!');
     initializeMap();
     initializeControls();
+    loadSavedGameData();
 });
+
+/**
+ * Laad opgeslagen game data
+ */
+function loadSavedGameData() {
+    const gameData = loadGameData();
+    
+    // Check of er een actief spel is
+    if (hasActiveGame()) {
+        console.log('Actief spel gevonden:', gameData);
+        
+        // Herstel seed
+        if (gameData.seed) {
+            seedInput.value = gameData.seed;
+            // Auto-start game
+            handleStartGame();
+        }
+        
+        // Herstel locatie
+        if (gameData.location) {
+            const loc = gameData.location;
+            console.log('Locatie hersteld:', loc);
+            
+            // Plaats marker op opgeslagen locatie
+            if (!currentLocationMarker) {
+                currentLocationMarker = L.marker([loc.lat, loc.lng], {
+                    draggable: false,
+                    icon: L.icon({
+                        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
+                        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+                        iconSize: [25, 41],
+                        iconAnchor: [12, 41],
+                        popupAnchor: [1, -34],
+                        shadowSize: [41, 41]
+                    })
+                }).addTo(map);
+            }
+            
+            // Zoom naar locatie
+            map.setView([loc.lat, loc.lng], 15);
+            
+            // Simuleer bevestigde locatie
+            const result = performAllChecks(loc.lat, loc.lng);
+            if (result.valid) {
+                // Bereken afstand
+                const distanceToCenter = calculateDistance(
+                    loc.lat, loc.lng,
+                    BELFORT_GENT.lat, BELFORT_GENT.lng
+                );
+                
+                // Verberg locatie sectie en plaats onderaan
+                locationSection.classList.add('location-confirmed');
+                const controlsContent = document.getElementById('controls-content');
+                controlsContent.appendChild(locationSection);
+                
+                // Update status
+                locationStatus.querySelector('.status-icon').textContent = '✅';
+                locationStatus.querySelector('.status-text').textContent = 'Locatie vastgelegd (hersteld)';
+                locationStatus.classList.add('valid');
+                
+                // Toon details
+                locationResult.classList.remove('hidden');
+                locationResult.classList.add('valid');
+                locationResult.innerHTML = `
+                    <div class="location-detail-item">
+                        <span class="detail-icon">🎯</span>
+                        <span class="detail-label">Afstand tot Belfort:</span>
+                        <span class="detail-value">${Math.round(distanceToCenter)}m</span>
+                    </div>
+                    <div class="location-detail-item">
+                        <span class="detail-icon">📍</span>
+                        <span class="detail-label">Coördinaten:</span>
+                        <span class="detail-value" id="coords-display">${loc.lat.toFixed(6)}, ${loc.lng.toFixed(6)}</span>
+                        <button id="copy-coords-btn" class="btn-icon" title="Kopieer coördinaten">📋</button>
+                    </div>
+                `;
+                
+                // Copy functionaliteit
+                document.getElementById('copy-coords-btn').addEventListener('click', async () => {
+                    const coords = `${loc.lat.toFixed(6)}, ${loc.lng.toFixed(6)}`;
+                    try {
+                        await navigator.clipboard.writeText(coords);
+                        const btn = document.getElementById('copy-coords-btn');
+                        btn.textContent = '✅';
+                        setTimeout(() => btn.textContent = '📋', 2000);
+                    } catch (error) {
+                        alert('Coördinaten: ' + coords);
+                    }
+                });
+                
+                // Update marker popup
+                currentLocationMarker.bindPopup(`
+                    <b>✅ Jouw Locatie</b><br>
+                    ${Math.round(distanceToCenter)}m van Belfort<br>
+                    ${loc.lat.toFixed(6)}, ${loc.lng.toFixed(6)}
+                `);
+                
+                // Toon vragen
+                displayQuestions(result.checks);
+            }
+        }
+    }
+}
 
 /**
  * Initialiseert de controls bottom sheet
@@ -220,9 +326,13 @@ function handleStartGame() {
     // Initialiseer card manager
     cardManager = new CardManager(seed);
     
+    // Sla seed op in storage
+    saveSeed(seed);
+    
     // Update UI
     currentSeedDisplay.textContent = seed;
     copySeedBtn.classList.remove('hidden');
+    resetGameBtn.classList.remove('hidden');
     
     // Toon game secties
     setupSection.classList.add('hidden');
@@ -336,6 +446,9 @@ function handleConfirmLocation() {
     
     // Update status indicator
     if (result.valid) {
+        // Sla locatie op in storage
+        saveLocation(position.lat, position.lng);
+        
         // Bereken afstand tot Belfort
         const distanceToCenter = calculateDistance(
             position.lat, position.lng,
@@ -508,4 +621,19 @@ async function handleCopySeed() {
         console.error('Kon seed niet kopiëren:', error);
         alert('Kon de code niet kopiëren. Code: ' + seed);
     }
+}
+
+/**
+ * Reset spel - wis alle opgeslagen data
+ */
+function handleResetGame() {
+    if (!confirm('Weet je zeker dat je het spel wilt resetten? Alle voortgang gaat verloren!')) {
+        return;
+    }
+    
+    // Reset storage
+    resetGameData();
+    
+    // Reload pagina voor verse start
+    window.location.reload();
 }

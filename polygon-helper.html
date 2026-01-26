@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Polygon Helper - R40 Ring Tekenen</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            display: flex;
+            height: 100vh;
+        }
+        
+        #map {
+            flex: 1;
+            height: 100%;
+        }
+        
+        #sidebar {
+            width: 350px;
+            background: #f8fafc;
+            padding: 20px;
+            overflow-y: auto;
+            border-left: 2px solid #e2e8f0;
+        }
+        
+        h1 {
+            font-size: 20px;
+            margin-bottom: 10px;
+            color: #1e293b;
+        }
+        
+        .info {
+            background: #dbeafe;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+        
+        .stats {
+            background: white;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            font-size: 14px;
+        }
+        
+        .stats strong {
+            color: #2563eb;
+        }
+        
+        button {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 8px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .btn-primary {
+            background: #2563eb;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #1d4ed8;
+        }
+        
+        .btn-danger {
+            background: #dc2626;
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            background: #b91c1c;
+        }
+        
+        .btn-success {
+            background: #16a34a;
+            color: white;
+        }
+        
+        .btn-success:hover {
+            background: #15803d;
+        }
+        
+        #output {
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 12px;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            max-height: 300px;
+            overflow-y: auto;
+            margin-top: 16px;
+        }
+        
+        .success-msg {
+            background: #dcfce7;
+            color: #15803d;
+            padding: 12px;
+            border-radius: 6px;
+            margin-top: 8px;
+            font-size: 13px;
+            text-align: center;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+    
+    <div id="sidebar">
+        <h1>🗺️ R40 Ring Polygon Tekenen</h1>
+        
+        <div class="info">
+            <strong>Instructies:</strong><br>
+            1. Klik op de kaart om punten toe te voegen<br>
+            2. Volg de R40 ring rond Gent<br>
+            3. Klik "Genereer Code" om JavaScript array te krijgen<br>
+            4. Kopieer en plak in geoUtils.js
+        </div>
+        
+        <div class="stats">
+            <strong>Punten:</strong> <span id="point-count">0</span><br>
+            <strong>Laatste punt:</strong><br>
+            <span id="last-point">-</span>
+        </div>
+        
+        <button class="btn-primary" onclick="generateCode()">📋 Genereer Code</button>
+        <button class="btn-danger" onclick="undoLastPoint()">↩️ Verwijder Laatste Punt</button>
+        <button class="btn-danger" onclick="clearAll()">🗑️ Wis Alles</button>
+        <button class="btn-success" onclick="closePolygon()">✅ Sluit Polygon</button>
+        
+        <div id="output"></div>
+        <div id="success-msg"></div>
+    </div>
+    
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        const BELFORT_GENT = { lat: 51.0538, lng: 3.7251 };
+        
+        // Initialiseer kaart
+        const map = L.map('map').setView([BELFORT_GENT.lat, BELFORT_GENT.lng], 13);
+        
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors',
+            maxZoom: 19
+        }).addTo(map);
+        
+        // Belfort marker
+        L.marker([BELFORT_GENT.lat, BELFORT_GENT.lng], {
+            icon: L.icon({
+                iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
+                shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+                iconSize: [25, 41],
+                iconAnchor: [12, 41],
+                shadowSize: [41, 41]
+            })
+        }).addTo(map).bindPopup('Belfort van Gent');
+        
+        // 3km cirkel als referentie
+        L.circle([BELFORT_GENT.lat, BELFORT_GENT.lng], {
+            color: '#94a3b8',
+            fillColor: 'transparent',
+            radius: 3000,
+            weight: 1,
+            dashArray: '5, 5'
+        }).addTo(map);
+        
+        // Data storage
+        let points = [];
+        let markers = [];
+        let polyline = null;
+        let polygon = null;
+        
+        // Klik op kaart
+        map.on('click', function(e) {
+            const lat = e.latlng.lat;
+            const lng = e.latlng.lng;
+            
+            // Voeg punt toe
+            points.push({ lat, lng });
+            
+            // Voeg marker toe
+            const marker = L.circleMarker([lat, lng], {
+                radius: 6,
+                fillColor: '#2563eb',
+                color: '#1e40af',
+                weight: 2,
+                opacity: 1,
+                fillOpacity: 0.8
+            }).addTo(map);
+            
+            // Voeg label toe
+            marker.bindTooltip(`${points.length}`, {
+                permanent: true,
+                direction: 'top',
+                className: 'point-label'
+            });
+            
+            markers.push(marker);
+            
+            // Update polyline
+            updatePolyline();
+            
+            // Update UI
+            updateUI();
+        });
+        
+        function updatePolyline() {
+            if (polyline) {
+                map.removeLayer(polyline);
+            }
+            
+            if (points.length > 1) {
+                const latlngs = points.map(p => [p.lat, p.lng]);
+                polyline = L.polyline(latlngs, {
+                    color: '#2563eb',
+                    weight: 3,
+                    opacity: 0.7
+                }).addTo(map);
+            }
+        }
+        
+        function updateUI() {
+            document.getElementById('point-count').textContent = points.length;
+            
+            if (points.length > 0) {
+                const last = points[points.length - 1];
+                document.getElementById('last-point').textContent = 
+                    `${last.lat.toFixed(4)}, ${last.lng.toFixed(4)}`;
+            }
+        }
+        
+        function undoLastPoint() {
+            if (points.length === 0) return;
+            
+            // Verwijder laatste punt
+            points.pop();
+            
+            // Verwijder laatste marker
+            const lastMarker = markers.pop();
+            map.removeLayer(lastMarker);
+            
+            // Update polyline
+            updatePolyline();
+            
+            // Verwijder polygon als die bestaat
+            if (polygon) {
+                map.removeLayer(polygon);
+                polygon = null;
+            }
+            
+            updateUI();
+        }
+        
+        function clearAll() {
+            if (!confirm('Weet je zeker dat je alles wilt wissen?')) return;
+            
+            points = [];
+            
+            markers.forEach(m => map.removeLayer(m));
+            markers = [];
+            
+            if (polyline) map.removeLayer(polyline);
+            if (polygon) map.removeLayer(polygon);
+            
+            polyline = null;
+            polygon = null;
+            
+            document.getElementById('output').textContent = '';
+            document.getElementById('success-msg').innerHTML = '';
+            
+            updateUI();
+        }
+        
+        function closePolygon() {
+            if (points.length < 3) {
+                alert('Je hebt minimaal 3 punten nodig voor een polygon!');
+                return;
+            }
+            
+            if (polygon) {
+                map.removeLayer(polygon);
+            }
+            
+            const latlngs = points.map(p => [p.lat, p.lng]);
+            polygon = L.polygon(latlngs, {
+                color: '#ea580c',
+                fillColor: '#fb923c',
+                fillOpacity: 0.2,
+                weight: 2
+            }).addTo(map);
+            
+            alert('Polygon gesloten! Klik "Genereer Code" om de JavaScript array te krijgen.');
+        }
+        
+        function generateCode() {
+            if (points.length < 3) {
+                alert('Je hebt minimaal 3 punten nodig!');
+                return;
+            }
+            
+            let code = 'const R40_POLYGON = [\n';
+            points.forEach((p, i) => {
+                code += `    { lat: ${p.lat.toFixed(4)}, lng: ${p.lng.toFixed(4)} }`;
+                if (i < points.length - 1) code += ',';
+                code += '\n';
+            });
+            code += '];';
+            
+            document.getElementById('output').textContent = code;
+            
+            // Kopieer naar clipboard
+            navigator.clipboard.writeText(code).then(() => {
+                document.getElementById('success-msg').innerHTML = 
+                    '✅ Code gekopieerd naar clipboard!';
+                setTimeout(() => {
+                    document.getElementById('success-msg').innerHTML = '';
+                }, 3000);
+            }).catch(() => {
+                document.getElementById('success-msg').innerHTML = 
+                    '⚠️ Kopieer de code handmatig uit het vak hierboven';
+            });
+        }
+    </script>
+</body>
+</html>
