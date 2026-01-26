@@ -2,7 +2,7 @@
 
 // Constanten voor Gent
 const BELFORT_GENT = { lat: 51.0538, lng: 3.7251 }; // Centrum van Gent
-const GAME_RADIUS = 8000; // 8km in meters
+const GAME_RADIUS = 4000; // 3km in meters
 
 // Belangrijke locaties in Gent
 const LOCATIONS = {
