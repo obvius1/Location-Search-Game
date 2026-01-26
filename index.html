@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jet Lag The Game Ripoff maar dan anders</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Map Section - Fullscreen -->
+    <div id="map"></div>
+    
+    <!-- Bottom Controls Sheet -->
+    <div id="controls-container" class="hidden">
+        <div class="controls-handle" id="controls-handle">
+            <div class="handle-bar"></div>
+            <div class="handle-title">Controls</div>
+        </div>
+        <div class="controls-content" id="controls-content">
+            <!-- Game Setup Section -->
+            <section id="setup-section" class="card">
+                <h2>🎲 Spel Starten</h2>
+                <div class="input-group">
+                    <label for="seed-input">Spel Code (seed):</label>
+                    <input type="text" id="seed-input" placeholder="Voer code in of genereer...">
+                    <button id="generate-seed-btn" class="btn btn-secondary">Genereer Code</button>
+                </div>
+                <button id="start-game-btn" class="btn btn-primary">Start Spel</button>
+            </section>
+
+            <!-- Location Check Section -->
+            <section id="location-section" class="card hidden">
+                <h2>📍 Locatie Instellen</h2>
+                <div class="status-indicator" id="location-status">
+                    <span class="status-icon">⏳</span>
+                    <span class="status-text">Wacht op locatie...</span>
+                </div>
+                <button id="get-gps-btn" class="btn btn-primary">Haal GPS Locatie Op</button>
+                <div id="adjust-location-container" class="hidden">
+                    <p class="info-text">📍 Versleep de <strong style="color: #22c55e;">groene marker</strong> op de kaart naar je exacte locatie</p>
+                    <button id="confirm-location-btn" class="btn btn-success">Bevestig Locatie</button>
+                </div>
+                <div id="location-result" class="result-box hidden"></div>
+            </section>
+
+            <!-- Questions Section -->
+            <section id="questions-section" class="card hidden">
+                <h2>❓ Automatische Antwoorden</h2>
+                <div id="questions-result" class="questions-list"></div>
+            </section>
+
+            <!-- Cards Section -->
+            <section id="cards-section" class="card hidden">
+                <h2>🃏 Speelkaarten</h2>
+                <div class="card-counter">
+                    <span>Kaart <span id="current-card-number">1</span> van <span id="total-cards">10</span></span>
+                </div>
+                <div id="current-card" class="game-card">
+                    <div class="card-task"></div>
+                    <div class="card-question"></div>
+                </div>
+                <div class="card-actions">
+                    <button id="prev-card-btn" class="btn btn-secondary">← Vorige</button>
+                    <button id="next-card-btn" class="btn btn-secondary">Volgende →</button>
+                </div>
+            </section>
+
+            <!-- Game Info -->
+            <section class="card info-section">
+                <h3>ℹ️ Spelinfo</h3>
+                <p><strong>Speelveld:</strong> 3km rondom het Belfort van Gent</p>
+                <p><strong>Seed:</strong> <span id="current-seed">-</span></p>
+                <button id="copy-seed-btn" class="btn btn-secondary btn-small hidden">📋 Kopieer Code</button>
+            </section>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="geoUtils.js"></script>
+    <script src="cards.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
