@@ -10,6 +10,7 @@ const defaultGameData = {
     seed: null,
     location: null, // { lat, lng, timestamp }
     questions: [], // { question: string, answer: string, timestamp }
+    cardAnswers: [], // { cardIndex: number, opponentAnswer: string, timestamp: string }
     gameStarted: false,
     version: 1
 };
@@ -26,9 +27,14 @@ function loadGameData() {
         
         const parsed = JSON.parse(data);
         
-        // Migratie voor oude versies (indien nodig in de toekomst)
+        // Migratie voor oude versies
         if (!parsed.version) {
             parsed.version = 1;
+        }
+        
+        // Zorg ervoor dat cardAnswers array bestaat (voor oude game data)
+        if (!parsed.cardAnswers) {
+            parsed.cardAnswers = [];
         }
         
         return parsed;
@@ -94,6 +100,56 @@ function saveQuestion(question, answer) {
 function hasActiveGame() {
     const data = loadGameData();
     return data.gameStarted && data.seed !== null;
+}
+
+/**
+ * Sla antwoord van tegenstander op voor een specifieke kaart
+ */
+function saveOpponentAnswer(cardIndex, opponentAnswer) {
+    const data = loadGameData();
+    
+    // Check of er al een antwoord is voor deze kaart
+    const existingIndex = data.cardAnswers.findIndex(a => a.cardIndex === cardIndex);
+    
+    // Als opponentAnswer null is, verwijder het antwoord
+    if (opponentAnswer === null) {
+        if (existingIndex >= 0) {
+            data.cardAnswers.splice(existingIndex, 1);
+        }
+        return saveGameData(data);
+    }
+    
+    const answerData = {
+        cardIndex,
+        opponentAnswer,
+        timestamp: new Date().toISOString()
+    };
+    
+    if (existingIndex >= 0) {
+        // Update bestaand antwoord
+        data.cardAnswers[existingIndex] = answerData;
+    } else {
+        // Voeg nieuw antwoord toe
+        data.cardAnswers.push(answerData);
+    }
+    
+    return saveGameData(data);
+}
+
+/**
+ * Haal antwoord van tegenstander op voor een specifieke kaart
+ */
+function getOpponentAnswer(cardIndex) {
+    const data = loadGameData();
+    const answer = data.cardAnswers.find(a => a.cardIndex === cardIndex);
+    return answer ? answer.opponentAnswer : null;
+}
+
+/**
+ * Check of kaart een antwoord van tegenstander heeft
+ */
+function hasOpponentAnswer(cardIndex) {
+    return getOpponentAnswer(cardIndex) !== null;
 }
 
 /**

@@ -8,6 +8,7 @@ let r40Polygon = null;
 let leieScheldeLine = null;
 let currentLocationMarker = null;
 let accuracyCircle = null;
+let exclusionLayers = []; // Array van uitgesloten zones op de kaart
 
 // DOM elements
 const controlsContainer = document.getElementById('controls-container');
@@ -58,6 +59,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     initializeMap();
     initializeControls();
     loadSavedGameData();
+    
+    // Laad exclusion zones na initialisatie
+    updateExclusionZones();
 });
 
 /**
@@ -185,6 +189,10 @@ function initializeMap() {
     // Initialiseer kaart gecentreerd op Belfort Gent
     map = L.map('map').setView([BELFORT_GENT.lat, BELFORT_GENT.lng], 13);
     
+    // Maak een custom pane voor exclusion zones met lage z-index
+    map.createPane('exclusionPane');
+    map.getPane('exclusionPane').style.zIndex = 350; // Onder overlayPane (400)
+    
     // Voeg OpenStreetMap tiles toe
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '© OpenStreetMap contributors',
@@ -242,8 +250,14 @@ function initializeMap() {
         fillColor: '#000000',
         fillOpacity: 0.4,
         weight: 0,
-        interactive: false
+        interactive: false,
+        pane: 'overlayPane' // Zorg dat inverseMask bovenop exclusion zones komt
     }).addTo(map);
+    
+    // Breng inverseMask naar de voorgrond zodat het over exclusion zones heen ligt
+    if (inverseMask) {
+        inverseMask.bringToFront();
+    }
     
     // Teken de R40 ring
     const r40Coords = R40_POLYGON.map(point => [point.lat, point.lng]);
@@ -566,7 +580,7 @@ function displayQuestions(checks) {
     const questions = [
         { label: 'R40', value: checks.r40.answer },
         { label: 'Leie-Schelde', value: checks.leieSchelde.answer },
-        { label: 'Weba/IKEA', value: `${checks.webaIkea.answer} (${checks.webaIkea.distanceWeba}m / ${checks.webaIkea.distanceIkea}m)` },
+        { label: 'Weba/IKEA', value: `${checks.webaIkea.answer} (Weba: ${checks.webaIkea.distanceWeba}m / IKEA: ${checks.webaIkea.distanceIkea}m)` },
         { label: 'Dampoort', value: checks.dampoort.answer },
         { label: 'Watersportbaan', value: checks.watersportbaan.answer }
     ];
@@ -588,17 +602,454 @@ function updateCardDisplay() {
     const card = cardManager.getCurrentCard();
     if (!card) return;
     
+    const cardIndex = cardManager.getCurrentIndex();
+    
     // Update content
     currentCardElement.querySelector('.card-task').textContent = card.task;
     currentCardElement.querySelector('.card-question').textContent = `Vraag: ${card.question}`;
     
+    // Haal bestaand antwoord op (indien aanwezig)
+    const opponentAnswer = getOpponentAnswer(cardIndex);
+    
+    // Voeg antwoord sectie toe (of update)
+    let answerSection = currentCardElement.querySelector('.card-answer-section');
+    if (!answerSection) {
+        answerSection = document.createElement('div');
+        answerSection.className = 'card-answer-section';
+        currentCardElement.appendChild(answerSection);
+    }
+    
+    if (opponentAnswer) {
+        // Toon het opgeslagen antwoord
+        answerSection.innerHTML = `
+            <div class="answer-received">
+                <div class="answer-label">✅ Antwoord tegenstander:</div>
+                <div class="answer-value">${opponentAnswer}</div>
+                <button class="btn-change-answer" onclick="changeOpponentAnswer(${cardIndex})">Wijzig</button>
+            </div>
+        `;
+    } else {
+        // Toon knoppen om antwoord in te voeren
+        answerSection.innerHTML = `
+            <div class="answer-input">
+                <div class="answer-label">⏳ Wacht op antwoord tegenstander:</div>
+                <div class="answer-buttons" id="answer-buttons-${cardIndex}">
+                    <!-- Buttons worden dynamisch gegenereerd op basis van vraag type -->
+                </div>
+            </div>
+        `;
+        
+        // Genereer de juiste antwoord knoppen op basis van de vraag
+        generateAnswerButtons(cardIndex, card.question);
+    }
+    
     // Update counter
-    currentCardNumber.textContent = cardManager.getCurrentIndex() + 1;
+    currentCardNumber.textContent = cardIndex + 1;
     totalCards.textContent = cardManager.getTotalCards();
     
     // Update button states
     prevCardBtn.disabled = !cardManager.hasPrevious();
     nextCardBtn.disabled = !cardManager.hasNext();
+}
+
+/**
+ * Genereer antwoord knoppen op basis van vraag type
+ */
+function generateAnswerButtons(cardIndex, question) {
+    const container = document.getElementById(`answer-buttons-${cardIndex}`);
+    if (!container) return;
+    
+    let buttons = [];
+    
+    // Bepaal welke knoppen nodig zijn op basis van de vraag
+    if (question.includes('Binnen of buiten R40')) {
+        buttons = ['Binnen R40', 'Buiten R40'];
+    } else if (question.includes('Noorden of zuiden')) {
+        buttons = ['Noorden van Leie-Schelde', 'Zuiden van Leie-Schelde'];
+    } else if (question.includes('Dichter bij Weba of IKEA')) {
+        buttons = ['Dichter bij Weba', 'Dichter bij IKEA'];
+    } else if (question.includes('Oosten of westen van station Gent Dampoort')) {
+        buttons = ['Oosten van Dampoort', 'Westen van Dampoort'];
+    } else if (question.includes('Oosten of westen van de tip van de watersportbaan')) {
+        buttons = ['Oosten van watersportbaan tip', 'Westen van watersportbaan tip'];
+    } else {
+        // Fallback voor andere vragen
+        buttons = ['Ja', 'Nee'];
+    }
+    
+    // Maak knoppen aan
+    buttons.forEach(answer => {
+        const btn = document.createElement('button');
+        btn.className = 'btn-answer';
+        btn.textContent = answer;
+        btn.onclick = () => handleOpponentAnswer(cardIndex, answer);
+        container.appendChild(btn);
+    });
+}
+
+/**
+ * Verwerk antwoord van tegenstander
+ */
+function handleOpponentAnswer(cardIndex, answer) {
+    saveOpponentAnswer(cardIndex, answer);
+    updateExclusionZones();
+    updateCardDisplay();
+    console.log(`Antwoord tegenstander voor kaart ${cardIndex}: ${answer}`);
+}
+
+/**
+ * Wijzig antwoord van tegenstander
+ */
+function changeOpponentAnswer(cardIndex) {
+    if (confirm('Wil je het antwoord van de tegenstander wijzigen?')) {
+        // Verwijder het antwoord en update display
+        saveOpponentAnswer(cardIndex, null);
+        updateExclusionZones();
+        updateCardDisplay();
+    }
+}
+
+/**
+ * Update exclusion zones op de kaart op basis van alle antwoorden
+ */
+function updateExclusionZones() {
+    // Verwijder alle bestaande exclusion layers
+    exclusionLayers.forEach(layer => map.removeLayer(layer));
+    exclusionLayers = [];
+    
+    // Laad alle antwoorden
+    const gameData = loadGameData();
+    if (!gameData.cardAnswers || gameData.cardAnswers.length === 0) {
+        return;
+    }
+    
+    // Voor elk antwoord, voeg exclusion zone toe
+    gameData.cardAnswers.forEach(answerData => {
+        const layer = createExclusionLayer(answerData.opponentAnswer);
+        if (layer) {
+            layer.addTo(map);
+            exclusionLayers.push(layer);
+        }
+    });
+    
+    // Breng inverseMask naar voren zodat het over de exclusion zones ligt
+    if (inverseMask) {
+        inverseMask.bringToFront();
+    }
+}
+
+/**
+ * Maak een exclusion layer op basis van het antwoord
+ */
+function createExclusionLayer(answer) {
+    if (!answer) return null;
+    
+    const exclusionStyle = {
+        color: '#ef4444',
+        fillColor: '#ef4444',
+        fillOpacity: 0.25,
+        weight: 2,
+        dashArray: '5, 5',
+        interactive: false,
+        pane: 'exclusionPane' // Gebruik custom pane met lage z-index
+    };
+    
+    // Grotere bounding box die heel Gent bedekt
+    const largeBounds = {
+        north: 51.15,
+        south: 50.95,
+        east: 3.90,
+        west: 3.55
+    };
+    
+    // Binnen R40 -> je bent binnen, sluit alles BUITEN R40 uit
+    if (answer === 'Binnen R40') {
+        const outerBox = [
+            [largeBounds.north, largeBounds.west],
+            [largeBounds.north, largeBounds.east],
+            [largeBounds.south, largeBounds.east],
+            [largeBounds.south, largeBounds.west]
+        ];
+        const r40Coords = R40_POLYGON.map(point => [point.lat, point.lng]);
+        return L.polygon([outerBox, r40Coords], exclusionStyle).bindPopup('❌ Uitgesloten: Buiten R40');
+    }
+    
+    // Buiten R40 -> je bent buiten, sluit alles BINNEN R40 uit
+    if (answer === 'Buiten R40') {
+        const r40Coords = R40_POLYGON.map(point => [point.lat, point.lng]);
+        return L.polygon(r40Coords, exclusionStyle).bindPopup('❌ Uitgesloten: Binnen R40');
+    }
+    
+    // Noorden van Leie-Schelde -> je bent in noorden, sluit ZUIDEN uit
+    if (answer === 'Noorden van Leie-Schelde') {
+        const lineCoords = LEIE_SCHELDE_LINE.map(point => [point.lat, point.lng]);
+        
+        const southBox = [
+            [largeBounds.south, largeBounds.west],
+            [largeBounds.south, largeBounds.east],
+            [lineCoords[lineCoords.length - 1][0], largeBounds.east],
+            ...lineCoords.slice().reverse(),
+            [lineCoords[0][0], largeBounds.west]
+        ];
+        return L.polygon(southBox, exclusionStyle).bindPopup('❌ Uitgesloten: Zuiden Leie-Schelde');
+    }
+    
+    // Zuiden van Leie-Schelde -> je bent in zuiden, sluit NOORDEN uit
+    if (answer === 'Zuiden van Leie-Schelde') {
+        const lineCoords = LEIE_SCHELDE_LINE.map(point => [point.lat, point.lng]);
+        
+        const northBox = [
+            [largeBounds.north, largeBounds.west],
+            [largeBounds.north, largeBounds.east],
+            [lineCoords[lineCoords.length - 1][0], largeBounds.east],
+            ...lineCoords.slice().reverse(),
+            [lineCoords[0][0], largeBounds.west]
+        ];
+        return L.polygon(northBox, exclusionStyle).bindPopup('❌ Uitgesloten: Noorden Leie-Schelde');
+    }
+    
+    // Dichter bij Weba -> je bent dichter bij Weba, sluit gebied dat dichter bij IKEA is uit
+    if (answer === 'Dichter bij Weba') {
+        const ikea = LOCATIONS.ikea;
+        const weba = LOCATIONS.weba;
+        
+        // Middelpunt tussen IKEA en Weba
+        const midLat = (ikea.lat + weba.lat) / 2;
+        const midLng = (ikea.lng + weba.lng) / 2;
+        
+        // Vector van IKEA naar Weba
+        const dx = weba.lng - ikea.lng;
+        const dy = weba.lat - ikea.lat;
+        
+        // Corrigeer voor lat/lng schaalverschil op deze breedtegraad
+        // Op ~51° is 1° lng ongeveer cos(51°) * 111km ≈ 70km
+        // Terwijl 1° lat altijd ~111km is
+        const cosLat = Math.cos(midLat * Math.PI / 180);
+        const dx_corrected = dx * cosLat;
+        
+        console.log('IKEA-Weba debug:', {
+            ikea: `(${ikea.lat}, ${ikea.lng})`,
+            weba: `(${weba.lat}, ${weba.lng})`,
+            mid: `(${midLat}, ${midLng})`,
+            dx, dy,
+            cosLat,
+            dx_corrected
+        });
+        
+        // Bereken snijpunten van middelloodlijn met bounding box randen
+        // De loodrechte lijn op vector (dx_corrected, dy) heeft richting (-dy, dx_corrected)
+        // Vergelijking: -dy * (lng - midLng) + dx_corrected * (lat - midLat) = 0
+        // Of: dx_corrected * (lat - midLat) = dy * (lng - midLng)
+        const intersections = [];
+        
+        // Top rand (north) - lat = north, bereken lng
+        // dx_corrected * (north - midLat) = dy * (lng - midLng)
+        // lng = midLng + dx_corrected/dy * (north - midLat)
+        if (dy !== 0) {
+            const topX = midLng + dx_corrected / dy * (largeBounds.north - midLat);
+            if (topX >= largeBounds.west && topX <= largeBounds.east) {
+                intersections.push([largeBounds.north, topX]);
+                console.log('Top intersection:', topX);
+            }
+        }
+        
+        // Rechter rand (east) - lng = east, bereken lat
+        // dx_corrected * (lat - midLat) = dy * (east - midLng)
+        // lat = midLat + dy/dx_corrected * (east - midLng)
+        if (dx_corrected !== 0) {
+            const rightY = midLat + dy / dx_corrected * (largeBounds.east - midLng);
+            if (rightY >= largeBounds.south && rightY <= largeBounds.north) {
+                intersections.push([rightY, largeBounds.east]);
+                console.log('Right intersection:', rightY);
+            }
+        }
+        
+        // Bottom rand (south) - lat = south, bereken lng
+        if (dy !== 0) {
+            const bottomX = midLng + dx_corrected / dy * (largeBounds.south - midLat);
+            if (bottomX >= largeBounds.west && bottomX <= largeBounds.east) {
+                intersections.push([largeBounds.south, bottomX]);
+                console.log('Bottom intersection:', bottomX);
+            }
+        }
+        
+        // Linker rand (west) - lng = west, bereken lat
+        if (dx_corrected !== 0) {
+            const leftY = midLat + dy / dx_corrected * (largeBounds.west - midLng);
+            if (leftY >= largeBounds.south && leftY <= largeBounds.north) {
+                intersections.push([leftY, largeBounds.west]);
+                console.log('Left intersection:', leftY);
+            }
+        }
+        
+        // Test alle 4 hoeken: welke liggen dichter bij IKEA?
+        const corners = [
+            {lat: largeBounds.north, lng: largeBounds.west},
+            {lat: largeBounds.north, lng: largeBounds.east},
+            {lat: largeBounds.south, lng: largeBounds.east},
+            {lat: largeBounds.south, lng: largeBounds.west}
+        ];
+        
+        const ikeaCorners = corners.filter(corner => {
+            // Gebruik cosinus correctie voor juiste afstandsberekening
+            const dLngIkea = (corner.lng - ikea.lng) * cosLat;
+            const dLatIkea = corner.lat - ikea.lat;
+            const distToIkea = Math.sqrt(dLngIkea * dLngIkea + dLatIkea * dLatIkea);
+            
+            const dLngWeba = (corner.lng - weba.lng) * cosLat;
+            const dLatWeba = corner.lat - weba.lat;
+            const distToWeba = Math.sqrt(dLngWeba * dLngWeba + dLatWeba * dLatWeba);
+            
+            return distToIkea < distToWeba;
+        });
+        
+        // Combineer snijpunten (als objects) en hoeken
+        const intersectionObjects = intersections.map(p => ({lat: p[0], lng: p[1]}));
+        const allPoints = [...intersectionObjects, ...ikeaCorners];
+        
+        // Sorteer punten op hoek rond middelpunt (voor correcte polygon volgorde)
+        allPoints.sort((a, b) => {
+            const angleA = Math.atan2(a.lat - midLat, a.lng - midLng);
+            const angleB = Math.atan2(b.lat - midLat, b.lng - midLng);
+            return angleA - angleB;
+        });
+        
+        // Converteer naar Leaflet formaat
+        const polygonPoints = allPoints.map(p => [p.lat, p.lng]);
+        
+        return L.polygon(polygonPoints, exclusionStyle).bindPopup('❌ Uitgesloten: Dichter bij IKEA');
+    }
+    
+    // Dichter bij IKEA -> je bent dichter bij IKEA, sluit gebied dat dichter bij Weba is uit
+    if (answer === 'Dichter bij IKEA') {
+        const ikea = LOCATIONS.ikea;
+        const weba = LOCATIONS.weba;
+        
+        // Middelpunt tussen IKEA en Weba
+        const midLat = (ikea.lat + weba.lat) / 2;
+        const midLng = (ikea.lng + weba.lng) / 2;
+        
+        // Vector van IKEA naar Weba
+        const dx = weba.lng - ikea.lng;
+        const dy = weba.lat - ikea.lat;
+        
+        // Corrigeer voor lat/lng schaalverschil
+        const cosLat = Math.cos(midLat * Math.PI / 180);
+        const dx_corrected = dx * cosLat;
+        
+        const intersections = [];
+        
+        // Snijpunten met randen - middelloodlijn loodrecht op IKEA-Weba
+        // Loodrechte lijn op (dx_corrected, dy) heeft richting (-dy, dx_corrected)
+        // Vergelijking: -dy * (lng - midLng) = dx_corrected * (lat - midLat)
+        if (dy !== 0) {
+            const topX = midLng - dx_corrected / dy * (largeBounds.north - midLat);
+            if (topX >= largeBounds.west && topX <= largeBounds.east) {
+                intersections.push([largeBounds.north, topX]);
+            }
+        }
+        
+        if (dx_corrected !== 0) {
+            const rightY = midLat - dy / dx_corrected * (largeBounds.east - midLng);
+            if (rightY >= largeBounds.south && rightY <= largeBounds.north) {
+                intersections.push([rightY, largeBounds.east]);
+            }
+        }
+        
+        if (dy !== 0) {
+            const bottomX = midLng - dx_corrected / dy * (largeBounds.south - midLat);
+            if (bottomX >= largeBounds.west && bottomX <= largeBounds.east) {
+                intersections.push([largeBounds.south, bottomX]);
+            }
+        }
+        
+        if (dx_corrected !== 0) {
+            const leftY = midLat - dy / dx_corrected * (largeBounds.west - midLng);
+            if (leftY >= largeBounds.south && leftY <= largeBounds.north) {
+                intersections.push([leftY, largeBounds.west]);
+            }
+        }
+        
+        // Hoeken aan Weba-kant
+        const corners = [
+            {lat: largeBounds.north, lng: largeBounds.west},
+            {lat: largeBounds.north, lng: largeBounds.east},
+            {lat: largeBounds.south, lng: largeBounds.east},
+            {lat: largeBounds.south, lng: largeBounds.west}
+        ];
+        
+        const webaCorners = corners.filter(corner => {
+            // Gebruik cosinus correctie voor juiste afstandsberekening
+            const dLngIkea = (corner.lng - ikea.lng) * cosLat;
+            const dLatIkea = corner.lat - ikea.lat;
+            const distToIkea = Math.sqrt(dLngIkea * dLngIkea + dLatIkea * dLatIkea);
+            
+            const dLngWeba = (corner.lng - weba.lng) * cosLat;
+            const dLatWeba = corner.lat - weba.lat;
+            const distToWeba = Math.sqrt(dLngWeba * dLngWeba + dLatWeba * dLatWeba);
+            
+            return distToWeba < distToIkea;
+        });
+        
+        // Combineer en sorteer op hoek
+        const intersectionObjects = intersections.map(p => ({lat: p[0], lng: p[1]}));
+        const allPoints = [...intersectionObjects, ...webaCorners];
+        allPoints.sort((a, b) => {
+            const angleA = Math.atan2(a.lat - midLat, a.lng - midLng);
+            const angleB = Math.atan2(b.lat - midLat, b.lng - midLng);
+            return angleA - angleB;
+        });
+        
+        const polygonPoints = allPoints.map(p => [p.lat, p.lng]);
+        
+        return L.polygon(polygonPoints, exclusionStyle).bindPopup('❌ Uitgesloten: Dichter bij Weba');
+    }
+    
+    // Oosten van Dampoort -> je bent in oosten, sluit WESTEN uit
+    if (answer === 'Oosten van Dampoort') {
+        const westBox = [
+            [largeBounds.north, largeBounds.west],
+            [largeBounds.north, LOCATIONS.dampoort.lng],
+            [largeBounds.south, LOCATIONS.dampoort.lng],
+            [largeBounds.south, largeBounds.west]
+        ];
+        return L.polygon(westBox, exclusionStyle).bindPopup('❌ Uitgesloten: Westen Dampoort');
+    }
+    
+    // Westen van Dampoort -> je bent in westen, sluit OOSTEN uit
+    if (answer === 'Westen van Dampoort') {
+        const eastBox = [
+            [largeBounds.north, LOCATIONS.dampoort.lng],
+            [largeBounds.north, largeBounds.east],
+            [largeBounds.south, largeBounds.east],
+            [largeBounds.south, LOCATIONS.dampoort.lng]
+        ];
+        return L.polygon(eastBox, exclusionStyle).bindPopup('❌ Uitgesloten: Oosten Dampoort');
+    }
+    
+    // Oosten van watersportbaan tip -> je bent in oosten, sluit WESTEN uit
+    if (answer === 'Oosten van watersportbaan tip') {
+        const westBox = [
+            [largeBounds.north, largeBounds.west],
+            [largeBounds.north, LOCATIONS.watersportbaan_tip.lng],
+            [largeBounds.south, LOCATIONS.watersportbaan_tip.lng],
+            [largeBounds.south, largeBounds.west]
+        ];
+        return L.polygon(westBox, exclusionStyle).bindPopup('❌ Uitgesloten: Westen Watersportbaan');
+    }
+    
+    // Westen van watersportbaan tip -> je bent in westen, sluit OOSTEN uit
+    if (answer === 'Westen van watersportbaan tip') {
+        const eastBox = [
+            [largeBounds.north, LOCATIONS.watersportbaan_tip.lng],
+            [largeBounds.north, largeBounds.east],
+            [largeBounds.south, largeBounds.east],
+            [largeBounds.south, LOCATIONS.watersportbaan_tip.lng]
+        ];
+        return L.polygon(eastBox, exclusionStyle).bindPopup('❌ Uitgesloten: Oosten Watersportbaan');
+    }
+    
+    return null;
 }
 
 /**
