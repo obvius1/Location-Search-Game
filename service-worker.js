@@ -1,16 +1,17 @@
 const CACHE_NAME = 'jet-lag-game-v1';
 const urlsToCache = [
-  '/Location-Search-Game/',
-  '/Location-Search-Game/index.html',
-  '/Location-Search-Game/styles.css',
-  '/Location-Search-Game/app.js',
-  '/Location-Search-Game/cards.js',
-  '/Location-Search-Game/geoUtils.js',
-  '/Location-Search-Game/manifest.json',
-  '/Location-Search-Game/icons/android-chrome-192x192.png',
-  '/Location-Search-Game/icons/android-chrome-512x512.png',
-  '/Location-Search-Game/icons/apple-touch-icon.png',
-  '/Location-Search-Game/icons/favicon-32x32.png',
+  './',
+  './index.html',
+  './styles.css',
+  './app.js',
+  './cards.js',
+  './geoUtils.js',
+  './storage.js',
+  './manifest.json',
+  './icons/android-chrome-192x192.png',
+  './icons/android-chrome-512x512.png',
+  './icons/apple-touch-icon.png',
+  './icons/favicon-32x32.png',
   'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css',
   'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'
 ];
@@ -75,7 +76,7 @@ self.addEventListener('fetch', event => {
           
           // Als het een navigatie request is, return index.html
           if (event.request.mode === 'navigate') {
-            return caches.match('/Location-Search-Game/index.html');
+            return caches.match('./index.html');
           }
           
           return new Response('Offline - geen cache beschikbaar', {
