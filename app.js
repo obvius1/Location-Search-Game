@@ -813,111 +813,80 @@ function createExclusionLayer(answer) {
         const ikea = LOCATIONS.ikea;
         const weba = LOCATIONS.weba;
         
-        // Middelpunt tussen IKEA en Weba
+        // Middelpunt en gecorrigeerde richting
         const midLat = (ikea.lat + weba.lat) / 2;
         const midLng = (ikea.lng + weba.lng) / 2;
-        
-        // Vector van IKEA naar Weba
         const dx = weba.lng - ikea.lng;
         const dy = weba.lat - ikea.lat;
-        
-        // Corrigeer voor lat/lng schaalverschil op deze breedtegraad
-        // Op ~51° is 1° lng ongeveer cos(51°) * 111km ≈ 70km
-        // Terwijl 1° lat altijd ~111km is
         const cosLat = Math.cos(midLat * Math.PI / 180);
-        const dx_corrected = dx * cosLat;
-        
-        console.log('IKEA-Weba debug:', {
-            ikea: `(${ikea.lat}, ${ikea.lng})`,
-            weba: `(${weba.lat}, ${weba.lng})`,
-            mid: `(${midLat}, ${midLng})`,
-            dx, dy,
-            cosLat,
-            dx_corrected
-        });
-        
-        // Bereken snijpunten van middelloodlijn met bounding box randen
-        // De loodrechte lijn op vector (dx_corrected, dy) heeft richting (-dy, dx_corrected)
-        // Vergelijking: -dy * (lng - midLng) + dx_corrected * (lat - midLat) = 0
-        // Of: dx_corrected * (lat - midLat) = dy * (lng - midLng)
-        const intersections = [];
-        
-        // Top rand (north) - lat = north, bereken lng
-        // dx_corrected * (north - midLat) = dy * (lng - midLng)
-        // lng = midLng + dx_corrected/dy * (north - midLat)
-        if (dy !== 0) {
-            const topX = midLng + dx_corrected / dy * (largeBounds.north - midLat);
-            if (topX >= largeBounds.west && topX <= largeBounds.east) {
-                intersections.push([largeBounds.north, topX]);
-                console.log('Top intersection:', topX);
-            }
+        const cos2 = cosLat * cosLat;
+        const A = dy;                  // coefficient for (lat - midLat)
+        const B = dx * cos2;           // coefficient for (lng - midLng)
+
+        // Signed side functie: A*(lat-midLat) + B*(lng-midLng)
+        // Let op: S(ikea) < 0, S(weba) > 0
+        const sideSign = (lat, lng) => A * (lat - midLat) + B * (lng - midLng);
+        const targetSign = Math.sign(sideSign(ikea.lat, ikea.lng)); // we willen IKEA-zijde uitsluiten
+
+        // Snijpunten met de bounding box randen
+        const eps = 1e-12;
+        const ints = [];
+        if (Math.abs(B) > eps) {
+            // lat vaste waarde -> los lng op
+            const topLng = midLng - (A / B) * (largeBounds.north - midLat);
+            if (topLng >= largeBounds.west && topLng <= largeBounds.east) ints.push([largeBounds.north, topLng]);
+            const botLng = midLng - (A / B) * (largeBounds.south - midLat);
+            if (botLng >= largeBounds.west && botLng <= largeBounds.east) ints.push([largeBounds.south, botLng]);
+        } else {
+            // B ~ 0 => verticale lijn op lng = midLng
+            ints.push([largeBounds.north, midLng]);
+            ints.push([largeBounds.south, midLng]);
+        }
+        if (Math.abs(A) > eps) {
+            // lng vaste waarde -> los lat op
+            const rightLat = midLat - (B / A) * (largeBounds.east - midLng);
+            if (rightLat >= largeBounds.south && rightLat <= largeBounds.north) ints.push([rightLat, largeBounds.east]);
+            const leftLat = midLat - (B / A) * (largeBounds.west - midLng);
+            if (leftLat >= largeBounds.south && leftLat <= largeBounds.north) ints.push([leftLat, largeBounds.west]);
+        } else {
+            // A ~ 0 => horizontale lijn op lat = midLat
+            ints.push([midLat, largeBounds.west]);
+            ints.push([midLat, largeBounds.east]);
         }
         
-        // Rechter rand (east) - lng = east, bereken lat
-        // dx_corrected * (lat - midLat) = dy * (east - midLng)
-        // lat = midLat + dy/dx_corrected * (east - midLng)
-        if (dx_corrected !== 0) {
-            const rightY = midLat + dy / dx_corrected * (largeBounds.east - midLng);
-            if (rightY >= largeBounds.south && rightY <= largeBounds.north) {
-                intersections.push([rightY, largeBounds.east]);
-                console.log('Right intersection:', rightY);
-            }
+        // Dedupe snijpunten (lijn kan hoek exact raken)
+        const uniqueInts = [];
+        for (const p of ints) {
+            if (!uniqueInts.some(q => Math.abs(q[0] - p[0]) < 1e-10 && Math.abs(q[1] - p[1]) < 1e-10)) uniqueInts.push(p);
         }
         
-        // Bottom rand (south) - lat = south, bereken lng
-        if (dy !== 0) {
-            const bottomX = midLng + dx_corrected / dy * (largeBounds.south - midLat);
-            if (bottomX >= largeBounds.west && bottomX <= largeBounds.east) {
-                intersections.push([largeBounds.south, bottomX]);
-                console.log('Bottom intersection:', bottomX);
-            }
-        }
-        
-        // Linker rand (west) - lng = west, bereken lat
-        if (dx_corrected !== 0) {
-            const leftY = midLat + dy / dx_corrected * (largeBounds.west - midLng);
-            if (leftY >= largeBounds.south && leftY <= largeBounds.north) {
-                intersections.push([leftY, largeBounds.west]);
-                console.log('Left intersection:', leftY);
-            }
-        }
-        
-        // Test alle 4 hoeken: welke liggen dichter bij IKEA?
+        // Hoeken op de IKEA-zijde (te excluderen)
         const corners = [
-            {lat: largeBounds.north, lng: largeBounds.west},
-            {lat: largeBounds.north, lng: largeBounds.east},
-            {lat: largeBounds.south, lng: largeBounds.east},
-            {lat: largeBounds.south, lng: largeBounds.west}
+            { lat: largeBounds.north, lng: largeBounds.west },
+            { lat: largeBounds.north, lng: largeBounds.east },
+            { lat: largeBounds.south, lng: largeBounds.east },
+            { lat: largeBounds.south, lng: largeBounds.west }
         ];
+        let sideCorners = corners.filter(c => sideSign(c.lat, c.lng) * targetSign >= 0);
         
-        const ikeaCorners = corners.filter(corner => {
-            // Gebruik cosinus correctie voor juiste afstandsberekening
-            const dLngIkea = (corner.lng - ikea.lng) * cosLat;
-            const dLatIkea = corner.lat - ikea.lat;
-            const distToIkea = Math.sqrt(dLngIkea * dLngIkea + dLatIkea * dLatIkea);
-            
-            const dLngWeba = (corner.lng - weba.lng) * cosLat;
-            const dLatWeba = corner.lat - weba.lat;
-            const distToWeba = Math.sqrt(dLngWeba * dLngWeba + dLatWeba * dLatWeba);
-            
-            return distToIkea < distToWeba;
-        });
+        // Fallback: kies 2 beste hoeken als filter geen exact 2 oplevert
+        if (sideCorners.length !== 2) {
+            sideCorners = corners
+                .map(c => ({...c, score: sideSign(c.lat, c.lng) * targetSign}))
+                .sort((a, b) => b.score - a.score)
+                .slice(0, 2);
+        }
         
-        // Combineer snijpunten (als objects) en hoeken
-        const intersectionObjects = intersections.map(p => ({lat: p[0], lng: p[1]}));
-        const allPoints = [...intersectionObjects, ...ikeaCorners];
+        // Bouw convex polygon (2 snijpunten + 2 hoeken) en sorteer op hoek rond middelpunt
+        const points = [
+            ...uniqueInts.map(p => ({ lat: p[0], lng: p[1] })),
+            ...sideCorners
+        ];
+        const cx = points.reduce((s, p) => s + p.lat, 0) / points.length;
+        const cy = points.reduce((s, p) => s + p.lng, 0) / points.length;
+        points.sort((a, b) => Math.atan2(a.lat - cx, a.lng - cy) - Math.atan2(b.lat - cx, b.lng - cy));
         
-        // Sorteer punten op hoek rond middelpunt (voor correcte polygon volgorde)
-        allPoints.sort((a, b) => {
-            const angleA = Math.atan2(a.lat - midLat, a.lng - midLng);
-            const angleB = Math.atan2(b.lat - midLat, b.lng - midLng);
-            return angleA - angleB;
-        });
-        
-        // Converteer naar Leaflet formaat
-        const polygonPoints = allPoints.map(p => [p.lat, p.lng]);
-        
-        return L.polygon(polygonPoints, exclusionStyle).bindPopup('❌ Uitgesloten: Dichter bij IKEA');
+        return L.polygon(points.map(p => [p.lat, p.lng]), exclusionStyle).bindPopup('❌ Uitgesloten: Dichter bij IKEA');
     }
     
     // Dichter bij IKEA -> je bent dichter bij IKEA, sluit gebied dat dichter bij Weba is uit
@@ -925,84 +894,65 @@ function createExclusionLayer(answer) {
         const ikea = LOCATIONS.ikea;
         const weba = LOCATIONS.weba;
         
-        // Middelpunt tussen IKEA en Weba
         const midLat = (ikea.lat + weba.lat) / 2;
         const midLng = (ikea.lng + weba.lng) / 2;
-        
-        // Vector van IKEA naar Weba
         const dx = weba.lng - ikea.lng;
         const dy = weba.lat - ikea.lat;
-        
-        // Corrigeer voor lat/lng schaalverschil
         const cosLat = Math.cos(midLat * Math.PI / 180);
-        const dx_corrected = dx * cosLat;
-        
-        const intersections = [];
-        
-        // Snijpunten met randen - middelloodlijn loodrecht op IKEA-Weba
-        // Loodrechte lijn op (dx_corrected, dy) heeft richting (-dy, dx_corrected)
-        // Vergelijking: -dy * (lng - midLng) = dx_corrected * (lat - midLat)
-        if (dy !== 0) {
-            const topX = midLng - dx_corrected / dy * (largeBounds.north - midLat);
-            if (topX >= largeBounds.west && topX <= largeBounds.east) {
-                intersections.push([largeBounds.north, topX]);
-            }
+        const cos2 = cosLat * cosLat;
+        const A = dy;
+        const B = dx * cos2;
+        const sideSign = (lat, lng) => A * (lat - midLat) + B * (lng - midLng);
+        const targetSign = Math.sign(sideSign(weba.lat, weba.lng)); // we willen Weba-zijde uitsluiten
+
+        const eps = 1e-12;
+        const ints = [];
+        if (Math.abs(B) > eps) {
+            const topLng = midLng - (A / B) * (largeBounds.north - midLat);
+            if (topLng >= largeBounds.west && topLng <= largeBounds.east) ints.push([largeBounds.north, topLng]);
+            const botLng = midLng - (A / B) * (largeBounds.south - midLat);
+            if (botLng >= largeBounds.west && botLng <= largeBounds.east) ints.push([largeBounds.south, botLng]);
+        } else {
+            ints.push([largeBounds.north, midLng]);
+            ints.push([largeBounds.south, midLng]);
+        }
+        if (Math.abs(A) > eps) {
+            const rightLat = midLat - (B / A) * (largeBounds.east - midLng);
+            if (rightLat >= largeBounds.south && rightLat <= largeBounds.north) ints.push([rightLat, largeBounds.east]);
+            const leftLat = midLat - (B / A) * (largeBounds.west - midLng);
+            if (leftLat >= largeBounds.south && leftLat <= largeBounds.north) ints.push([leftLat, largeBounds.west]);
+        } else {
+            ints.push([midLat, largeBounds.west]);
+            ints.push([midLat, largeBounds.east]);
+        }
+        const uniqueInts = [];
+        for (const p of ints) {
+            if (!uniqueInts.some(q => Math.abs(q[0] - p[0]) < 1e-10 && Math.abs(q[1] - p[1]) < 1e-10)) uniqueInts.push(p);
         }
         
-        if (dx_corrected !== 0) {
-            const rightY = midLat - dy / dx_corrected * (largeBounds.east - midLng);
-            if (rightY >= largeBounds.south && rightY <= largeBounds.north) {
-                intersections.push([rightY, largeBounds.east]);
-            }
-        }
-        
-        if (dy !== 0) {
-            const bottomX = midLng - dx_corrected / dy * (largeBounds.south - midLat);
-            if (bottomX >= largeBounds.west && bottomX <= largeBounds.east) {
-                intersections.push([largeBounds.south, bottomX]);
-            }
-        }
-        
-        if (dx_corrected !== 0) {
-            const leftY = midLat - dy / dx_corrected * (largeBounds.west - midLng);
-            if (leftY >= largeBounds.south && leftY <= largeBounds.north) {
-                intersections.push([leftY, largeBounds.west]);
-            }
-        }
-        
-        // Hoeken aan Weba-kant
         const corners = [
-            {lat: largeBounds.north, lng: largeBounds.west},
-            {lat: largeBounds.north, lng: largeBounds.east},
-            {lat: largeBounds.south, lng: largeBounds.east},
-            {lat: largeBounds.south, lng: largeBounds.west}
+            { lat: largeBounds.north, lng: largeBounds.west },
+            { lat: largeBounds.north, lng: largeBounds.east },
+            { lat: largeBounds.south, lng: largeBounds.east },
+            { lat: largeBounds.south, lng: largeBounds.west }
         ];
+        let sideCorners = corners.filter(c => sideSign(c.lat, c.lng) * targetSign >= 0);
+        if (sideCorners.length !== 2) {
+            sideCorners = corners
+                .map(c => ({...c, score: sideSign(c.lat, c.lng) * targetSign}))
+                .sort((a, b) => b.score - a.score)
+                .slice(0, 2);
+        }
         
-        const webaCorners = corners.filter(corner => {
-            // Gebruik cosinus correctie voor juiste afstandsberekening
-            const dLngIkea = (corner.lng - ikea.lng) * cosLat;
-            const dLatIkea = corner.lat - ikea.lat;
-            const distToIkea = Math.sqrt(dLngIkea * dLngIkea + dLatIkea * dLatIkea);
-            
-            const dLngWeba = (corner.lng - weba.lng) * cosLat;
-            const dLatWeba = corner.lat - weba.lat;
-            const distToWeba = Math.sqrt(dLngWeba * dLngWeba + dLatWeba * dLatWeba);
-            
-            return distToWeba < distToIkea;
-        });
+        const points = [
+            ...uniqueInts.map(p => ({ lat: p[0], lng: p[1] })),
+            ...sideCorners
+        ];
+        const cx = points.reduce((s, p) => s + p.lat, 0) / points.length;
+        const cy = points.reduce((s, p) => s + p.lng, 0) / points.length;
+        points.sort((a, b) => Math.atan2(a.lat - cx, a.lng - cy) - Math.atan2(b.lat - cx, b.lng - cy));
         
-        // Combineer en sorteer op hoek
-        const intersectionObjects = intersections.map(p => ({lat: p[0], lng: p[1]}));
-        const allPoints = [...intersectionObjects, ...webaCorners];
-        allPoints.sort((a, b) => {
-            const angleA = Math.atan2(a.lat - midLat, a.lng - midLng);
-            const angleB = Math.atan2(b.lat - midLat, b.lng - midLng);
-            return angleA - angleB;
-        });
-        
-        const polygonPoints = allPoints.map(p => [p.lat, p.lng]);
-        
-        return L.polygon(polygonPoints, exclusionStyle).bindPopup('❌ Uitgesloten: Dichter bij Weba');
+        return L.polygon(points.map(p => [p.lat, p.lng]), exclusionStyle).bindPopup('❌ Uitgesloten: Dichter bij Weba');
     }
     
     // Oosten van Dampoort -> je bent in oosten, sluit WESTEN uit
