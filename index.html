@@ -62,26 +62,71 @@
                 <div id="location-result" class="result-box hidden"></div>
             </section>
 
+            <!-- Cards Section -->
+            <section id="cards-section" class="card hidden">
+                <h2>🃏 Speelkaarten</h2>
+                <div class="view-toggle">
+                    <button id="single-view-btn" class="btn-toggle active">Enkele Kaart</button>
+                    <button id="flop-view-btn" class="btn-toggle">Volledige Flop</button>
+                </div>
+                
+                <!-- Single Card View -->
+                <div id="single-card-view">
+                    <div class="card-counter">
+                        <span>Kaart <span id="current-card-number">1</span> van <span id="total-cards">12</span></span>
+                    </div>
+                    <div id="current-card" class="game-card">
+                        <div class="card-task"></div>
+                        <div class="card-question"></div>
+                    </div>
+                    <div class="card-actions">
+                        <button id="prev-card-btn" class="btn btn-secondary">← Vorige</button>
+                        <button id="discard-card-btn" class="btn btn-danger">✓ Opgelost</button>
+                        <button id="next-card-btn" class="btn btn-secondary">Volgende →</button>
+                    </div>
+                </div>
+                
+                <!-- Flop View -->
+                <div id="flop-view" class="hidden">
+                    <div class="flop-stats">
+                        <span>🃏 <span id="flop-count">12</span> kaarten in flop</span>
+                        <span>📦 <span id="remaining-count">0</span> kaarten in deck</span>
+                        <span id="discarded-stats" class="clickable">✓ <span id="discarded-count">0</span> opgelost</span>
+                    </div>
+                    
+                    <div class="flop-phase-section">
+                        <h3 class="phase-header phase-1-header">🟢 Phase 1 - Early Game</h3>
+                        <div id="flop-phase-1" class="flop-grid"></div>
+                    </div>
+                    
+                    <div class="flop-phase-section">
+                        <h3 class="phase-header phase-2-header">🟡 Phase 2 - Mid Game</h3>
+                        <div id="flop-phase-2" class="flop-grid"></div>
+                    </div>
+                    
+                    <div class="flop-phase-section">
+                        <h3 class="phase-header phase-3-header">🔴 Phase 3 - Late Game</h3>
+                        <div id="flop-phase-3" class="flop-grid"></div>
+                    </div>
+                </div>
+                
+                <!-- Discarded View -->
+                <div id="discarded-view" class="hidden">
+                    <div class="flop-stats">
+                        <button id="back-to-flop-btn" class="btn btn-secondary">← Terug naar flop</button>
+                    </div>
+                    
+                    <div class="flop-phase-section">
+                        <h3 class="phase-header">✓ Opgeloste Kaarten</h3>
+                        <div id="discarded-grid" class="flop-grid"></div>
+                    </div>
+                </div>
+            </section>
+
             <!-- Questions Section -->
             <section id="questions-section" class="card hidden">
                 <h2>❓ Automatische Antwoorden</h2>
                 <div id="questions-result" class="questions-list"></div>
-            </section>
-
-            <!-- Cards Section -->
-            <section id="cards-section" class="card hidden">
-                <h2>🃏 Speelkaarten</h2>
-                <div class="card-counter">
-                    <span>Kaart <span id="current-card-number">1</span> van <span id="total-cards">10</span></span>
-                </div>
-                <div id="current-card" class="game-card">
-                    <div class="card-task"></div>
-                    <div class="card-question"></div>
-                </div>
-                <div class="card-actions">
-                    <button id="prev-card-btn" class="btn btn-secondary">← Vorige</button>
-                    <button id="next-card-btn" class="btn btn-secondary">Volgende →</button>
-                </div>
             </section>
 
             <!-- Game Info -->
@@ -94,7 +139,22 @@
             </section>
         </div>
     </div>
-
+    <!-- Edit Answer Modal -->
+    <div id="edit-answer-modal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Antwoord Wijzigen</h3>
+                <button class="modal-close" onclick="closeEditModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="game-card">
+                    <div id="edit-card-task" class="card-task"></div>
+                    <div id="edit-card-question" class="card-question"></div>
+                </div>
+                <div id="edit-answer-buttons" class="answer-buttons"></div>
+            </div>
+        </div>
+    </div>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="storage.js"></script>
     <script src="geoUtils.js"></script>
