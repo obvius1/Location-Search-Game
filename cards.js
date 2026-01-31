@@ -1,68 +1,27 @@
 // Speelkaarten voor Gent Location Game
 
-// Alle beschikbare kaarten
-const GAME_CARDS = [
-    {
-        task: "🕊️ Voeder een duif",
-        question: "Binnen of buiten R40?"
-    },
-    {
-        task: "📸 Maak een selfie bij een standbeeld",
-        question: "Noorden of zuiden van lijn Leie-Schelde?"
-    },
-    {
-        task: "☕ Bestel een koffie",
-        question: "Dichter bij Weba of IKEA?"
-    },
-    {
-        task: "🚶 Loop 100 meter achteruit",
-        question: "Oosten of westen van station Gent Dampoort?"
-    },
-    {
-        task: "🎵 Zing een liedje in het openbaar",
-        question: "Oosten of westen van de tip van de watersportbaan?"
-    },
-    {
-        task: "🌳 Raak 5 verschillende bomen aan",
-        question: "Binnen of buiten R40?"
-    },
-    {
-        task: "👋 Zwaai naar 10 mensen",
-        question: "Noorden of zuiden van lijn Leie-Schelde?"
-    },
-    {
-        task: "🏃 Ren een minuut lang",
-        question: "Dichter bij Weba of IKEA?"
-    },
-    {
-        task: "🤸 Doe 10 jumping jacks",
-        question: "Oosten of westen van station Gent Dampoort?"
-    },
-    {
-        task: "📱 Maak een TikTok/Reel",
-        question: "Oosten of westen van de tip van de watersportbaan?"
-    },
-    {
-        task: "🍦 Koop iets te eten/drinken",
-        question: "Binnen of buiten R40?"
-    },
-    {
-        task: "🚲 Vind een fiets en raak hem aan",
-        question: "Noorden of zuiden van lijn Leie-Schelde?"
-    },
-    {
-        task: "💬 Vraag de weg aan een vreemdeling",
-        question: "Dichter bij Weba of IKEA?"
-    },
-    {
-        task: "🎨 Vind iets kunst en maak een foto",
-        question: "Oosten of westen van station Gent Dampoort?"
-    },
-    {
-        task: "🌉 Steek een brug over",
-        question: "Oosten of westen van de tip van de watersportbaan?"
+// Alle beschikbare kaarten - worden geladen vanuit cards.json
+let GAME_CARDS = [];
+
+/**
+ * Laadt alle kaarten vanuit het externe cards.json bestand
+ */
+async function loadCards() {
+    try {
+        const response = await fetch('./data/cards.json');
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+        GAME_CARDS = data.cards;
+        console.log(`Kaarten geladen: ${GAME_CARDS.length} kaarten`);
+        return data;
+    } catch (error) {
+        console.error('Fout bij laden kaarten:', error);
+        GAME_CARDS = [];
+        throw error;
     }
-];
+}
 
 /**
  * Simple seeded random number generator (Mulberry32)
@@ -116,62 +75,213 @@ function generateSeed() {
 
 /**
  * Maakt een shuffled deck van kaarten op basis van een seed
+ * Kaarten worden geshufeld per fase (1 -> 2 -> 3)
  */
 function createDeck(seed) {
     const rng = new SeededRandom(seed);
-    return shuffleArray(GAME_CARDS, rng);
+    
+    // Splits kaarten op fase
+    const phase1Cards = GAME_CARDS.filter(card => card.phase === 1);
+    const phase2Cards = GAME_CARDS.filter(card => card.phase === 2);
+    const phase3Cards = GAME_CARDS.filter(card => card.phase === 3);
+    
+    // Shuffle elke fase apart
+    const shuffledPhase1 = shuffleArray(phase1Cards, rng);
+    const shuffledPhase2 = shuffleArray(phase2Cards, rng);
+    const shuffledPhase3 = shuffleArray(phase3Cards, rng);
+    
+    // Combineer: fase 1 -> fase 2 -> fase 3
+    return [...shuffledPhase1, ...shuffledPhase2, ...shuffledPhase3];
 }
 
 /**
- * CardManager class voor het beheren van de kaarten
+ * CardManager class voor het beheren van de kaarten met flop systeem
  */
 class CardManager {
     constructor(seed) {
         this.seed = seed;
         this.deck = createDeck(seed);
-        this.currentIndex = 0;
+        this.flop = []; // 12 kaarten: 4 per fase
+        this.discarded = []; // Kaarten die uit het spel zijn
+        this.deckIndex = 0; // Huidige positie in deck voor nieuwe kaarten
+        
+        // Initialiseer de flop met 4 kaarten per fase
+        this.initializeFlop();
     }
     
-    getCurrentCard() {
-        if (this.currentIndex < 0 || this.currentIndex >= this.deck.length) {
+    /**
+     * Initialiseer de flop met 4 kaarten per fase
+     */
+    initializeFlop() {
+        // Tel kaarten per fase in het deck
+        const phase1Cards = this.deck.filter(c => c.phase === 1);
+        const phase2Cards = this.deck.filter(c => c.phase === 2);
+        const phase3Cards = this.deck.filter(c => c.phase === 3);
+        
+        // Trek 4 kaarten van elke fase
+        this.flop = [
+            ...phase1Cards.slice(0, 4),
+            ...phase2Cards.slice(0, 4),
+            ...phase3Cards.slice(0, 4)
+        ];
+        
+        // Update deck index (we hebben nu 12 kaarten getrokken)
+        this.deckIndex = 12;
+    }
+    
+    /**
+     * Herstel flop uit opgeslagen state
+     */
+    restoreFlop(flopState, discardedState, deckIndex) {
+        if (flopState && Array.isArray(flopState)) {
+            this.flop = flopState;
+        }
+        if (discardedState && Array.isArray(discardedState)) {
+            this.discarded = discardedState;
+        }
+        if (typeof deckIndex === 'number') {
+            this.deckIndex = deckIndex;
+        }
+    }
+    
+    /**
+     * Verkrijg alle kaarten in de flop
+     */
+    getFlop() {
+        return this.flop;
+    }
+    
+    /**
+     * Verkrijg kaarten per fase
+     */
+    getFlopByPhase(phase) {
+        return this.flop.filter(card => card.phase === phase);
+    }
+    
+    /**
+     * Verwijder een kaart uit de flop en trek een nieuwe
+     */
+    discardCard(cardIndex) {
+        if (cardIndex < 0 || cardIndex >= this.flop.length) {
+            console.error('Ongeldige kaart index:', cardIndex);
+            return false;
+        }
+        
+        const card = this.flop[cardIndex];
+        const phase = card.phase;
+        
+        // Verplaats naar discarded
+        this.discarded.push(card);
+        
+        // Trek nieuwe kaart van dezelfde fase
+        const newCard = this.drawCard(phase);
+        
+        if (newCard) {
+            // Vervang de kaart in de flop
+            this.flop[cardIndex] = newCard;
+        } else {
+            // Geen kaarten meer beschikbaar, verwijder uit flop
+            this.flop.splice(cardIndex, 1);
+        }
+        
+        return true;
+    }
+    
+    /**
+     * Trek een nieuwe kaart van een specifieke fase
+     */
+    drawCard(phase) {
+        // Zoek volgende kaart in deck met de juiste fase
+        for (let i = this.deckIndex; i < this.deck.length; i++) {
+            const card = this.deck[i];
+            if (card.phase === phase && !this.isCardInFlop(card) && !this.isCardDiscarded(card)) {
+                this.deckIndex = i + 1;
+                return card;
+            }
+        }
+        
+        // Geen kaarten meer beschikbaar
+        return null;
+    }
+    
+    /**
+     * Check of een kaart al in de flop zit
+     */
+    isCardInFlop(card) {
+        return this.flop.some(c => c.task === card.task && c.question === card.question);
+    }
+    
+    /**
+     * Check of een kaart al gediscard is
+     */
+    isCardDiscarded(card) {
+        return this.discarded.some(c => c.task === card.task && c.question === card.question);
+    }
+    
+    /**
+     * Verkrijg een specifieke kaart uit de flop
+     */
+    getCard(index) {
+        if (index < 0 || index >= this.flop.length) {
             return null;
         }
-        return this.deck[this.currentIndex];
+        return this.flop[index];
     }
     
-    nextCard() {
-        if (this.currentIndex < this.deck.length - 1) {
-            this.currentIndex++;
-            return this.getCurrentCard();
-        }
-        return null;
-    }
-    
-    previousCard() {
-        if (this.currentIndex > 0) {
-            this.currentIndex--;
-            return this.getCurrentCard();
-        }
-        return null;
-    }
-    
-    hasNext() {
-        return this.currentIndex < this.deck.length - 1;
-    }
-    
-    hasPrevious() {
-        return this.currentIndex > 0;
-    }
-    
+    /**
+     * Verkrijg het totaal aantal kaarten in de flop
+     */
     getTotalCards() {
-        return this.deck.length;
+        return this.flop.length;
+    }
+    
+    /**
+     * Verkrijg het aantal resterende kaarten in het deck
+     */
+    getRemainingCards() {
+        return this.deck.length - this.deckIndex;
+    }
+    
+    /**
+     * Verkrijg de seed
+     */
+    getSeed() {
+        return this.seed;
+    }
+    
+    /**
+     * Verkrijg state voor opslag
+     */
+    getState() {
+        return {
+            flop: this.flop,
+            discarded: this.discarded,
+            deckIndex: this.deckIndex
+        };
+    }
+    
+    // Legacy methoden voor backward compatibility
+    getCurrentCard() {
+        return this.flop[0] || null;
     }
     
     getCurrentIndex() {
-        return this.currentIndex;
+        return 0;
     }
     
-    getSeed() {
-        return this.seed;
+    nextCard() {
+        return this.flop[1] || null;
+    }
+    
+    previousCard() {
+        return this.flop[0] || null;
+    }
+    
+    hasNext() {
+        return this.flop.length > 1;
+    }
+    
+    hasPrevious() {
+        return false;
     }
 }

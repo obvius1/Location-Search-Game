@@ -105,7 +105,7 @@ function hasActiveGame() {
 /**
  * Sla antwoord van tegenstander op voor een specifieke kaart
  */
-function saveOpponentAnswer(cardIndex, opponentAnswer) {
+function saveOpponentAnswer(cardIndex, opponentAnswer, cardTask = null) {
     const data = loadGameData();
     
     // Check of er al een antwoord is voor deze kaart
@@ -122,6 +122,7 @@ function saveOpponentAnswer(cardIndex, opponentAnswer) {
     const answerData = {
         cardIndex,
         opponentAnswer,
+        cardTask, // Sla task op voor latere referentie
         timestamp: new Date().toISOString()
     };
     
@@ -153,6 +154,82 @@ function hasOpponentAnswer(cardIndex) {
 }
 
 /**
+ * Sla antwoord op voor een opgeloste (discarded) kaart
+ */
+function saveDiscardedAnswer(discardedIndex, answer, cardTask = null, originalCardIndex = null) {
+    const key = `discardedAnswer_${discardedIndex}`;
+    const data = { answer, cardTask, originalCardIndex };
+    localStorage.setItem(key, JSON.stringify(data));
+}
+
+/**
+ * Haal antwoord op voor een opgeloste (discarded) kaart
+ */
+function getDiscardedAnswer(discardedIndex) {
+    const key = `discardedAnswer_${discardedIndex}`;
+    const stored = localStorage.getItem(key);
+    if (!stored) return null;
+    
+    try {
+        const data = JSON.parse(stored);
+        return data.answer || stored; // Fallback voor oude format
+    } catch {
+        return stored; // Oude string format
+    }
+}
+
+/**
+ * Haal volledige discarded answer data op
+ */
+function getDiscardedAnswerData(discardedIndex) {
+    const key = `discardedAnswer_${discardedIndex}`;
+    const stored = localStorage.getItem(key);
+    if (!stored) return null;
+    
+    try {
+        return JSON.parse(stored);
+    } catch {
+        return { answer: stored }; // Oude string format
+    }
+}
+
+/**
+ * Update opponent answer op basis van card task
+ */
+function updateOpponentAnswerByTask(cardTask, newAnswer) {
+    const data = loadGameData();
+    
+    // Zoek de opponent answer met deze card task
+    const answerEntry = data.cardAnswers.find(a => a.cardTask === cardTask);
+    
+    if (answerEntry) {
+        answerEntry.opponentAnswer = newAnswer;
+        saveGameData(data);
+        return true;
+    }
+    
+    return false;
+}
+
+/**
+ * Update opponent answer op basis van originele cardIndex
+ */
+function updateOpponentAnswerByIndex(originalCardIndex, newAnswer) {
+    const data = loadGameData();
+    
+    // Zoek de opponent answer met deze cardIndex
+    const answerEntry = data.cardAnswers.find(a => a.cardIndex === originalCardIndex);
+    
+    if (answerEntry) {
+        answerEntry.opponentAnswer = newAnswer;
+        saveGameData(data);
+        return true;
+    }
+    
+    return false;
+}
+
+/**
  * Check of locatie is ingesteld
  */
 function hasLocation() {
@@ -164,8 +241,22 @@ function hasLocation() {
  * Reset alle game data (nieuw spel)
  */
 function resetGameData() {
+    // Verwijder hoofdgame data
     localStorage.removeItem(STORAGE_KEY);
-    console.log('Game data reset');
+    localStorage.removeItem('cardManagerState');
+    localStorage.removeItem('opponentAnswers');
+    
+    // Verwijder alle discarded answers
+    const keysToRemove = [];
+    for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith('discardedAnswer_')) {
+            keysToRemove.push(key);
+        }
+    }
+    keysToRemove.forEach(key => localStorage.removeItem(key));
+    
+    console.log('Game data reset (inclusief card manager state, antwoorden en discarded answers)');
     return true;
 }
 

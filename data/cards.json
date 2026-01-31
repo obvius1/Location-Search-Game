@@ -1,0 +1,87 @@
+{
+  "cards": [
+    {
+      "task": "🕊️ Voeder een duif",
+      "question": "WTF IS UP WITH THAT",
+      "phase": 1,
+      "requiresAnswer": false
+    },
+    {
+      "task": "📸 Maak een selfie bij een standbeeld",
+      "question": "Noorden of zuiden van lijn Leie-Schelde?",
+      "phase": 1
+    },
+    {
+      "task": "☕ Bestel een koffie",
+      "question": "Dichter bij Weba of IKEA?",
+      "phase": 1
+    },
+    {
+      "task": "🌳 Raak 5 verschillende bomen aan",
+      "question": "Binnen of buiten R40?",
+      "phase": 1
+    },
+    {
+      "task": "🚲 Vind een fiets en raak hem aan",
+      "question": "Noorden of zuiden van lijn Leie-Schelde?",
+      "phase": 1
+    },
+    {
+      "task": "Blubber blubber blubber",
+      "question": "Noorden of zuiden van lijn Leie-Schelde?",
+      "phase": 1
+    },
+    {
+      "task": "🚶 Loop 100 meter achteruit",
+      "question": "Oosten of westen van station Gent Dampoort?",
+      "phase": 2
+    },
+    {
+      "task": "👋 Zwaai naar 10 mensen",
+      "question": "Noorden of zuiden van lijn Leie-Schelde?",
+      "phase": 2
+    },
+    {
+      "task": "🏃 Ren een minuut lang",
+      "question": "Dichter bij Weba of IKEA?",
+      "phase": 2,
+      "requiresAnswer": false
+    },
+    {
+      "task": "💬 Vraag de weg aan een vreemdeling",
+      "question": "Dichter bij Weba of IKEA?",
+      "phase": 2
+    },
+    {
+      "task": "🎨 Vind iets kunst en maak een foto",
+      "question": "Oosten of westen van station Gent Dampoort?",
+      "phase": 2
+    },
+    {
+      "task": "🎵 Zing een liedje in het openbaar",
+      "question": "Oosten of westen van de tip van de watersportbaan?",
+      "phase": 3
+    },
+    {
+      "task": "🤸 Doe 10 jumping jacks",
+      "question": "Oosten of westen van station Gent Dampoort?",
+      "phase": 3
+    },
+    {
+      "task": "📱 Maak een TikTok/Reel",
+      "question": "Oosten of westen van de tip van de watersportbaan?",
+      "phase": 3
+    },
+    {
+      "task": "🍦 Koop iets te eten/drinken",
+      "question": "Binnen of buiten R40?",
+      "phase": 3
+    },
+    {
+      "task": "🌉 Steek een brug over",
+      "question": "Oosten of westen van de tip van de watersportbaan?",
+      "phase": 3,
+      "requiresAnswer": false
+    }
+  ]
+}

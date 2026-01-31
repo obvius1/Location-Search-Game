@@ -9,6 +9,7 @@ let leieScheldeLine = null;
 let currentLocationMarker = null;
 let accuracyCircle = null;
 let exclusionLayers = []; // Array van uitgesloten zones op de kaart
+let currentCardIndex = 0; // Index voor single card view
 
 // DOM elements
 const controlsContainer = document.getElementById('controls-container');
@@ -29,11 +30,20 @@ const locationStatus = document.getElementById('location-status');
 const locationResult = document.getElementById('location-result');
 const questionsResult = document.getElementById('questions-result');
 
+const singleViewBtn = document.getElementById('single-view-btn');
+const flopViewBtn = document.getElementById('flop-view-btn');
+const singleCardView = document.getElementById('single-card-view');
+const flopView = document.getElementById('flop-view');
+const discardedView = document.getElementById('discarded-view');
+const discardedStats = document.getElementById('discarded-stats');
+const backToFlopBtn = document.getElementById('back-to-flop-btn');
+
 const currentCardNumber = document.getElementById('current-card-number');
 const totalCards = document.getElementById('total-cards');
 const currentCardElement = document.getElementById('current-card');
 const prevCardBtn = document.getElementById('prev-card-btn');
 const nextCardBtn = document.getElementById('next-card-btn');
+const discardCardBtn = document.getElementById('discard-card-btn');
 
 const currentSeedDisplay = document.getElementById('current-seed');
 const copySeedBtn = document.getElementById('copy-seed-btn');
@@ -44,8 +54,13 @@ generateSeedBtn.addEventListener('click', handleGenerateSeed);
 startGameBtn.addEventListener('click', handleStartGame);
 getGpsBtn.addEventListener('click', handleGetGPS);
 confirmLocationBtn.addEventListener('click', handleConfirmLocation);
+singleViewBtn.addEventListener('click', () => switchView('single'));
+flopViewBtn.addEventListener('click', () => switchView('flop'));
+discardedStats.addEventListener('click', () => switchView('discarded'));
+backToFlopBtn.addEventListener('click', () => switchView('flop'));
 prevCardBtn.addEventListener('click', handlePreviousCard);
 nextCardBtn.addEventListener('click', handleNextCard);
+discardCardBtn.addEventListener('click', handleDiscardCard);
 copySeedBtn.addEventListener('click', handleCopySeed);
 resetGameBtn.addEventListener('click', handleResetGame);
 
@@ -53,8 +68,9 @@ resetGameBtn.addEventListener('click', handleResetGame);
 document.addEventListener('DOMContentLoaded', async () => {
     console.log('Gent Location Game geladen!');
     
-    // Laad zone data
+    // Laad zone data en kaarten
     await loadZones();
+    await loadCards();
     
     initializeMap();
     initializeControls();
@@ -122,6 +138,10 @@ function loadSavedGameData() {
                 locationStatus.querySelector('.status-icon').textContent = '✅';
                 locationStatus.querySelector('.status-text').textContent = 'Locatie vastgelegd (hersteld)';
                 locationStatus.classList.add('valid');
+                
+                // Verberg GPS-knop en adjust container
+                getGpsBtn.style.display = 'none';
+                adjustLocationContainer.style.display = 'none';
                 
                 // Toon details
                 locationResult.classList.remove('hidden');
@@ -347,15 +367,38 @@ function handleGenerateSeed() {
  * Start het spel met de opgegeven seed
  */
 function handleStartGame() {
-    const seed = seedInput.value.trim();
+    const seed = seedInput.value.trim().toUpperCase();
     
     if (!seed) {
         alert('Voer een spel code in of genereer er een!');
         return;
     }
     
+    // Update input veld met hoofdletters
+    seedInput.value = seed;
+    
+    // Check of dit een NIEUWE seed is (verschillend van opgeslagen seed)
+    const gameData = loadGameData();
+    const isNewSeed = !gameData.seed || gameData.seed !== seed;
+    
+    if (isNewSeed) {
+        console.log('Nieuwe seed gedetecteerd - reset card manager state');
+        // Wis oude card manager state en antwoorden voor nieuw spel
+        localStorage.removeItem('cardManagerState');
+        localStorage.removeItem('opponentAnswers');
+    }
+    
     // Initialiseer card manager
     cardManager = new CardManager(seed);
+    
+    // Laad opgeslagen state alleen als het DEZELFDE seed is
+    if (!isNewSeed) {
+        const savedState = loadCardManagerState();
+        if (savedState && savedState.flop) {
+            cardManager.restoreFlop(savedState.flop, savedState.discarded, savedState.deckIndex);
+            console.log('Card manager state hersteld voor bestaande seed');
+        }
+    }
     
     // Sla seed op in storage
     saveSeed(seed);
@@ -371,9 +414,10 @@ function handleStartGame() {
     cardsSection.classList.remove('hidden');
     
     // Update kaart display
+    currentCardIndex = 0;
     updateCardDisplay();
     
-    console.log(`Spel gestart met seed: ${seed}`);
+    console.log(`Spel gestart met seed: ${seed}, ${cardManager.getFlop().length} kaarten in flop`);
 }
 
 /**
@@ -441,7 +485,23 @@ async function handleGetGPS() {
         locationStatus.querySelector('.status-text').textContent = 'Fout bij ophalen GPS';
         locationStatus.classList.add('invalid');
         
-        alert(error.message);
+        // Uitgebreide error messaging
+        let errorMsg = error.message;
+        
+        // iOS-specifieke check
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+        const isHTTPS = window.location.protocol === 'https:';
+        
+        if (isIOS && !isHTTPS) {
+            errorMsg = '⚠️ iOS vereist HTTPS voor GPS\n\n' +
+                      'Localhost werkt niet op iPhone.\n\n' +
+                      'Oplossingen:\n' +
+                      '1. Deploy naar GitHub Pages (HTTPS)\n' +
+                      '2. Gebruik ngrok voor tijdelijke HTTPS URL\n' +
+                      '3. Test op desktop browser';
+        }
+        
+        alert(errorMsg);
         getGpsBtn.disabled = false;
         getGpsBtn.textContent = 'Haal GPS Locatie Op';
     }
@@ -498,7 +558,8 @@ function handleConfirmLocation() {
         locationStatus.querySelector('.status-text').textContent = 'Locatie vastgelegd';
         locationStatus.classList.add('valid');
         
-        // Verberg adjust container
+        // Verberg GPS-knop en adjust container
+        getGpsBtn.style.display = 'none';
         adjustLocationContainer.style.display = 'none';
         
         // Toon locatie details
@@ -599,17 +660,45 @@ function displayQuestions(checks) {
 function updateCardDisplay() {
     if (!cardManager) return;
     
-    const card = cardManager.getCurrentCard();
-    if (!card) return;
+    const flop = cardManager.getFlop();
+    if (flop.length === 0) {
+        currentCardElement.innerHTML = '<p>Geen kaarten meer beschikbaar!</p>';
+        return;
+    }
     
-    const cardIndex = cardManager.getCurrentIndex();
+    // Zorg dat index binnen bereik blijft
+    if (currentCardIndex >= flop.length) {
+        currentCardIndex = flop.length - 1;
+    }
+    if (currentCardIndex < 0) {
+        currentCardIndex = 0;
+    }
+    
+    const card = flop[currentCardIndex];
+    if (!card) return;
     
     // Update content
     currentCardElement.querySelector('.card-task').textContent = card.task;
     currentCardElement.querySelector('.card-question').textContent = `Vraag: ${card.question}`;
     
+    // Voeg of update phase badge toe
+    let phaseBadge = currentCardElement.querySelector('.phase-badge');
+    if (!phaseBadge) {
+        phaseBadge = document.createElement('div');
+        phaseBadge.className = 'phase-badge';
+        currentCardElement.insertBefore(phaseBadge, currentCardElement.firstChild);
+    }
+    
+    // Update phase badge
+    const phaseNames = { 1: 'Early', 2: 'Mid', 3: 'Late' };
+    phaseBadge.textContent = phaseNames[card.phase] || 'Phase ' + card.phase;
+    phaseBadge.className = `phase-badge phase-${card.phase}`;
+    
+    // Check of deze kaart een antwoord vereist
+    const requiresAnswer = card.requiresAnswer !== false; // Default true
+    
     // Haal bestaand antwoord op (indien aanwezig)
-    const opponentAnswer = getOpponentAnswer(cardIndex);
+    const opponentAnswer = getOpponentAnswer(currentCardIndex);
     
     // Voeg antwoord sectie toe (of update)
     let answerSection = currentCardElement.querySelector('.card-answer-section');
@@ -619,37 +708,54 @@ function updateCardDisplay() {
         currentCardElement.appendChild(answerSection);
     }
     
-    if (opponentAnswer) {
-        // Toon het opgeslagen antwoord
+    if (!requiresAnswer) {
+        // Kaart vereist geen antwoord - toon gewoon opgelost knop
+        answerSection.innerHTML = `
+            <div class="answer-input">
+                <div class="answer-label">💡 Voltooi de task en markeer als opgelost</div>
+                <button class="btn btn-success" onclick="handleDirectDiscard(${currentCardIndex})">✓ Opgelost</button>
+            </div>
+        `;
+    } else if (opponentAnswer) {
+        // Toon het opgeslagen antwoord - kaart is al opgelost
         answerSection.innerHTML = `
             <div class="answer-received">
-                <div class="answer-label">✅ Antwoord tegenstander:</div>
+                <div class="answer-label">✅ Kaart opgelost - Antwoord tegenstander:</div>
                 <div class="answer-value">${opponentAnswer}</div>
-                <button class="btn-change-answer" onclick="changeOpponentAnswer(${cardIndex})">Wijzig</button>
+                <button class="btn-change-answer" onclick="changeOpponentAnswer(${currentCardIndex})">Wijzig</button>
             </div>
         `;
     } else {
         // Toon knoppen om antwoord in te voeren
         answerSection.innerHTML = `
             <div class="answer-input">
-                <div class="answer-label">⏳ Wacht op antwoord tegenstander:</div>
-                <div class="answer-buttons" id="answer-buttons-${cardIndex}">
+                <div class="answer-label">💡 Voltooi de task, stel de vraag aan je tegenstander en voer het antwoord in:</div>
+                <div class="answer-buttons" id="answer-buttons-${currentCardIndex}">
                     <!-- Buttons worden dynamisch gegenereerd op basis van vraag type -->
                 </div>
+                <p class="answer-hint">→ Na het invoeren wordt de kaart automatisch opgelost</p>
             </div>
         `;
         
         // Genereer de juiste antwoord knoppen op basis van de vraag
-        generateAnswerButtons(cardIndex, card.question);
+        generateAnswerButtons(currentCardIndex, card.question);
     }
     
     // Update counter
-    currentCardNumber.textContent = cardIndex + 1;
-    totalCards.textContent = cardManager.getTotalCards();
+    currentCardNumber.textContent = currentCardIndex + 1;
+    totalCards.textContent = flop.length;
     
     // Update button states
-    prevCardBtn.disabled = !cardManager.hasPrevious();
-    nextCardBtn.disabled = !cardManager.hasNext();
+    prevCardBtn.disabled = currentCardIndex === 0;
+    nextCardBtn.disabled = currentCardIndex >= flop.length - 1;
+    
+    // Toon discard knop alleen als er GEEN antwoord is EN antwoord vereist is (voor wanneer tegenstander kaart eerst speelt)
+    if (opponentAnswer || !requiresAnswer) {
+        discardCardBtn.style.display = 'none';
+    } else {
+        discardCardBtn.style.display = 'block';
+        discardCardBtn.textContent = '🗑️ Tegenstander speelde dit eerst';
+    }
 }
 
 /**
@@ -659,23 +765,7 @@ function generateAnswerButtons(cardIndex, question) {
     const container = document.getElementById(`answer-buttons-${cardIndex}`);
     if (!container) return;
     
-    let buttons = [];
-    
-    // Bepaal welke knoppen nodig zijn op basis van de vraag
-    if (question.includes('Binnen of buiten R40')) {
-        buttons = ['Binnen R40', 'Buiten R40'];
-    } else if (question.includes('Noorden of zuiden')) {
-        buttons = ['Noorden van Leie-Schelde', 'Zuiden van Leie-Schelde'];
-    } else if (question.includes('Dichter bij Weba of IKEA')) {
-        buttons = ['Dichter bij Weba', 'Dichter bij IKEA'];
-    } else if (question.includes('Oosten of westen van station Gent Dampoort')) {
-        buttons = ['Oosten van Dampoort', 'Westen van Dampoort'];
-    } else if (question.includes('Oosten of westen van de tip van de watersportbaan')) {
-        buttons = ['Oosten van watersportbaan tip', 'Westen van watersportbaan tip'];
-    } else {
-        // Fallback voor andere vragen
-        buttons = ['Ja', 'Nee'];
-    }
+    const buttons = getAnswerButtonsForQuestion(question);
     
     // Maak knoppen aan
     buttons.forEach(answer => {
@@ -691,10 +781,26 @@ function generateAnswerButtons(cardIndex, question) {
  * Verwerk antwoord van tegenstander
  */
 function handleOpponentAnswer(cardIndex, answer) {
-    saveOpponentAnswer(cardIndex, answer);
+    const card = cardManager.getCard(cardIndex);
+    saveOpponentAnswer(cardIndex, answer, card?.task);
     updateExclusionZones();
+    
+    // Automatisch discard de kaart wanneer antwoord is gegeven
+    if (cardManager && cardIndex < cardManager.getFlop().length) {
+        // Bewaar het antwoord voor deze discarded kaart (voordat we discard)
+        const currentDiscardedCount = cardManager.discarded.length;
+        saveDiscardedAnswer(currentDiscardedCount, answer, card?.task, cardIndex);
+        
+        cardManager.discardCard(cardIndex);
+        saveCardManagerState();
+        
+        // Update current index als deze kaart wordt verwijderd
+        if (currentCardIndex === cardIndex && currentCardIndex >= cardManager.getFlop().length) {
+            currentCardIndex = Math.max(0, cardManager.getFlop().length - 1);
+        }
+    }
+    
     updateCardDisplay();
-    console.log(`Antwoord tegenstander voor kaart ${cardIndex}: ${answer}`);
 }
 
 /**
@@ -1003,24 +1109,6 @@ function createExclusionLayer(answer) {
 }
 
 /**
- * Ga naar vorige kaart
- */
-function handlePreviousCard() {
-    if (cardManager && cardManager.previousCard()) {
-        updateCardDisplay();
-    }
-}
-
-/**
- * Ga naar volgende kaart
- */
-function handleNextCard() {
-    if (cardManager && cardManager.nextCard()) {
-        updateCardDisplay();
-    }
-}
-
-/**
  * Kopieer seed naar clipboard
  */
 async function handleCopySeed() {
@@ -1061,3 +1149,381 @@ function handleResetGame() {
     // Reload pagina voor verse start
     window.location.reload();
 }
+
+/**
+ * Switch tussen single card, flop view en discarded view
+ */
+function switchView(view) {
+    if (view === 'single') {
+        singleViewBtn.classList.add('active');
+        flopViewBtn.classList.remove('active');
+        singleCardView.classList.remove('hidden');
+        flopView.classList.add('hidden');
+        discardedView.classList.add('hidden');
+    } else if (view === 'flop') {
+        singleViewBtn.classList.remove('active');
+        flopViewBtn.classList.add('active');
+        singleCardView.classList.add('hidden');
+        flopView.classList.remove('hidden');
+        discardedView.classList.add('hidden');
+        renderFlopView();
+    } else if (view === 'discarded') {
+        singleViewBtn.classList.remove('active');
+        flopViewBtn.classList.remove('active');
+        singleCardView.classList.add('hidden');
+        flopView.classList.add('hidden');
+        discardedView.classList.remove('hidden');
+        renderDiscardedView();
+    }
+}
+
+/**
+ * Render de volledige flop view
+ */
+function renderFlopView() {
+    if (!cardManager) return;
+    
+    const flop = cardManager.getFlop();
+    const remaining = cardManager.getRemainingCards();
+    const discarded = cardManager.discarded.length;
+    
+    // Update stats
+    document.getElementById('flop-count').textContent = flop.length;
+    document.getElementById('remaining-count').textContent = remaining;
+    document.getElementById('discarded-count').textContent = discarded;
+    
+    // Render kaarten per fase
+    for (let phase = 1; phase <= 3; phase++) {
+        const phaseCards = flop.filter(card => card.phase === phase);
+        const container = document.getElementById(`flop-phase-${phase}`);
+        container.innerHTML = '';
+        
+        phaseCards.forEach((card, phaseIndex) => {
+            // Vind de globale index in de flop
+            const globalIndex = flop.findIndex(c => c === card);
+            const hasAnswer = getOpponentAnswer(globalIndex);
+            const requiresAnswer = card.requiresAnswer !== false; // Default true
+            
+            const cardEl = document.createElement('div');
+            cardEl.className = 'flop-card';
+            
+            // Toon verschillende UI afhankelijk van of er een antwoord is
+            if (hasAnswer) {
+                cardEl.innerHTML = `
+                    <div class="card-task">${card.task}</div>
+                    <div class="card-question">${card.question || ''}</div>
+                    <div class="answer-indicator">✅ Antwoord: ${hasAnswer}</div>
+                    <div class="flop-card-actions">
+                        <button class="btn-flop-view-primary" onclick="viewCardDetail(${globalIndex})">👁️ Bekijk</button>
+                        <button class="btn-flop-edit" onclick="changeOpponentAnswer(${globalIndex})">✏️</button>
+                    </div>
+                `;
+            } else if (!requiresAnswer) {
+                // Kaart vereist geen antwoord
+                cardEl.innerHTML = `
+                    <div class="card-task">${card.task}</div>
+                    <div class="card-question">${card.question || ''}</div>
+                    <div class="answer-indicator">⏳ Wacht op voltooiing</div>
+                    <div class="flop-card-actions">
+                        <button class="btn-flop-view-primary" onclick="viewCardDetail(${globalIndex})">👁️ Speel Kaart</button>
+                        <button class="btn-flop-discard-small" onclick="handleDirectDiscard(${globalIndex})">✓</button>
+                    </div>
+                `;
+            } else {
+                cardEl.innerHTML = `
+                    <div class="card-task">${card.task}</div>
+                    <div class="card-question">${card.question}</div>
+                    <div class="answer-indicator">⏳ Wacht op antwoord</div>
+                    <div class="flop-card-actions">
+                        <button class="btn-flop-view-primary" onclick="viewCardDetail(${globalIndex})">👁️ Speel Kaart</button>
+                        <button class="btn-flop-discard-small" onclick="discardCardFromFlop(${globalIndex})">🗑️</button>
+                    </div>
+                `;
+            }
+            
+            container.appendChild(cardEl);
+        });
+    }
+}
+
+/**
+ * Render de opgeloste kaarten view
+ */
+function renderDiscardedView() {
+    if (!cardManager) return;
+    
+    const discarded = cardManager.discarded;
+    const container = document.getElementById('discarded-grid');
+    container.innerHTML = '';
+    
+    if (discarded.length === 0) {
+        container.innerHTML = '<p class="no-cards">Nog geen opgeloste kaarten.</p>';
+        return;
+    }
+    
+    // Toon alle opgeloste kaarten
+    discarded.forEach((card, discardedIndex) => {
+        const cardEl = document.createElement('div');
+        cardEl.className = 'flop-card discarded-card';
+        
+        // Haal het opgeslagen antwoord op
+        const answer = getDiscardedAnswer(discardedIndex);
+        const requiresAnswer = card.requiresAnswer !== false;
+        
+        if (!requiresAnswer) {
+            // Kaart zonder antwoord
+            cardEl.innerHTML = `
+                <div class="card-task">${card.task}</div>
+                <div class="card-question">${card.question || ''}</div>
+                <div class="answer-indicator success">✓ Voltooid</div>
+            `;
+        } else {
+            // Kaart met antwoord
+            cardEl.innerHTML = `
+                <div class="card-task">${card.task}</div>
+                <div class="card-question">${card.question}</div>
+                <div class="answer-indicator success">✓ Opgelost: ${answer || 'Geen antwoord'}</div>
+                <div class="flop-card-actions">
+                    <button class="btn-flop-edit" onclick="editDiscardedAnswer(${discardedIndex})">✏️ Wijzig Antwoord</button>
+                </div>
+            `;
+        }
+        
+        container.appendChild(cardEl);
+    });
+}
+
+/**
+ * Bewerk het antwoord van een opgeloste kaart
+ */
+function editDiscardedAnswer(discardedIndex) {
+    if (!cardManager) return;
+    
+    const card = cardManager.discarded[discardedIndex];
+    if (!card) return;
+    
+    // Toon modal met kaart en antwoordknoppen
+    const modal = document.getElementById('edit-answer-modal');
+    const taskEl = document.getElementById('edit-card-task');
+    const questionEl = document.getElementById('edit-card-question');
+    const buttonsContainer = document.getElementById('edit-answer-buttons');
+    
+    taskEl.textContent = card.task;
+    questionEl.textContent = card.question;
+    
+    // Genereer antwoordknoppen op basis van vraag
+    buttonsContainer.innerHTML = '';
+    const buttons = getAnswerButtonsForQuestion(card.question);
+    
+    buttons.forEach(answer => {
+        const btn = document.createElement('button');
+        btn.className = 'btn-answer';
+        btn.textContent = answer;
+        btn.onclick = () => {
+            // Haal de originele cardIndex op
+            const discardedData = getDiscardedAnswerData(discardedIndex);
+            const originalCardIndex = discardedData?.originalCardIndex;
+            
+            saveDiscardedAnswer(discardedIndex, answer, card.task, originalCardIndex);
+            
+            // Update de opponent answer via originele cardIndex
+            let updated = false;
+            if (originalCardIndex !== null && originalCardIndex !== undefined) {
+                updated = updateOpponentAnswerByIndex(originalCardIndex, answer);
+            }
+            
+            // Fallback: probeer via cardTask
+            if (!updated) {
+                updated = updateOpponentAnswerByTask(card.task, answer);
+            }
+            
+            // Fallback 2: Als er maar 1 opponent answer is, update die
+            if (!updated) {
+                const gameData = loadGameData();
+                if (gameData.cardAnswers && gameData.cardAnswers.length === 1) {
+                    gameData.cardAnswers[0].opponentAnswer = answer;
+                    saveGameData(gameData);
+                    updated = true;
+                }
+            }
+            
+            updateExclusionZones(); // Update kaart zones
+            closeEditModal();
+            renderDiscardedView(); // Refresh discarded view
+            renderFlopView(); // Refresh flop view als die zichtbaar is
+        };
+        buttonsContainer.appendChild(btn);
+    });
+    
+    // Toon modal
+    modal.classList.remove('hidden');
+}
+
+/**
+ * Sluit de edit modal
+ */
+function closeEditModal() {
+    const modal = document.getElementById('edit-answer-modal');
+    modal.classList.add('hidden');
+}
+
+/**
+ * Bepaal welke antwoordknoppen nodig zijn op basis van de vraag
+ */
+function getAnswerButtonsForQuestion(question) {
+    if (question.includes('Binnen of buiten R40')) {
+        return ['Binnen R40', 'Buiten R40'];
+    } else if (question.includes('Noorden of zuiden')) {
+        return ['Noorden van Leie-Schelde', 'Zuiden van Leie-Schelde'];
+    } else if (question.includes('Dichter bij Weba of IKEA')) {
+        return ['Dichter bij Weba', 'Dichter bij IKEA'];
+    } else if (question.includes('Oosten of westen van station Gent Dampoort')) {
+        return ['Oosten van Dampoort', 'Westen van Dampoort'];
+    } else if (question.includes('Oosten of westen van de tip van de watersportbaan')) {
+        return ['Oosten van watersportbaan tip', 'Westen van watersportbaan tip'];
+    } else {
+        return ['Ja', 'Nee'];
+    }
+}
+
+/**
+ * Bekijk een specifieke kaart in detail
+ */
+function viewCardDetail(index) {
+    currentCardIndex = index;
+    switchView('single');
+    updateCardDisplay();
+}
+
+/**
+ * Discard een kaart direct zonder antwoord (voor kaarten die geen antwoord vereisen)
+ */
+function handleDirectDiscard(cardIndex) {
+    if (!cardManager) return;
+    
+    const card = cardManager.getCard(cardIndex);
+    if (!card) return;
+    
+    // Bewaar geen antwoord, gewoon discarden
+    cardManager.discardCard(cardIndex);
+    saveCardManagerState();
+    
+    // Update current index als deze kaart wordt verwijderd
+    if (currentCardIndex === cardIndex && currentCardIndex >= cardManager.getFlop().length) {
+        currentCardIndex = Math.max(0, cardManager.getFlop().length - 1);
+    }
+    
+    updateCardDisplay();
+    renderFlopView();
+}
+
+/**
+ * Verwijder een kaart uit de flop (vanuit flop view)
+ */
+function discardCardFromFlop(index) {
+    if (!cardManager) return;
+    
+    const card = cardManager.getCard(index);
+    if (!card) return;
+    
+    if (confirm(`Kaart "${card.task}" markeren als opgelost?\nEen nieuwe kaart wordt getrokken.`)) {
+        // Bewaar het antwoord voor deze discarded kaart (voordat we discard)
+        const answer = getOpponentAnswer(index);
+        const currentDiscardedCount = cardManager.discarded.length;
+        if (answer) {
+            saveDiscardedAnswer(currentDiscardedCount, answer, card.task, index);
+        }
+        
+        cardManager.discardCard(index);
+        
+        // Save state
+        saveCardManagerState();
+        
+        // Update views
+        renderFlopView();
+        if (currentCardIndex >= cardManager.getFlop().length) {
+            currentCardIndex = Math.max(0, cardManager.getFlop().length - 1);
+        }
+        updateCardDisplay();
+    }
+}
+
+/**
+ * Handle discard van huidige kaart (vanuit single view)
+ */
+function handleDiscardCard() {
+    if (!cardManager) return;
+    
+    const card = cardManager.getCard(currentCardIndex);
+    if (!card) return;
+    
+    if (confirm(`Kaart "${card.task}" markeren als opgelost?\nEen nieuwe kaart wordt getrokken.`)) {
+        // Bewaar het antwoord voor deze discarded kaart (voordat we discard)
+        const answer = getOpponentAnswer(currentCardIndex);
+        const currentDiscardedCount = cardManager.discarded.length;
+        if (answer) {
+            saveDiscardedAnswer(currentDiscardedCount, answer, card.task, currentCardIndex);
+        }
+        
+        cardManager.discardCard(currentCardIndex);
+        
+        // Save state
+        saveCardManagerState();
+        
+        // Update index als nodig
+        if (currentCardIndex >= cardManager.getFlop().length) {
+            currentCardIndex = Math.max(0, cardManager.getFlop().length - 1);
+        }
+        
+        updateCardDisplay();
+    }
+}
+
+/**
+ * Navigate naar vorige kaart
+ */
+function handlePreviousCard() {
+    if (currentCardIndex > 0) {
+        currentCardIndex--;
+        updateCardDisplay();
+    }
+}
+
+/**
+ * Navigate naar volgende kaart  
+ */
+function handleNextCard() {
+    if (currentCardIndex < cardManager.getFlop().length - 1) {
+        currentCardIndex++;
+        updateCardDisplay();
+    }
+}
+
+/**
+ * Save card manager state naar storage
+ */
+function saveCardManagerState() {
+    if (!cardManager) return;
+    
+    const state = cardManager.getState();
+    localStorage.setItem('cardManagerState', JSON.stringify(state));
+}
+
+/**
+ * Load card manager state vanuit storage
+ */
+function loadCardManagerState() {
+    try {
+        const stateJson = localStorage.getItem('cardManagerState');
+        if (stateJson) {
+            return JSON.parse(stateJson);
+        }
+    } catch (error) {
+        console.error('Fout bij laden card manager state:', error);
+    }
+    return null;
+}
+
+// Maak functies globaal beschikbaar voor onclick handlers
+window.viewCardDetail = viewCardDetail;
+window.discardCardFromFlop = discardCardFromFlop;
