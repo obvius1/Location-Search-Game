@@ -1146,8 +1146,8 @@ function handleResetGame() {
     // Reset storage
     resetGameData();
     
-    // Reload pagina voor verse start
-    window.location.reload();
+    // Force reload zonder cache en redirect naar root
+    window.location.href = window.location.origin + window.location.pathname + '?t=' + Date.now();
 }
 
 /**
