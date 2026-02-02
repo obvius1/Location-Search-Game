@@ -7,87 +7,110 @@
   ],
   "cards": [
     {
-      "task": "🕊️ Voeder een duif",
-      "question": "WTF IS UP WITH THAT",
+      "task": "??????????",
+      "question": "Binnen of buiten R40 (binnenring)?",
       "phase": 1,
+      "answerType": "r40",
+      "pois": []
+    },
+    {
+      "task": "Zoek een tekst van minstens 35 woorden, leer het vanbuiten en schrijf het op zonder fouten en zonder te kijken naar de tekst",
+      "question": "Noorden of zuiden van lijn Leie-Schelde?",
+      "phase": 1,
+      "answerType": "leie-schelde",
+      "pois": []
+    },
+    {
+      "task": "Maak zelf een \"tafel\" (4 poten en een horizontaal vlak) uit zaken die je op straat vindt",
+      "question": "Dichter bij Weba of IKEA?",
+      "phase": 1,
+      "answerType": "proximity",
+      "pois": ["weba", "ikea"]
+    },
+    {
+      "task": "??????????????",
+      "question": "Oosten of westen van station Gent Dampoort?",
+      "phase": 1,
+      "answerType": "dampoort",
+      "pois": ["dampoort"]
+    },
+    {
+      "task": "???????????????",
+      "question": "Oosten of westen van de tip van de watersportbaan?",
+      "phase": 1,
+      "answerType": "watersportbaan",
+      "pois": ["watersportbaan"]
+    },
+    {
+      "task": "Bezoek een museum of historisch huis dat minder dan 1000 reviews heeft op Google Maps (lijst van geldige museums in Gent, andere kunnen beargumenteerd worden)",
+      "question": "Kopieer een vraag die al gevraagd is door de andere speler(s)",
+      "phase": 2,
       "requiresAnswer": false
     },
     {
-      "task": "📸 Maak een selfie bij een standbeeld",
-      "question": "Noorden of zuiden van lijn Leie-Schelde?",
-      "phase": 1
-    },
-    {
-      "task": "☕ Bestel een koffie",
-      "question": "Dichter bij Weba of IKEA?",
-      "phase": 1
-    },
-    {
-      "task": "🌳 Raak 5 verschillende bomen aan",
-      "question": "Binnen of buiten R40?",
-      "phase": 1
-    },
-    {
-      "task": "🚲 Vind een fiets en raak hem aan",
-      "question": "Noorden of zuiden van lijn Leie-Schelde?",
-      "phase": 1
-    },
-    {
-      "task": "Blubber blubber blubber",
-      "question": "Noorden of zuiden van lijn Leie-Schelde?",
-      "phase": 1
-    },
-    {
-      "task": "🚶 Loop 100 meter achteruit",
-      "question": "Oosten of westen van station Gent Dampoort?",
-      "phase": 2
-    },
-    {
-      "task": "👋 Zwaai naar 10 mensen",
-      "question": "Noorden of zuiden van lijn Leie-Schelde?",
-      "phase": 2
+      "task": "Ruim afval op in 4 wijken",
+      "question": "Is de huidige wijk of de wijk er naast de wijk waar het item staat",
+      "phase": 2,
+      "answerType": "SameOrAdjacentNeighborhood",
+      "pois": []
     },
     {
       "task": "🏃 Ren een minuut lang",
       "question": "Dichter bij Weba of IKEA?",
       "phase": 2,
-      "requiresAnswer": false
+      "requiresAnswer": false,
+      "answerType": "proximity",
+      "pois": ["weba", "ikea"]
     },
     {
       "task": "💬 Vraag de weg aan een vreemdeling",
       "question": "Dichter bij Weba of IKEA?",
-      "phase": 2
+      "phase": 2,
+      "answerType": "proximity",
+      "pois": ["weba", "ikea"]
     },
     {
       "task": "🎨 Vind iets kunst en maak een foto",
       "question": "Oosten of westen van station Gent Dampoort?",
-      "phase": 2
+      "phase": 2,
+      "answerType": "dampoort",
+      "pois": ["dampoort"]
     },
     {
       "task": "🎵 Zing een liedje in het openbaar",
       "question": "Oosten of westen van de tip van de watersportbaan?",
-      "phase": 3
+      "phase": 3,
+      "answerType": "watersportbaan",
+      "pois": ["watersportbaan"]
     },
     {
       "task": "🤸 Doe 10 jumping jacks",
       "question": "Oosten of westen van station Gent Dampoort?",
-      "phase": 3
+      "phase": 3,
+      "answerType": "dampoort",
+      "pois": ["dampoort"]
     },
     {
       "task": "📱 Maak een TikTok/Reel",
       "question": "Oosten of westen van de tip van de watersportbaan?",
-      "phase": 3
+      "phase": 3,
+      "answerType": "watersportbaan",
+      "pois": ["watersportbaan"]
     },
     {
       "task": "🍦 Koop iets te eten/drinken",
       "question": "Binnen of buiten R40?",
-      "phase": 3
+      "phase": 3,
+      "answerType": "r40",
+      "pois": []
     },
     {
       "task": "🌉 Steek een brug over",
       "question": "Oosten of westen van de tip van de watersportbaan?",
       "phase": 3,
-      "requiresAnswer": false
+      "requiresAnswer": false,
+      "answerType": "watersportbaan",
+      "pois": ["watersportbaan"]
     }
   ]
 }

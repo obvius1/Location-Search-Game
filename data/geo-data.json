@@ -1,5 +1,12 @@
 {
   "type": "FeatureCollection",
+  "locations": {
+    "belfort": { "lat": 51.0536844, "lng": 3.72476097, "name": "Belfort Gent" },
+    "dampoort": { "lat": 51.056221, "lng": 3.740287984, "name": "Station Dampoort" },
+    "watersportbaan_tip": { "lat": 51.0463306, "lng": 3.705969308, "name": "Watersportbaan tip" },
+    "weba": { "lat": 51.07385946620895, "lng": 3.7407081136252547, "name": "Weba Shopping Center" },
+    "ikea": { "lat": 51.02356223132743, "lng": 3.6878854133255237, "name": "IKEA Gent" }
+  },
   "features": [
     {
       "type": "Feature",

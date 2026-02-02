@@ -390,46 +390,21 @@ function updatePOIMarkers() {
     
     // Haal de huidige kaart op (alleen de enkele kaart view)
     const currentCard = cardManager.getCard(currentCardIndex);
-    const question = currentCard && currentCard.question ? currentCard.question.toLowerCase() : '';
+    const activePois = (currentCard && currentCard.pois) || [];
     
-    // Check welke POI's relevant zijn voor deze kaart
-    const showWeba = question.includes('weba');
-    const showIkea = question.includes('ikea');
-    const showDampoort = question.includes('dampoort');
-    const showWatersportbaan = question.includes('watersportbaan');
-    
-    // Toon/verberg markers
-    if (poiMarkers.weba) {
-        if (showWeba && !map.hasLayer(poiMarkers.weba)) {
-            poiMarkers.weba.addTo(map);
-        } else if (!showWeba && map.hasLayer(poiMarkers.weba)) {
-            map.removeLayer(poiMarkers.weba);
+    // Toon/verberg elke POI marker
+    Object.keys(poiMarkers).forEach(poiKey => {
+        const marker = poiMarkers[poiKey];
+        const shouldShow = activePois.includes(poiKey);
+        
+        if (marker) {
+            if (shouldShow && !map.hasLayer(marker)) {
+                marker.addTo(map);
+            } else if (!shouldShow && map.hasLayer(marker)) {
+                map.removeLayer(marker);
+            }
         }
-    }
-    
-    if (poiMarkers.ikea) {
-        if (showIkea && !map.hasLayer(poiMarkers.ikea)) {
-            poiMarkers.ikea.addTo(map);
-        } else if (!showIkea && map.hasLayer(poiMarkers.ikea)) {
-            map.removeLayer(poiMarkers.ikea);
-        }
-    }
-    
-    if (poiMarkers.dampoort) {
-        if (showDampoort && !map.hasLayer(poiMarkers.dampoort)) {
-            poiMarkers.dampoort.addTo(map);
-        } else if (!showDampoort && map.hasLayer(poiMarkers.dampoort)) {
-            map.removeLayer(poiMarkers.dampoort);
-        }
-    }
-    
-    if (poiMarkers.watersportbaan) {
-        if (showWatersportbaan && !map.hasLayer(poiMarkers.watersportbaan)) {
-            poiMarkers.watersportbaan.addTo(map);
-        } else if (!showWatersportbaan && map.hasLayer(poiMarkers.watersportbaan)) {
-            map.removeLayer(poiMarkers.watersportbaan);
-        }
-    }
+    });
 }
 
 /**
@@ -876,8 +851,8 @@ function updateCardDisplay() {
     // Check of deze kaart een antwoord vereist
     const requiresAnswer = card.requiresAnswer !== false; // Default true
     
-    // Haal bestaand antwoord op (indien aanwezig)
-    const opponentAnswer = getOpponentAnswer(currentCardIndex);
+    // Haal bestaand antwoord op (indien aanwezig) - gebruik card.id
+    const opponentAnswer = card && card.id ? getOpponentAnswer(card.id) : null;
     
     // Voeg antwoord sectie toe (of update)
     let answerSection = currentCardElement.querySelector('.card-answer-section');
@@ -964,7 +939,13 @@ function generateAnswerButtons(cardIndex, question) {
  */
 function handleOpponentAnswer(cardIndex, answer) {
     const card = cardManager.getCard(cardIndex);
-    saveOpponentAnswer(cardIndex, answer, card?.task);
+    
+    if (!card || !card.id) {
+        console.error('Kaart heeft geen ID:', card);
+        return;
+    }
+    
+    saveOpponentAnswer(card.id, answer, card.task);
     updateExclusionZones();
     
     // Automatisch discard de kaart wanneer antwoord is gegeven
@@ -989,9 +970,16 @@ function handleOpponentAnswer(cardIndex, answer) {
  * Wijzig antwoord van tegenstander
  */
 function changeOpponentAnswer(cardIndex) {
+    const card = cardManager.getCard(cardIndex);
+    
+    if (!card || !card.id) {
+        console.error('Kaart heeft geen ID:', card);
+        return;
+    }
+    
     if (confirm('Wil je het antwoord van de tegenstander wijzigen?')) {
         // Verwijder het antwoord en update display
-        saveOpponentAnswer(cardIndex, null);
+        saveOpponentAnswer(card.id, null);
         updateExclusionZones();
         updateCardDisplay();
     }
@@ -1383,7 +1371,7 @@ function renderFlopView() {
         phaseCards.forEach((card, phaseIndex) => {
             // Vind de globale index in de flop
             const globalIndex = flop.findIndex(c => c === card);
-            const hasAnswer = getOpponentAnswer(globalIndex);
+            const hasAnswer = card && card.id ? getOpponentAnswer(card.id) : null;
             const requiresAnswer = card.requiresAnswer !== false; // Default true
             
             const cardEl = document.createElement('div');
@@ -1604,7 +1592,7 @@ function discardCardFromFlop(index) {
     
     if (confirm(`Kaart "${card.task}" markeren als opgelost?\nEen nieuwe kaart wordt getrokken.`)) {
         // Bewaar het antwoord voor deze discarded kaart (voordat we discard)
-        const answer = getOpponentAnswer(index);
+        const answer = card && card.id ? getOpponentAnswer(card.id) : null;
         const currentDiscardedCount = cardManager.discarded.length;
         if (answer) {
             saveDiscardedAnswer(currentDiscardedCount, answer, card.task, index);
@@ -1635,7 +1623,7 @@ function handleDiscardCard() {
     
     if (confirm(`Kaart "${card.task}" markeren als opgelost?\nEen nieuwe kaart wordt getrokken.`)) {
         // Bewaar het antwoord voor deze discarded kaart (voordat we discard)
-        const answer = getOpponentAnswer(currentCardIndex);
+        const answer = card && card.id ? getOpponentAnswer(card.id) : null;
         const currentDiscardedCount = cardManager.discarded.length;
         if (answer) {
             saveDiscardedAnswer(currentDiscardedCount, answer, card.task, currentCardIndex);

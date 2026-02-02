@@ -4,14 +4,8 @@
 const BELFORT_GENT = { lat: 51.0538, lng: 3.7251 }; // Centrum van Gent
 const GAME_RADIUS = 4000; // 3km in meters
 
-// Belangrijke locaties in Gent
-const LOCATIONS = {
-    belfort: { lat: 51.0536844, lng: 3.72476097 }, // Belfort Gent
-    dampoort: { lat: 51.056221, lng: 3.740287984 }, // Station Dampoort
-    watersportbaan_tip: { lat: 51.0463306, lng: 3.705969308 }, // Noordelijke tip
-    weba: { lat: 51.07385946620895, lng: 3.7407081136252547 }, // Weba Shopping Center
-    ikea: { lat: 51.02356223132743, lng: 3.6878854133255237 }, // IKEA Gent
-};
+// Belangrijke locaties in Gent - wordt geladen vanuit geo-data.json
+let LOCATIONS = {};
 
 // R40 binnenring - wordt geladen vanuit zones.json
 let R40_POLYGON = [];
@@ -19,15 +13,21 @@ let R40_POLYGON = [];
 let LEIE_SCHELDE_LINE = [];
 
 /**
- * Laadt alle zone data vanuit het externe zones.json bestand
+ * Laadt alle geografische data vanuit geo-data.json
  */
 async function loadZones() {
     try {
-        const response = await fetch('./data/zones.json');
+        const response = await fetch('./data/geo-data.json');
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
         const data = await response.json();
+        
+        // Laad locations
+        if (data.locations) {
+            LOCATIONS = data.locations;
+            console.log(`Locations geladen: ${Object.keys(LOCATIONS).length} POIs`);
+        }
         
         // Converteer GeoJSON coordinaten naar ons formaat
         // GeoJSON gebruikt [lng, lat], wij gebruiken {lat, lng}
@@ -54,7 +54,8 @@ async function loadZones() {
         
         return data;
     } catch (error) {
-        console.error('Fout bij laden zones:', error);
+        console.error('Fout bij laden geografische data:', error);
+        LOCATIONS = {};
         R40_POLYGON = [];
         LEIE_SCHELDE_LINE = [];
         throw error;

@@ -93,8 +93,14 @@ function createDeck(seed) {
     const shuffledPhase2 = shuffleArray(phase2Cards, rng);
     const shuffledPhase3 = shuffleArray(phase3Cards, rng);
     
-    // Combineer: fase 1 -> fase 2 -> fase 3
-    return [...shuffledPhase1, ...shuffledPhase2, ...shuffledPhase3];
+    // Combineer: fase 1 -> fase 2 -> fase 3 en voeg uniek ID toe
+    const combinedDeck = [...shuffledPhase1, ...shuffledPhase2, ...shuffledPhase3];
+    
+    // Voeg uniek ID toe aan elke kaart (gebaseerd op seed + positie)
+    return combinedDeck.map((card, index) => ({
+        ...card,
+        id: `${seed}_${index}` // Uniek ID: seed + positie in gedekte
+    }));
 }
 
 /**
