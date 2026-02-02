@@ -1,7 +1,6 @@
 // Geografische utilities voor Gent Location Game
 
 // Constanten voor Gent
-const BELFORT_GENT = { lat: 51.0538, lng: 3.7251 }; // Centrum van Gent
 const GAME_RADIUS = 4000; // 3km in meters
 
 // Belangrijke locaties in Gent - wordt geladen vanuit geo-data.json
@@ -86,7 +85,12 @@ function toRadians(degrees) {
  * Controleert of een locatie binnen de speelzone ligt (3km van Belfort)
  */
 function isWithinGameZone(lat, lng) {
-    const distance = calculateDistance(lat, lng, BELFORT_GENT.lat, BELFORT_GENT.lng);
+    if (!LOCATIONS.belfort) {
+        console.error('Belfort locatie niet geladen');
+        return { valid: false, distance: 0, maxDistance: GAME_RADIUS };
+    }
+    
+    const distance = calculateDistance(lat, lng, LOCATIONS.belfort.lat, LOCATIONS.belfort.lng);
     return {
         valid: distance <= GAME_RADIUS,
         distance: Math.round(distance),

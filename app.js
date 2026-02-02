@@ -135,7 +135,7 @@ function loadSavedGameData() {
                 // Bereken afstand
                 const distanceToCenter = calculateDistance(
                     loc.lat, loc.lng,
-                    BELFORT_GENT.lat, BELFORT_GENT.lng
+                    LOCATIONS.belfort.lat, LOCATIONS.belfort.lng
                 );
                 
                 // Verberg locatie sectie en plaats onderaan
@@ -223,7 +223,7 @@ function initializeControls() {
  */
 function initializeMap() {
     // Initialiseer kaart gecentreerd op Belfort Gent
-    map = L.map('map').setView([BELFORT_GENT.lat, BELFORT_GENT.lng], 13);
+    map = L.map('map').setView([LOCATIONS.belfort.lat, LOCATIONS.belfort.lng], 13);
     
     // Maak een custom pane voor exclusion zones met lage z-index
     map.createPane('exclusionPane');
@@ -236,7 +236,7 @@ function initializeMap() {
     }).addTo(map);
     
     // Markeer het Belfort (centrum)
-    L.marker([BELFORT_GENT.lat, BELFORT_GENT.lng], {
+    L.marker([LOCATIONS.belfort.lat, LOCATIONS.belfort.lng], {
         icon: L.icon({
             iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
             shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
@@ -248,7 +248,7 @@ function initializeMap() {
     }).addTo(map).bindPopup('<b>Belfort van Gent</b><br>Centrum van het speelveld');
     
     // Teken de speelzone grens (dunne lijn)
-    gameZoneCircle = L.circle([BELFORT_GENT.lat, BELFORT_GENT.lng], {
+    gameZoneCircle = L.circle([LOCATIONS.belfort.lat, LOCATIONS.belfort.lng], {
         color: '#2563eb',
         fillColor: 'transparent',
         fillOpacity: 0,
@@ -275,9 +275,9 @@ function initializeMap() {
         
         // Bereken offset in graden
         const latOffset = (GAME_RADIUS / earthRadius) * (180 / Math.PI) * Math.cos(angle);
-        const lngOffset = (GAME_RADIUS / earthRadius) * (180 / Math.PI) * Math.sin(angle) / Math.cos(BELFORT_GENT.lat * Math.PI / 180);
+        const lngOffset = (GAME_RADIUS / earthRadius) * (180 / Math.PI) * Math.sin(angle) / Math.cos(LOCATIONS.belfort.lat * Math.PI / 180);
         
-        circlePoints.unshift([BELFORT_GENT.lat + latOffset, BELFORT_GENT.lng + lngOffset]);
+        circlePoints.unshift([LOCATIONS.belfort.lat + latOffset, LOCATIONS.belfort.lng + lngOffset]);
     }
     
     // Maak polygon met gat (outer counterclockwise, inner clockwise)
@@ -600,7 +600,7 @@ function handleConfirmLocation() {
         // Bereken afstand tot Belfort
         const distanceToCenter = calculateDistance(
             position.lat, position.lng,
-            BELFORT_GENT.lat, BELFORT_GENT.lng
+            LOCATIONS.belfort.lat, LOCATIONS.belfort.lng
         );
         
         // Minimaliseer locatie sectie en verplaats naar beneden
