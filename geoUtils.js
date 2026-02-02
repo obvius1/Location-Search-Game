@@ -10,6 +10,8 @@ let LOCATIONS = {};
 let R40_POLYGON = [];
 // Leie-Schelde lijn - wordt geladen vanuit zones.json
 let LEIE_SCHELDE_LINE = [];
+// Stadswijken - wordt geladen vanuit stadswijken-gent.geojson
+let CITY_NEIGHBORHOODS = [];
 
 /**
  * Laadt alle geografische data vanuit geo-data.json
@@ -57,6 +59,37 @@ async function loadZones() {
         LOCATIONS = {};
         R40_POLYGON = [];
         LEIE_SCHELDE_LINE = [];
+        throw error;
+    }
+}
+
+/**
+ * Laadt alle stadswijken vanuit stadswijken-gent.geojson
+ */
+async function loadNeighborhoods() {
+    try {
+        const response = await fetch('./data/stadswijken-gent.geojson');
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+        
+        // Converteer GeoJSON features naar ons formaat
+        CITY_NEIGHBORHOODS = data.features.map(feature => ({
+            name: feature.properties.wijk,
+            nummer: feature.properties.wijknr,
+            polygon: feature.geometry.coordinates[0].map(coord => ({
+                lng: coord[0],
+                lat: coord[1]
+            })),
+            geojson: feature  // Bewaar origineel voor Leaflet
+        }));
+        
+        console.log(`Stadswijken geladen: ${CITY_NEIGHBORHOODS.length} wijken`);
+        return CITY_NEIGHBORHOODS;
+    } catch (error) {
+        console.error('Fout bij laden stadswijken:', error);
+        CITY_NEIGHBORHOODS = [];
         throw error;
     }
 }
@@ -245,6 +278,9 @@ function performAllChecks(lat, lng) {
         };
     }
     
+    // Bepaal huidige wijk
+    const neighborhood = getNeighborhoodAtLocation(lat, lng);
+    
     return {
         valid: true,
         message: `Locatie is geldig! (${zoneCheck.distance}m van Belfort)`,
@@ -253,7 +289,8 @@ function performAllChecks(lat, lng) {
             leieSchelde: checkLeieSchelde(lat, lng),
             webaIkea: checkWebaIkea(lat, lng),
             dampoort: checkDampoort(lat, lng),
-            watersportbaan: checkWatersportbaan(lat, lng)
+            watersportbaan: checkWatersportbaan(lat, lng),
+            neighborhood: neighborhood
         }
     };
 }
@@ -269,14 +306,14 @@ function getCurrentLocation() {
         }
         
         navigator.geolocation.getCurrentPosition(
-            (position) => {
+            position => {
                 resolve({
                     lat: position.coords.latitude,
                     lng: position.coords.longitude,
                     accuracy: position.coords.accuracy
                 });
             },
-            (error) => {
+            error => {
                 let message = 'Kon locatie niet ophalen';
                 switch(error.code) {
                     case error.PERMISSION_DENIED:
@@ -294,8 +331,118 @@ function getCurrentLocation() {
             {
                 enableHighAccuracy: true,
                 timeout: 10000,
-                maximumAge: 30000
+                maximumAge: 0
             }
         );
     });
+}
+
+/**
+ * Bepaalt in welke wijk een locatie zich bevindt
+ * @param {number} lat - Latitude
+ * @param {number} lng - Longitude
+ * @returns {object|null} Wijk object of null indien niet in een wijk
+ */
+function getNeighborhoodAtLocation(lat, lng) {
+    for (const neighborhood of CITY_NEIGHBORHOODS) {
+        if (isPointInPolygon(lat, lng, neighborhood.polygon)) {
+            return {
+                name: neighborhood.name,
+                nummer: neighborhood.nummer
+            };
+        }
+    }
+    
+    return null;
+}
+
+/**
+ * Vindt alle aangrenzende wijken voor een gegeven wijk
+ * Gebruikt polygon touch detection
+ * @param {string} neighborhoodName - Naam van de wijk
+ * @returns {Array<string>} Array van aangrenzende wijknamen
+ */
+function getAdjacentNeighborhoods(neighborhoodName) {
+    const targetNeighborhood = CITY_NEIGHBORHOODS.find(n => n.name === neighborhoodName);
+    if (!targetNeighborhood) {
+        console.warn(`Wijk "${neighborhoodName}" niet gevonden`);
+        return [];
+    }
+    
+    const adjacentNames = [];
+    
+    // Check elke andere wijk of deze grenst aan de target wijk
+    for (const otherNeighborhood of CITY_NEIGHBORHOODS) {
+        if (otherNeighborhood.name === neighborhoodName) continue;
+        
+        // Twee polygonen grenzen aan elkaar als ze minstens 1 gemeenschappelijk punt hebben
+        if (polygonsTouch(targetNeighborhood.polygon, otherNeighborhood.polygon)) {
+            adjacentNames.push(otherNeighborhood.name);
+        }
+    }
+    
+    return adjacentNames;
+}
+
+/**
+ * Controleert of twee polygonen elkaar raken (delen een rand)
+ * @param {Array} polygon1 - Eerste polygon
+ * @param {Array} polygon2 - Tweede polygon
+ * @returns {boolean} True als polygonen elkaar raken
+ */
+function polygonsTouch(polygon1, polygon2) {
+    const TOLERANCE = 0.00001; // ~1 meter tolerantie
+    
+    // Check of punten van polygon1 op de rand van polygon2 liggen
+    for (const point1 of polygon1) {
+        for (let i = 0; i < polygon2.length; i++) {
+            const point2a = polygon2[i];
+            const point2b = polygon2[(i + 1) % polygon2.length];
+            
+            // Check of point1 op lijn segment (point2a, point2b) ligt
+            if (pointOnLineSegment(point1, point2a, point2b, TOLERANCE)) {
+                return true;
+            }
+        }
+    }
+    
+    // Check omgekeerd: punten van polygon2 op rand van polygon1
+    for (const point2 of polygon2) {
+        for (let i = 0; i < polygon1.length; i++) {
+            const point1a = polygon1[i];
+            const point1b = polygon1[(i + 1) % polygon1.length];
+            
+            if (pointOnLineSegment(point2, point1a, point1b, TOLERANCE)) {
+                return true;
+            }
+        }
+    }
+    
+    return false;
+}
+
+/**
+ * Controleert of een punt op een lijn segment ligt
+ * @param {object} point - Punt om te checken {lat, lng}
+ * @param {object} lineStart - Start van lijn segment {lat, lng}
+ * @param {object} lineEnd - Einde van lijn segment {lat, lng}
+ * @param {number} tolerance - Tolerantie in graden
+ * @returns {boolean} True als punt op lijn segment ligt
+ */
+function pointOnLineSegment(point, lineStart, lineEnd, tolerance) {
+    // Bereken cross product om te zien of punt collineair is met lijn
+    const crossProduct = Math.abs(
+        (point.lng - lineStart.lng) * (lineEnd.lat - lineStart.lat) -
+        (point.lat - lineStart.lat) * (lineEnd.lng - lineStart.lng)
+    );
+    
+    if (crossProduct > tolerance) return false;
+    
+    // Check of punt binnen de bounds van lijn segment ligt
+    const withinBoundsLng = (point.lng >= Math.min(lineStart.lng, lineEnd.lng) - tolerance) &&
+                            (point.lng <= Math.max(lineStart.lng, lineEnd.lng) + tolerance);
+    const withinBoundsLat = (point.lat >= Math.min(lineStart.lat, lineEnd.lat) - tolerance) &&
+                            (point.lat <= Math.max(lineStart.lat, lineEnd.lat) + tolerance);
+    
+    return withinBoundsLng && withinBoundsLat;
 }

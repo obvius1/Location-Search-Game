@@ -42,6 +42,7 @@ Bij bepaalde vragen kan de game automatisch het juiste antwoord bepalen:
 | Dichter bij Weba of IKEA? | `proximity` | Berekent afstand tot beide POIs, kiest dichtstbijzijnde |
 | Oosten/westen Dampoort? | `dampoort` | Vergelijkt longitude met station Dampoort |
 | Oosten/westen Watersportbaan? | `watersportbaan` | Vergelijkt longitude met watersportbaan tip |
+| Zelfde/aangrenzende wijk? | `SameOrAdjacentNeighborhood` | Point-in-polygon test + buurwijk detectie |
 
 ---
 
@@ -62,7 +63,8 @@ gent-location-game/
 ├── AI-CONTEXT.md           # Dit bestand!
 ├── data/
 │   ├── cards.json          # Hider checklist + speelkaarten (3 fases)
-│   └── geo-data.json       # GeoJSON zones + POI locations
+│   ├── geo-data.json       # GeoJSON zones + POI locations
+│   └── stadswijken-gent.geojson  # GeoJSON met alle Gentse wijken (25 wijken)
 └── icons/                  # PWA app icons
 ```
 
@@ -80,10 +82,14 @@ gent-location-game/
 **Key functionen**:
 - `handleStartGame()` - Start spel met seed
 - `handleGetGPS()` - Haal locatie op via Geolocation API
-- `handleConfirmLocation()` - Bevestig locatie en voer geografische tests uit
-- `updateExclusionZones()` - Teken uitgesloten zones op kaart
+- `handleConfirmLocation()` - Bevestig locatie en voer geografische tests uit (inclusief wijk detectie)
+- `drawNeighborhoods()` - Teken alle 25 stadswijken op kaart met labels
+- `openNeighborhoodModal()` - Open modal voor wijk antwoord selectie
+- `confirmNeighborhoodAnswer()` - Verwerk wijk antwoord en update exclusions
+- `updateExclusionZones()` - Teken uitgesloten zones op kaart (inclusief wijken)
+- `createExclusionLayerFromData()` - Creëer exclusion layers voor wijken
 - `switchView()` - Wissel tussen single/flop/discarded view
-- `handleDiscardCard()` - Markeer kaart als opgelost
+- `handleDiscardCard()` - Markeer kaart als opgelost (detecteert SameOrAdjacentNeighborhood)
 
 #### **cards.js** - Kaarten Systeem
 - **SeededRandom klasse**: Mulberry32 RNG met string-to-seed hashing
@@ -100,14 +106,20 @@ gent-location-game/
 
 #### **geoUtils.js** - Geografische Berekeningen
 - Laadt GeoJSON zones (R40, Leie-Schelde)
-- Laadt POI locaties (IKEA, Weba, Dampoort, Watersportbaan)
+- Laadt stadswijken (25 wijken van Gent)
 - Voert geografische tests uit
+- Detecteert aangrenzende wijken via polygon touch detection
 
 **Key functionen**:
 - `pointInPolygon(point, polygon)` - Ray casting algorithm
 - `pointOnLeftOfLine(point, lineStart, lineEnd)` - Cross product
 - `distanceTo(lat1, lng1, lat2, lng2)` - Haversine formule
 - `isWithinGameZone(lat, lng)` - Check 4km radius
+- `getAutoAnswer(lat, lng, questionType)` - Bepaalt automatisch antwoord
+- `getNeighborhoodAtLocation(lat, lng)` - Bepaalt wijk op basis van GPS
+- `getAdjacentNeighborhoods(neighborhoodName)` - Vindt buurwijken
+- `polygonsTouch(polygon1, polygon2)` - Check of wijken elkaar raken
+- `loadNeighborhoods()` - Laadt stadswijken-gent.geojson
 - `getAutoAnswer(lat, lng, questionType)` - Bepaalt automatisch antwoord
 
 #### **storage.js** - LocalStorage
@@ -188,6 +200,17 @@ gent-location-game/
 - Test of speler binnen R40 ring is
 - Belangrijk voor automatische antwoorden
 
+
+### 6. Stadswijken Feature (Nieuw!)
+- 25 wijken van Gent geladen vanuit GeoJSON
+- Wijken getekend op kaart met subtiele styling + labels
+- Automatische detectie van huidige wijk via GPS
+- Dropdown om wijk te selecteren (als speler verplaatst is)
+- Buurwijken worden automatisch gedetecteerd via polygon touch
+- "Ja/Nee" antwoord bepaalt welke wijken worden uitgesloten:
+  - **"Ja"**: Alle wijken BEHALVE geselecteerde + buren worden rood
+  - **"Nee"**: Geselecteerde wijk + buren worden rood
+- Modal UI voor wijk antwoord selectie
 ### 4. Line Side Detection (Leie-Schelde)
 - Gebruikt cross product (determinant)
 - Test welke kant van lijn speler is

@@ -165,6 +165,45 @@
             </div>
         </div>
     </div>
+    
+    <!-- Neighborhood Answer Modal -->
+    <div id="neighborhood-answer-modal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>🏘️ Wijk Antwoord</h3>
+                <button class="modal-close" onclick="closeNeighborhoodModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <p class="info-text">
+                    <strong>Huidige wijk:</strong> <span id="current-neighborhood-display">-</span>
+                </p>
+                <p class="info-text" style="margin-top: 8px;">
+                    Als je verplaatst bent sinds je locatie bevestigde, selecteer hieronder de correcte wijk:
+                </p>
+                
+                <div class="input-group">
+                    <label for="neighborhood-select">Selecteer wijk (jouw locatie of buurwijk):</label>
+                    <select id="neighborhood-select" class="form-select">
+                        <option value="">-- Kies een wijk --</option>
+                    </select>
+                </div>
+                
+                <div class="input-group">
+                    <label for="neighborhood-answer">Antwoord van tegenstander:</label>
+                    <select id="neighborhood-answer" class="form-select">
+                        <option value="">-- Kies antwoord --</option>
+                        <option value="yes">✅ Ja, in een van die wijken</option>
+                        <option value="no">❌ Nee, niet in die wijken</option>
+                    </select>
+                </div>
+                
+                <button id="confirm-neighborhood-btn" class="btn btn-primary" style="margin-top: 16px;">Bevestig Antwoord</button>
+                
+                <div id="neighborhood-info" class="result-box hidden" style="margin-top: 16px;"></div>
+            </div>
+        </div>
+    </div>
+    
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="storage.js"></script>
     <script src="geoUtils.js"></script>

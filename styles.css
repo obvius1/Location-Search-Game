@@ -245,6 +245,27 @@ body {
     height: 3px;
 }
 
+/* Neighborhood Labels */
+.neighborhood-label {
+    background: transparent;
+    border: none;
+}
+
+.neighborhood-label-text {
+    font-size: 12px;
+    font-weight: 700;
+    color: #1e40af;
+    text-align: center;
+    white-space: nowrap;
+    text-shadow: 2px 2px 3px white, -2px -2px 3px white, 2px -2px 3px white, -2px 2px 3px white,
+                 0 0 3px white, 0 0 5px white;
+    pointer-events: none;
+    padding: 2px 6px;
+    background: rgba(255, 255, 255, 0.8);
+    border-radius: 4px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
 .card h2 {
     font-size: 20px;
     margin-bottom: 16px;
@@ -285,6 +306,24 @@ body {
 }
 
 .input-group input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+}
+
+.input-group select,
+.form-select {
+    width: 100%;
+    padding: 12px;
+    border: 2px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: 16px;
+    background-color: white;
+    cursor: pointer;
+    transition: border-color 0.2s;
+}
+
+.input-group select:focus,
+.form-select:focus {
     outline: none;
     border-color: var(--primary-color);
 }

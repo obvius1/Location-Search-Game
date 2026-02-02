@@ -200,11 +200,11 @@ class CardManager {
      * Trek een nieuwe kaart van een specifieke fase
      */
     drawCard(phase) {
-        // Zoek volgende kaart in deck met de juiste fase
-        for (let i = this.deckIndex; i < this.deck.length; i++) {
+        // Zoek door het hele deck naar een kaart van de juiste fase
+        // die nog niet in de flop of discarded zit
+        for (let i = 0; i < this.deck.length; i++) {
             const card = this.deck[i];
             if (card.phase === phase && !this.isCardInFlop(card) && !this.isCardDiscarded(card)) {
-                this.deckIndex = i + 1;
                 return card;
             }
         }
