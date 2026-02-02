@@ -1,24 +1,27 @@
 // Speelkaarten voor Gent Location Game
 
 // Alle beschikbare kaarten - worden geladen vanuit cards.json
-let GAME_CARDS = [];
+let GAME_CARDS = {
+    hiderChecklist: [],
+    cards: []
+};
 
 /**
  * Laadt alle kaarten vanuit het externe cards.json bestand
  */
 async function loadCards() {
     try {
-        const response = await fetch('./data/cards.json');
+        const response = await fetch('./data/cards.json?t=' + Date.now());
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
         const data = await response.json();
-        GAME_CARDS = data.cards;
-        console.log(`Kaarten geladen: ${GAME_CARDS.length} kaarten`);
+        GAME_CARDS = data;
+        console.log(`Kaarten geladen: ${GAME_CARDS.cards.length} kaarten, ${GAME_CARDS.hiderChecklist?.length || 0} checklist items`);
         return data;
     } catch (error) {
         console.error('Fout bij laden kaarten:', error);
-        GAME_CARDS = [];
+        GAME_CARDS = { hiderChecklist: [], cards: [] };
         throw error;
     }
 }
@@ -81,9 +84,9 @@ function createDeck(seed) {
     const rng = new SeededRandom(seed);
     
     // Splits kaarten op fase
-    const phase1Cards = GAME_CARDS.filter(card => card.phase === 1);
-    const phase2Cards = GAME_CARDS.filter(card => card.phase === 2);
-    const phase3Cards = GAME_CARDS.filter(card => card.phase === 3);
+    const phase1Cards = GAME_CARDS.cards.filter(card => card.phase === 1);
+    const phase2Cards = GAME_CARDS.cards.filter(card => card.phase === 2);
+    const phase3Cards = GAME_CARDS.cards.filter(card => card.phase === 3);
     
     // Shuffle elke fase apart
     const shuffledPhase1 = shuffleArray(phase1Cards, rng);

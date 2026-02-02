@@ -1,4 +1,10 @@
 {
+  "hiderChecklist": [
+    "Maak een foto kijkend naar de linkerkant",
+    "Maak een foto kijkend naar de rechterkant",
+    "Maak een foto kijkend naar voren",
+    "Maak een foto kijkend naar achteren"
+  ],
   "cards": [
     {
       "task": "🕊️ Voeder een duif",

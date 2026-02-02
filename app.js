@@ -7,6 +7,7 @@ let inverseMask = null;
 let r40Polygon = null;
 let leieScheldeLine = null;
 let currentLocationMarker = null;
+let poiMarkers = {}; // Object om POI markers bij te houden
 let accuracyCircle = null;
 let exclusionLayers = []; // Array van uitgesloten zones op de kaart
 let currentCardIndex = 0; // Index voor single card view
@@ -16,6 +17,7 @@ const controlsContainer = document.getElementById('controls-container');
 const controlsHandle = document.getElementById('controls-handle');
 const setupSection = document.getElementById('setup-section');
 const locationSection = document.getElementById('location-section');
+const checklistSection = document.getElementById('checklist-section');
 const questionsSection = document.getElementById('questions-section');
 const cardsSection = document.getElementById('cards-section');
 
@@ -49,6 +51,12 @@ const currentSeedDisplay = document.getElementById('current-seed');
 const copySeedBtn = document.getElementById('copy-seed-btn');
 const resetGameBtn = document.getElementById('reset-game-btn');
 
+const checklistItemsContainer = document.getElementById('checklist-items');
+const completeChecklistBtn = document.getElementById('complete-checklist-btn');
+
+// Checklist state
+let checklistCompleted = [];
+
 // Event Listeners
 generateSeedBtn.addEventListener('click', handleGenerateSeed);
 startGameBtn.addEventListener('click', handleStartGame);
@@ -63,6 +71,7 @@ nextCardBtn.addEventListener('click', handleNextCard);
 discardCardBtn.addEventListener('click', handleDiscardCard);
 copySeedBtn.addEventListener('click', handleCopySeed);
 resetGameBtn.addEventListener('click', handleResetGame);
+completeChecklistBtn.addEventListener('click', handleCompleteChecklist);
 
 // Initialize
 document.addEventListener('DOMContentLoaded', async () => {
@@ -180,8 +189,15 @@ function loadSavedGameData() {
                     ${loc.lat.toFixed(6)}, ${loc.lng.toFixed(6)}
                 `);
                 
-                // Toon vragen
-                displayQuestions(result.checks);
+                // Check of checklist voltooid is
+                if (!isChecklistCompleted()) {
+                    // Toon checklist als deze nog niet voltooid is
+                    loadHiderChecklist();
+                } else {
+                    // Toon vragen en kaarten als checklist al voltooid is
+                    displayQuestions(result.checks);
+                    cardsSection.classList.remove('hidden');
+                }
             }
         }
     }
@@ -300,11 +316,11 @@ function initializeMap() {
         }).addTo(map).bindPopup('<b>Leie-Schelde Lijn</b><br>Scheiding Noord-Zuid Gent');
     }
     
-    // Voeg andere belangrijke locaties toe
-    addLocationMarker(LOCATIONS.dampoort, 'Dampoort Station', 'blue');
-    addLocationMarker(LOCATIONS.watersportbaan_tip, 'Watersportbaan', 'green');
-    addLocationMarker(LOCATIONS.weba, 'Weba Shopping', 'orange');
-    addLocationMarker(LOCATIONS.ikea, 'IKEA Gent', 'orange');
+    // Voeg andere belangrijke locaties toe (opslaan maar niet direct tonen)
+    addLocationMarker(LOCATIONS.dampoort, 'Dampoort Station', 'blue', 'dampoort');
+    addLocationMarker(LOCATIONS.watersportbaan_tip, 'Watersportbaan', 'green', 'watersportbaan');
+    addLocationMarker(LOCATIONS.weba, 'Weba Shopping', 'orange', 'weba');
+    addLocationMarker(LOCATIONS.ikea, 'IKEA Gent', 'orange', 'ikea');
     
     // Voeg een legenda toe
     addMapLegend();
@@ -313,7 +329,7 @@ function initializeMap() {
 /**
  * Voegt een locatie marker toe aan de kaart
  */
-function addLocationMarker(location, name, color) {
+function addLocationMarker(location, name, color, key = null) {
     const colorMap = {
         'blue': 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
         'green': 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
@@ -321,7 +337,7 @@ function addLocationMarker(location, name, color) {
         'violet': 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-violet.png'
     };
     
-    L.marker([location.lat, location.lng], {
+    const marker = L.marker([location.lat, location.lng], {
         icon: L.icon({
             iconUrl: colorMap[color] || colorMap['blue'],
             shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
@@ -330,7 +346,16 @@ function addLocationMarker(location, name, color) {
             popupAnchor: [1, -34],
             shadowSize: [41, 41]
         })
-    }).addTo(map).bindPopup(`<b>${name}</b>`);
+    }).bindPopup(`<b>${name}</b>`);
+    
+    // Als er een key is, sla marker op maar voeg nog niet toe aan kaart
+    if (key) {
+        poiMarkers[key] = marker;
+    } else {
+        marker.addTo(map);
+    }
+    
+    return marker;
 }
 
 /**
@@ -353,6 +378,58 @@ function addMapLegend() {
     };
     
     legend.addTo(map);
+}
+
+/**
+ * Update POI markers op basis van huidige enkele kaart
+ */
+function updatePOIMarkers() {
+    if (!cardManager || !cardManager.flop) {
+        return;
+    }
+    
+    // Haal de huidige kaart op (alleen de enkele kaart view)
+    const currentCard = cardManager.getCard(currentCardIndex);
+    const question = currentCard && currentCard.question ? currentCard.question.toLowerCase() : '';
+    
+    // Check welke POI's relevant zijn voor deze kaart
+    const showWeba = question.includes('weba');
+    const showIkea = question.includes('ikea');
+    const showDampoort = question.includes('dampoort');
+    const showWatersportbaan = question.includes('watersportbaan');
+    
+    // Toon/verberg markers
+    if (poiMarkers.weba) {
+        if (showWeba && !map.hasLayer(poiMarkers.weba)) {
+            poiMarkers.weba.addTo(map);
+        } else if (!showWeba && map.hasLayer(poiMarkers.weba)) {
+            map.removeLayer(poiMarkers.weba);
+        }
+    }
+    
+    if (poiMarkers.ikea) {
+        if (showIkea && !map.hasLayer(poiMarkers.ikea)) {
+            poiMarkers.ikea.addTo(map);
+        } else if (!showIkea && map.hasLayer(poiMarkers.ikea)) {
+            map.removeLayer(poiMarkers.ikea);
+        }
+    }
+    
+    if (poiMarkers.dampoort) {
+        if (showDampoort && !map.hasLayer(poiMarkers.dampoort)) {
+            poiMarkers.dampoort.addTo(map);
+        } else if (!showDampoort && map.hasLayer(poiMarkers.dampoort)) {
+            map.removeLayer(poiMarkers.dampoort);
+        }
+    }
+    
+    if (poiMarkers.watersportbaan) {
+        if (showWatersportbaan && !map.hasLayer(poiMarkers.watersportbaan)) {
+            poiMarkers.watersportbaan.addTo(map);
+        } else if (!showWatersportbaan && map.hasLayer(poiMarkers.watersportbaan)) {
+            map.removeLayer(poiMarkers.watersportbaan);
+        }
+    }
 }
 
 /**
@@ -417,6 +494,9 @@ function handleStartGame() {
     currentCardIndex = 0;
     updateCardDisplay();
     
+    // Update POI markers op basis van flop
+    updatePOIMarkers();
+    
     console.log(`Spel gestart met seed: ${seed}, ${cardManager.getFlop().length} kaarten in flop`);
 }
 
@@ -476,7 +556,9 @@ async function handleGetGPS() {
         locationStatus.querySelector('.status-icon').textContent = '👆';
         locationStatus.querySelector('.status-text').textContent = 'Versleep marker naar exacte locatie';
         
-        getGpsBtn.style.display = 'none';
+        // GPS knop blijft zichtbaar en enabled tot locatie bevestigd is
+        getGpsBtn.disabled = false;
+        getGpsBtn.textContent = 'Haal GPS Locatie Op';
         adjustLocationContainer.classList.remove('hidden');
         
     } catch (error) {
@@ -601,8 +683,8 @@ function handleConfirmLocation() {
             ${position.lat.toFixed(6)}, ${position.lng.toFixed(6)}
         `);
         
-        // Toon vragen sectie
-        displayQuestions(result.checks);
+        // Toon checklist sectie in plaats van direct naar kaarten
+        loadHiderChecklist();
         
     } else {
         locationStatus.querySelector('.status-icon').textContent = '❌';
@@ -652,6 +734,103 @@ function displayQuestions(checks) {
             <span>${q.value}</span>
         </div>
     `).join('');
+}
+
+/**
+ * Laad en toon de hider checklist
+ */
+function loadHiderChecklist() {
+    // Check of checklist al voltooid is (knop is geklikt)
+    if (isChecklistCompleted()) {
+        console.log('Checklist already completed, skipping...');
+        handleCompleteChecklist();
+        return;
+    }
+    
+    console.log('Loading hider checklist...');
+    console.log('GAME_CARDS:', GAME_CARDS);
+    console.log('GAME_CARDS.hiderChecklist:', GAME_CARDS.hiderChecklist);
+    console.log('GAME_CARDS.cards:', GAME_CARDS.cards);
+    
+    checklistSection.classList.remove('hidden');
+    
+    // Haal checklist items op uit GAME_CARDS data
+    const checklist = GAME_CARDS.hiderChecklist || [];
+    console.log('Checklist items:', checklist);
+    
+    // Als er geen checklist is, toon een foutmelding
+    if (checklist.length === 0) {
+        console.error('Geen checklist items gevonden! Check cards.json');
+        // Sla checklist over en ga direct naar kaarten
+        handleCompleteChecklist();
+        return;
+    }
+    
+    // Laad opgeslagen state of maak nieuwe
+    const savedState = loadChecklistState();
+    if (savedState && savedState.length === checklist.length) {
+        checklistCompleted = savedState;
+        console.log('Restored checklist state:', checklistCompleted);
+    } else {
+        checklistCompleted = new Array(checklist.length).fill(false);
+    }
+    
+    // Render checklist items
+    checklistItemsContainer.innerHTML = checklist.map((item, index) => `
+        <div class="checklist-item ${checklistCompleted[index] ? 'completed' : ''}" data-index="${index}" onclick="toggleChecklistItem(${index})">
+            <div class="checklist-checkbox"></div>
+            <div class="checklist-text">${item}</div>
+        </div>
+    `).join('');
+    
+    console.log('Checklist rendered, HTML:', checklistItemsContainer.innerHTML);
+    
+    updateChecklistButton();
+}
+
+/**
+ * Toggle checklist item
+ */
+function toggleChecklistItem(index) {
+    checklistCompleted[index] = !checklistCompleted[index];
+    
+    // Update UI
+    const item = checklistItemsContainer.children[index];
+    if (checklistCompleted[index]) {
+        item.classList.add('completed');
+    } else {
+        item.classList.remove('completed');
+    }
+    
+    // Sla state op
+    saveChecklistState(checklistCompleted);
+    
+    updateChecklistButton();
+}
+
+/**
+ * Update checklist complete button state
+ */
+function updateChecklistButton() {
+    const allCompleted = checklistCompleted.every(completed => completed);
+    completeChecklistBtn.disabled = !allCompleted;
+}
+
+/**
+ * Handle checklist completion
+ */
+function handleCompleteChecklist() {
+    // Sla op dat checklist voltooid is
+    saveChecklistCompleted();
+    
+    checklistSection.classList.add('hidden');
+    
+    // Toon vragen sectie en kaarten sectie
+    const position = currentLocationMarker.getLatLng();
+    const result = performAllChecks(position.lat, position.lng);
+    displayQuestions(result.checks);
+    
+    cardsSection.classList.remove('hidden');
 }
 
 /**
@@ -756,6 +935,9 @@ function updateCardDisplay() {
         discardCardBtn.style.display = 'block';
         discardCardBtn.textContent = '🗑️ Tegenstander speelde dit eerst';
     }
+    
+    // Update POI markers voor huidige kaart
+    updatePOIMarkers();
 }
 
 /**
@@ -1206,6 +1388,12 @@ function renderFlopView() {
             
             const cardEl = document.createElement('div');
             cardEl.className = 'flop-card';
+            cardEl.style.cursor = 'pointer';
+            
+            // Maak hele kaart clickable om te openen
+            cardEl.onclick = () => {
+                viewCardDetail(globalIndex);
+            };
             
             // Toon verschillende UI afhankelijk van of er een antwoord is
             if (hasAnswer) {
@@ -1213,10 +1401,6 @@ function renderFlopView() {
                     <div class="card-task">${card.task}</div>
                     <div class="card-question">${card.question || ''}</div>
                     <div class="answer-indicator">✅ Antwoord: ${hasAnswer}</div>
-                    <div class="flop-card-actions">
-                        <button class="btn-flop-view-primary" onclick="viewCardDetail(${globalIndex})">👁️ Bekijk</button>
-                        <button class="btn-flop-edit" onclick="changeOpponentAnswer(${globalIndex})">✏️</button>
-                    </div>
                 `;
             } else if (!requiresAnswer) {
                 // Kaart vereist geen antwoord
@@ -1224,20 +1408,12 @@ function renderFlopView() {
                     <div class="card-task">${card.task}</div>
                     <div class="card-question">${card.question || ''}</div>
                     <div class="answer-indicator">⏳ Wacht op voltooiing</div>
-                    <div class="flop-card-actions">
-                        <button class="btn-flop-view-primary" onclick="viewCardDetail(${globalIndex})">👁️ Speel Kaart</button>
-                        <button class="btn-flop-discard-small" onclick="handleDirectDiscard(${globalIndex})">✓</button>
-                    </div>
                 `;
             } else {
                 cardEl.innerHTML = `
                     <div class="card-task">${card.task}</div>
                     <div class="card-question">${card.question}</div>
                     <div class="answer-indicator">⏳ Wacht op antwoord</div>
-                    <div class="flop-card-actions">
-                        <button class="btn-flop-view-primary" onclick="viewCardDetail(${globalIndex})">👁️ Speel Kaart</button>
-                        <button class="btn-flop-discard-small" onclick="discardCardFromFlop(${globalIndex})">🗑️</button>
-                    </div>
                 `;
             }
             

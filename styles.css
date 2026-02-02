@@ -410,6 +410,82 @@ body {
     font-size: 18px;
 }
 
+/* Checklist Section */
+.checklist-intro {
+    margin-bottom: 20px;
+    color: var(--text-secondary);
+    font-size: 16px;
+}
+
+.checklist-items {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.checklist-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px;
+    background-color: #f8fafc;
+    border-radius: 8px;
+    border-left: 4px solid var(--secondary-color);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.checklist-item:hover {
+    background-color: #f1f5f9;
+    transform: translateX(4px);
+}
+
+.checklist-item.completed {
+    background-color: #dcfce7;
+    border-left-color: var(--success-color);
+}
+
+.checklist-checkbox {
+    width: 24px;
+    height: 24px;
+    border: 2px solid var(--secondary-color);
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: all 0.2s ease;
+}
+
+.checklist-item.completed .checklist-checkbox {
+    background-color: var(--success-color);
+    border-color: var(--success-color);
+}
+
+.checklist-checkbox::after {
+    content: '✓';
+    color: white;
+    font-size: 16px;
+    font-weight: bold;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.checklist-item.completed .checklist-checkbox::after {
+    opacity: 1;
+}
+
+.checklist-text {
+    flex: 1;
+    font-size: 16px;
+    color: var(--text-primary);
+}
+
+.checklist-item.completed .checklist-text {
+    color: var(--success-color);
+}
+
 /* Questions List */
 .questions-list {
     display: flex;

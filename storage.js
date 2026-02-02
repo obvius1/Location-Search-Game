@@ -103,6 +103,35 @@ function hasActiveGame() {
 }
 
 /**
+ * Sla checklist completed status op
+ */
+function saveChecklistCompleted() {
+    localStorage.setItem('checklistCompleted', 'true');
+}
+
+/**
+ * Check of checklist al voltooid is
+ */
+function isChecklistCompleted() {
+    return localStorage.getItem('checklistCompleted') === 'true';
+}
+
+/**
+ * Sla de checklist state op (welke items zijn afgevinkt)
+ */
+function saveChecklistState(checklistState) {
+    localStorage.setItem('checklistState', JSON.stringify(checklistState));
+}
+
+/**
+ * Laad de checklist state
+ */
+function loadChecklistState() {
+    const state = localStorage.getItem('checklistState');
+    return state ? JSON.parse(state) : null;
+}
+
+/**
  * Sla antwoord van tegenstander op voor een specifieke kaart
  */
 function saveOpponentAnswer(cardIndex, opponentAnswer, cardTask = null) {
@@ -245,6 +274,8 @@ function resetGameData() {
     localStorage.removeItem(STORAGE_KEY);
     localStorage.removeItem('cardManagerState');
     localStorage.removeItem('opponentAnswers');
+    localStorage.removeItem('checklistCompleted');
+    localStorage.removeItem('checklistState');
     
     // Verwijder alle discarded answers
     const keysToRemove = [];
@@ -256,7 +287,7 @@ function resetGameData() {
     }
     keysToRemove.forEach(key => localStorage.removeItem(key));
     
-    console.log('Game data reset (inclusief card manager state, antwoorden en discarded answers)');
+    console.log('Game data reset (inclusief card manager state, antwoorden, checklist en discarded answers)');
     return true;
 }
 
