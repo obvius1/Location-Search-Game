@@ -886,7 +886,35 @@ function displayLocationError(message) {
 function displayQuestions(checks) {
     questionsSection.classList.remove('hidden');
     
+    // Haal huidige locatie op
+    const gameData = loadGameData();
+    const currentLocation = gameData.location;
+    
+    // Bepaal huidige wijk
+    let currentNeighborhood = 'Onbekend';
+    if (currentLocation) {
+        const neighborhood = getNeighborhoodAtLocation(currentLocation.lat, currentLocation.lng);
+        if (neighborhood) {
+            currentNeighborhood = neighborhood.name;
+        }
+    }
+    
+    // Check of er een bibliotheek binnen 750m is
+    let libraryWithin750m = 'Nee';
+    if (currentLocation) {
+        const libraries = getPOIsByType('libraries');
+        for (const lib of libraries) {
+            const distance = calculateDistance(currentLocation.lat, currentLocation.lng, lib.lat, lib.lng);
+            if (distance <= 750) {
+                libraryWithin750m = `Ja (${lib.name}, ${Math.round(distance)}m)`;
+                break;
+            }
+        }
+    }
+    
     const questions = [
+        { label: 'Huidige Wijk', value: currentNeighborhood },
+        { label: 'Bibliotheek binnen 750m', value: libraryWithin750m },
         { label: 'R40', value: checks.r40.answer },
         { label: 'Leie-Schelde', value: checks.leieSchelde.answer },
         { label: 'Weba/IKEA', value: `${checks.webaIkea.answer} (Weba: ${checks.webaIkea.distanceWeba}m / IKEA: ${checks.webaIkea.distanceIkea}m)` },
