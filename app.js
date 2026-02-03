@@ -331,6 +331,9 @@ function initializeMap() {
     // Stadswijken worden alleen getoond bij neighborhood vragen
     // drawNeighborhoods() wordt aangeroepen vanuit updateCardDisplay()
     
+    // Voeg schaal toe aan de kaart
+    L.control.scale({ position: 'topleft' }).addTo(map);
+    
     // Voeg een legenda toe
     addMapLegend();
 }
@@ -448,23 +451,59 @@ function updateNeighborhoodVisibility() {
  * Voegt een legenda toe aan de kaart
  */
 function addMapLegend() {
-    const legend = L.control({ position: 'bottomright' });
+    const legend = L.control({ position: 'topright' });
     
     legend.onAdd = function() {
         const div = L.DomUtil.create('div', 'map-legend');
+        div.classList.add('legend-collapsed');
+        
         div.innerHTML = `
-            <h4>Legenda</h4>
-            <div><span class="legend-circle" style="background: #3b82f6;"></span> Speelveld (3km)</div>
-            <div><span class="legend-line" style="background: #fb923c;"></span> R40 Ring</div>
-            <div><span class="legend-line" style="background: #1e40af;"></span> Leie-Schelde Lijn</div>
-            <div><span class="legend-line" style="background: #9ca3af;"></span> Stadswijken</div>
-            <div><span class="legend-marker" style="background: #dc2626;"></span> Belfort (centrum)</div>
-            <div><span class="legend-marker" style="background: #22c55e;"></span> Je locatie</div>
+            <div class="legend-header" onclick="toggleLegenda(event)">
+                <span class="legend-title">📋 Legende</span>
+                <span class="legend-toggle">▶</span>
+            </div>
+            <div class="legend-content hidden">
+                <div><span class="legend-line" style="background: #fb923c;"></span> R40 Ring</div>
+                <div><span class="legend-line" style="background: #1e40af;"></span> Leie-Schelde Lijn</div>
+                <div><span class="legend-line" style="background: #9ca3af;"></span> Stadswijken</div>
+                <div><span class="legend-marker" style="background: #dc2626;"></span> Belfort (centrum)</div>
+                <div><span class="legend-marker" style="background: #22c55e;"></span> Je locatie</div>
+            </div>
         `;
+        
+        // Klik ergens anders op de kaart om legenda in te klappen
+        map.on('click', () => {
+            if (!div.classList.contains('legend-collapsed')) {
+                div.classList.add('legend-collapsed');
+                div.querySelector('.legend-content').classList.add('hidden');
+                div.querySelector('.legend-toggle').textContent = '▶';
+            }
+        });
+        
         return div;
     };
     
     legend.addTo(map);
+}
+
+/**
+ * Toggle legenda expand/collapse
+ */
+function toggleLegenda(event) {
+    event.stopPropagation();
+    const div = event.currentTarget.closest('.map-legend');
+    const content = div.querySelector('.legend-content');
+    const toggle = div.querySelector('.legend-toggle');
+    
+    if (div.classList.contains('legend-collapsed')) {
+        div.classList.remove('legend-collapsed');
+        content.classList.remove('hidden');
+        toggle.textContent = '▼';
+    } else {
+        div.classList.add('legend-collapsed');
+        content.classList.add('hidden');
+        toggle.textContent = '▶';
+    }
 }
 
 /**

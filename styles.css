@@ -216,17 +216,47 @@ body {
     line-height: 1.8;
 }
 
-.map-legend h4 {
-    margin: 0 0 8px 0;
+.legend-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    user-select: none;
+    margin: 0;
+}
+
+.legend-title {
     font-size: 14px;
     font-weight: 600;
     color: var(--text-primary);
 }
 
+.legend-toggle {
+    font-size: 12px;
+    color: var(--text-secondary);
+    transition: transform 0.2s ease;
+}
+
+.map-legend.legend-collapsed .legend-toggle {
+    transform: rotate(0deg);
+}
+
+.legend-content {
+    margin-top: 8px;
+    transition: opacity 0.2s ease;
+    display: flex;
+    flex-direction: column;
+}
+
+.legend-content.hidden {
+    display: none;
+}
+
 .map-legend div {
     display: flex;
     align-items: center;
-    margin-bottom: 4px;
+    justify-content: flex-start;
+    margin-bottom: 6px;
 }
 
 .legend-circle,
