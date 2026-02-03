@@ -8,6 +8,7 @@ let r40Polygon = null;
 let leieScheldeLine = null;
 let currentLocationMarker = null;
 let poiMarkers = {}; // Object om POI markers bij te houden
+let poiCollectionMarkers = []; // Array van POI collection markers (bibliotheken, etc.)
 let accuracyCircle = null;
 let exclusionLayers = []; // Array van uitgesloten zones op de kaart
 let neighborhoodLayers = []; // Array van wijk polygonen op de kaart
@@ -509,6 +510,9 @@ function toggleLegenda(event) {
 /**
  * Update POI markers op basis van huidige enkele kaart
  */
+/**
+ * Update POI markers op basis van huidige kaart
+ */
 function updatePOIMarkers() {
     if (!cardManager || !cardManager.flop) {
         return;
@@ -530,6 +534,55 @@ function updatePOIMarkers() {
                 map.removeLayer(marker);
             }
         }
+    });
+    
+    // Toon POI collections (bijv. bibliotheken) als kaart radiusProximity is
+    updatePOICollectionMarkers();
+}
+
+/**
+ * Update markers voor POI collections (bibliotheken, etc.)
+ */
+function updatePOICollectionMarkers() {
+    // Verwijder oude POI collection markers
+    poiCollectionMarkers.forEach(marker => {
+        if (map.hasLayer(marker)) {
+            map.removeLayer(marker);
+        }
+    });
+    poiCollectionMarkers = [];
+    
+    if (!cardManager || !cardManager.flop) {
+        return;
+    }
+    
+    const currentCard = cardManager.getCard(currentCardIndex);
+    if (!currentCard || currentCard.answerType !== 'radiusProximity') {
+        return;
+    }
+    
+    // Haal POIs van het aangegeven type op
+    const poiType = currentCard.poiType;
+    const pois = getPOIsByType(poiType);
+    
+    if (pois.length === 0) {
+        return;
+    }
+    
+    // Toon alle POIs met dezelfde marker stijl als andere POIs
+    pois.forEach(poi => {
+        const marker = L.marker([poi.lat, poi.lng], {
+            icon: L.icon({
+                iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
+                shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+                iconSize: [25, 41],
+                iconAnchor: [12, 41],
+                popupAnchor: [1, -34],
+                shadowSize: [41, 41]
+            })
+        }).bindPopup(`<b>${poi.name}</b><br>${poi.address || ''}`).addTo(map);
+        
+        poiCollectionMarkers.push(marker);
     });
 }
 
@@ -1063,16 +1116,30 @@ function generateAnswerButtons(cardIndex, question) {
     const container = document.getElementById(`answer-buttons-${cardIndex}`);
     if (!container) return;
     
-    const buttons = getAnswerButtonsForQuestion(question);
+    const card = cardManager.getCard(cardIndex);
     
-    // Maak knoppen aan
-    buttons.forEach(answer => {
-        const btn = document.createElement('button');
-        btn.className = 'btn-answer';
-        btn.textContent = answer;
-        btn.onclick = () => handleOpponentAnswer(cardIndex, answer);
-        container.appendChild(btn);
-    });
+    // Check of dit een radiusProximity vraag is
+    if (card && card.answerType === 'radiusProximity') {
+        // Voor radiusProximity: Ja/Nee buttons met speciale handler
+        const buttons = ['Ja', 'Nee'];
+        buttons.forEach(answer => {
+            const btn = document.createElement('button');
+            btn.className = 'btn-answer';
+            btn.textContent = answer;
+            btn.onclick = () => handleRadiusProximityAnswer(cardIndex, answer);
+            container.appendChild(btn);
+        });
+    } else {
+        // Normale antwoord knoppen
+        const buttons = getAnswerButtonsForQuestion(question);
+        buttons.forEach(answer => {
+            const btn = document.createElement('button');
+            btn.className = 'btn-answer';
+            btn.textContent = answer;
+            btn.onclick = () => handleOpponentAnswer(cardIndex, answer);
+            container.appendChild(btn);
+        });
+    }
 }
 
 /**
@@ -1111,6 +1178,43 @@ function handleOpponentAnswer(cardIndex, answer) {
         }
     }
     
+    updateCardDisplay();
+}
+
+/**
+ * Verwerk Ja/Nee antwoord voor radiusProximity kaarten
+ */
+function handleRadiusProximityAnswer(cardIndex, answer) {
+    const card = cardManager.getCard(cardIndex);
+    if (!card || !card.poiType || !card.radius) return;
+    
+    const answerMap = { 'Ja': 'yes', 'Nee': 'no' };
+    const answerValue = answerMap[answer];
+    
+    // Sla exclusion zone op
+    const gameData = loadGameData();
+    const currentDiscardedCount = cardManager.discarded.length;
+    
+    gameData.exclusionZones = gameData.exclusionZones || [];
+    gameData.exclusionZones.push({
+        type: 'radiusProximity',
+        answer: answerValue,
+        poiType: card.poiType,
+        radius: card.radius,
+        cardIndex: cardIndex
+    });
+    
+    saveGameData(gameData);
+    
+    // Discard de kaart
+    cardManager.discardCard(cardIndex);
+    saveDiscardedAnswer(currentDiscardedCount, answer, card.task, cardIndex);
+    
+    // Update state
+    saveCardManagerState();
+    
+    // Update visualisatie
+    updateExclusionZones();
     updateCardDisplay();
 }
 
@@ -1452,6 +1556,16 @@ function createExclusionLayerFromData(exclusionData) {
         pane: 'exclusionPane'
     };
     
+    const inclusionStyle = {
+        color: '#22c55e',
+        fillColor: '#22c55e',
+        fillOpacity: 0.2,
+        weight: 2,
+        dashArray: '5, 5',
+        interactive: false,
+        pane: 'exclusionPane'
+    };
+    
     // Neighborhood exclusions
     if (exclusionData.type === 'neighborhood') {
         const { answer, allowedNeighborhoods, selectedNeighborhood } = exclusionData;
@@ -1481,6 +1595,108 @@ function createExclusionLayerFromData(exclusionData) {
         
         // Return een FeatureGroup van alle layers
         if (layers.length > 0) {
+            return L.featureGroup(layers);
+        }
+    }
+    
+    // Radius Proximity exclusions (bijv. bibliotheken binnen 1km)
+    if (exclusionData.type === 'radiusProximity') {
+        const { answer, poiType, radius } = exclusionData;
+        const pois = getPOIsByType(poiType);
+        
+        console.log(`Creating exclusion zones: type=radiusProximity, answer=${answer}, poiType=${poiType}, radius=${radius}, pois=${pois.length}`);
+        
+        if (pois.length === 0) {
+            console.warn(`No POIs found for type: ${poiType}`);
+            return null;
+        }
+        
+        if (answer === 'no') {
+            // "Nee" = er is GEEN POI binnen radius
+            // Sluit alle zones BINNEN de radius uit (rode circles)
+            const earthRadius = 6371000;
+            const layers = pois.map(poi => {
+                const circlePoints = [];
+                for (let angle = 0; angle <= 360; angle += 5) {
+                    const rad = (angle * Math.PI) / 180;
+                    const latOffset = (radius / earthRadius) * (180 / Math.PI) * Math.cos(rad);
+                    const lngOffset = 
+                        ((radius / earthRadius) * (180 / Math.PI) * Math.sin(rad)) /
+                        Math.cos((poi.lat * Math.PI) / 180);
+                    
+                    circlePoints.push([poi.lat + latOffset, poi.lng + lngOffset]);
+                }
+                
+                return L.polygon(circlePoints, exclusionStyle).bindPopup(`❌ Uitgesloten: Binnen ${radius / 1000}km van ${poi.name || poiType}`);
+            });
+            
+            console.log(`Created ${layers.length} exclusion circles for radiusProximity (no)`);
+            if (layers.length > 0) {
+                return L.featureGroup(layers);
+            }
+        } else {
+            // "Ja" = er IS een POI binnen radius
+            // Doel: kleur ALLES BUITEN de unie van alle cirkels rood,
+            // zodat overlappende cirkels NIET rood worden.
+            // Implementatie: raster van kleine rechthoeken; cellen buiten de
+            // (radius rond eender welke POI) krijgen een rood vak.
+
+            const earthRadius = 6371000;
+            const belfort = LOCATIONS.belfort;
+            const gameRadius = GAME_RADIUS; // beperk tot speelveld
+
+            // Bepaal bounds rond Belfort
+            const degPerMeterLat = 1 / 111320; // ~ meters per graad breedte
+            const degPerMeterLng = (lat) => 1 / (111320 * Math.cos((lat * Math.PI) / 180));
+
+            const latDelta = gameRadius * degPerMeterLat;
+            const lngDelta = gameRadius * degPerMeterLng(belfort.lat);
+            const minLat = belfort.lat - latDelta;
+            const maxLat = belfort.lat + latDelta;
+            const minLng = belfort.lng - lngDelta;
+            const maxLng = belfort.lng + lngDelta;
+
+            // Raster resolutie (meters). Lager = fijner, maar zwaarder.
+            const cellSizeM = 75; // 150m balans tussen performance en kwaliteit
+
+            // Stapgroottes in graden voor huidige breedtegraad
+            const dLat = cellSizeM * degPerMeterLat;
+            const dLng = cellSizeM * degPerMeterLng(belfort.lat);
+
+            const layers = [];
+
+            for (let lat = minLat; lat < maxLat; lat += dLat) {
+                for (let lng = minLng; lng < maxLng; lng += dLng) {
+                    // Cel centrum
+                    const cLat = lat + dLat / 2;
+                    const cLng = lng + dLng / 2;
+
+                    // Sla cellen buiten het SPEELVELD (GAME_RADIUS) over
+                    const centerDistToBelfort = calculateDistance(cLat, cLng, belfort.lat, belfort.lng);
+                    if (centerDistToBelfort > gameRadius) {
+                        continue;
+                    }
+
+                    // Is het centrum binnen radius van een van de POIs?
+                    let insideAny = false;
+                    for (let i = 0; i < pois.length; i++) {
+                        const p = pois[i];
+                        const dist = calculateDistance(cLat, cLng, p.lat, p.lng);
+                        if (dist <= radius) {
+                            insideAny = true;
+                            break;
+                        }
+                    }
+
+                    // Alles BUITEN de unie van cirkels kleuren we rood
+                    if (!insideAny) {
+                        const bounds = [[lat, lng], [lat + dLat, lng + dLng]];
+                        layers.push(L.rectangle(bounds, exclusionStyle));
+                    }
+                }
+            }
+
+            console.log(`Created grid outside-union mask with ${layers.length} cells`);
             return L.featureGroup(layers);
         }
     }
@@ -1706,6 +1922,32 @@ function editDiscardedAnswer(discardedIndex) {
             const originalCardIndex = discardedData?.originalCardIndex;
             
             saveDiscardedAnswer(discardedIndex, answer, card.task, originalCardIndex);
+            
+            // Speciaal voor radiusProximity kaarten: update exclusionZones entry
+            if (card.answerType === 'radiusProximity') {
+                const gameData = loadGameData();
+                gameData.exclusionZones = gameData.exclusionZones || [];
+                
+                // Verwijder bestaande zone voor deze kaart
+                gameData.exclusionZones = gameData.exclusionZones.filter(ez => 
+                    !(ez.type === 'radiusProximity' && ez.cardIndex === originalCardIndex)
+                );
+                
+                // Map tekst naar waarde
+                const answerMap = { 'Ja': 'yes', 'Nee': 'no' };
+                const answerValue = answerMap[answer] || 'no';
+                
+                // Voeg nieuwe zone toe met huidige kaartparams
+                gameData.exclusionZones.push({
+                    type: 'radiusProximity',
+                    answer: answerValue,
+                    poiType: card.poiType,
+                    radius: card.radius,
+                    cardIndex: originalCardIndex
+                });
+                
+                saveGameData(gameData);
+            }
             
             // Update de opponent answer via originele cardIndex
             let updated = false;

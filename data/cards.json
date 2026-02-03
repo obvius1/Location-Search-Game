@@ -55,12 +55,13 @@
       "pois": []
     },
     {
-      "task": "🏃 Ren een minuut lang",
-      "question": "Dichter bij Weba of IKEA?",
+      "task": "Fotografeer een gedicht op een muur/raam dat van op straat zichtbaar is",
+      "question": "Is er een bibliotheek binnen 750m?",
       "phase": 2,
-      "requiresAnswer": false,
-      "answerType": "proximity",
-      "pois": ["weba", "ikea"]
+      "answerType": "radiusProximity",
+      "radius": 750,
+      "poiType": "libraries",
+      "pois": []
     },
     {
       "task": "💬 Vraag de weg aan een vreemdeling",

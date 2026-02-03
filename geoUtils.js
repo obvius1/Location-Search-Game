@@ -12,6 +12,8 @@ let R40_POLYGON = [];
 let LEIE_SCHELDE_LINE = [];
 // Stadswijken - wordt geladen vanuit stadswijken-gent.geojson
 let CITY_NEIGHBORHOODS = [];
+// POI Collections (bijv. bibliotheken) - wordt geladen vanuit geo-data.json
+let POI_COLLECTIONS = {};
 
 /**
  * Laadt alle geografische data vanuit geo-data.json
@@ -51,6 +53,12 @@ async function loadZones() {
                 lat: coord[1]
             }));
             console.log(`Leie-Schelde lijn geladen: ${LEIE_SCHELDE_LINE.length} punten`);
+        }
+        
+        // Laad POI Collections (bijv. libraries)
+        if (data.poi_collections) {
+            POI_COLLECTIONS = data.poi_collections;
+            console.log(`POI Collections geladen:`, Object.keys(POI_COLLECTIONS));
         }
         
         return data;
@@ -445,4 +453,77 @@ function pointOnLineSegment(point, lineStart, lineEnd, tolerance) {
                             (point.lat <= Math.max(lineStart.lat, lineEnd.lat) + tolerance);
     
     return withinBoundsLng && withinBoundsLat;
+}
+/**
+ * Haal POI's van een bepaald type op (bijv. 'libraries')
+ * @param {string} poiType - Type POI (bijv. 'libraries')
+ * @returns {Array} Array van POI objecten met lat/lng
+ */
+function getPOIsByType(poiType) {
+    if (!POI_COLLECTIONS || !POI_COLLECTIONS[poiType]) {
+        return [];
+    }
+    return POI_COLLECTIONS[poiType];
+}
+
+/**
+ * Bereken afstand naar dichtste POI van bepaald type
+ * @param {number} lat - Huidige latitude
+ * @param {number} lng - Huidige longitude
+ * @param {string} poiType - Type POI
+ * @param {Array} excludePoiIds - Array van POI IDs om uit te sluiten
+ * @returns {number} Afstand in meters naar dichtste POI, of Infinity als geen gevonden
+ */
+function getDistanceToNearestPOI(lat, lng, poiType, excludePoiIds = []) {
+    const pois = getPOIsByType(poiType);
+    if (pois.length === 0) return Infinity;
+    
+    let minDistance = Infinity;
+    pois.forEach(poi => {
+        if (excludePoiIds.includes(poi.id)) return;
+        
+        const distance = getDistanceInMeters(lat, lng, poi.lat, poi.lng);
+        minDistance = Math.min(minDistance, distance);
+    });
+    
+    return minDistance;
+}
+
+/**
+ * Check of er een POI van bepaald type binnen radius is
+ * @param {number} lat - Huidige latitude
+ * @param {number} lng - Huidige longitude
+ * @param {string} poiType - Type POI
+ * @param {number} radius - Radius in meters
+ * @returns {boolean} True als POI binnen radius is
+ */
+function hasNearbyPOI(lat, lng, poiType, radius) {
+    const distance = getDistanceToNearestPOI(lat, lng, poiType);
+    return distance <= radius;
+}
+
+/**
+ * Genereer punten op een cirkel rond meerdere POIs (voor exclusion zones)
+ * @param {Array} pois - Array van POI objecten
+ * @param {number} radius - Radius in meters
+ * @param {number} angleStep - Hoekstap in graden (default 5)
+ * @returns {Array} Array van arrays [lat, lng] punten die een cirkel vormen
+ */
+function getPointsByRadiusFromPOIs(pois, radius, angleStep = 5) {
+    const allPoints = [];
+    const earthRadius = 6371000; // meters
+    
+    pois.forEach(poi => {
+        for (let angle = 0; angle <= 360; angle += angleStep) {
+            const rad = (angle * Math.PI) / 180;
+            const latOffset = (radius / earthRadius) * (180 / Math.PI) * Math.cos(rad);
+            const lngOffset = 
+                ((radius / earthRadius) * (180 / Math.PI) * Math.sin(rad)) /
+                Math.cos((poi.lat * Math.PI) / 180);
+            
+            allPoints.push([poi.lat + latOffset, poi.lng + lngOffset]);
+        }
+    });
+    
+    return allPoints;
 }
