@@ -3,7 +3,11 @@
     "Maak een foto kijkend naar de linkerkant",
     "Maak een foto kijkend naar de rechterkant",
     "Maak een foto kijkend naar voren",
-    "Maak een foto kijkend naar achteren"
+    "Maak een foto kijkend naar achteren",
+    "Maak een foto van het dichtbijzijnde gebouw",
+    "Noteer de straatnaam",
+    "Noteer of het een eenrichtingsstraat is",
+    "Noteer of er een boom binnen de 5m staat"
   ],
   "cards": [
     {
