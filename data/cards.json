@@ -53,6 +53,14 @@
       "pois": []
     },
     {
+      "task": "📍 Vind een specifiek adres dat je online opzoekt en maak een foto bij de voordeur",
+      "question": "Is de fiets binnen 3km van jouw huidige positie?",
+      "phase": 1,
+      "answerType": "distanceFromBike",
+      "radius": 3000,
+      "pois": []
+    },
+    {
       "task": "Bezoek een museum of historisch huis dat minder dan 1000 reviews heeft op Google Maps (lijst van geldige museums in Gent, andere kunnen beargumenteerd worden)",
       "question": "Kopieer een vraag die al gevraagd is door de andere speler(s)",
       "phase": 2,
@@ -89,6 +97,14 @@
       "pois": ["dampoort"]
     },
     {
+      "task": "🚶 Loop naar een plek waar je nog nooit bent geweest in deze stad",
+      "question": "Is de fiets binnen 1km van jouw huidige positie?",
+      "phase": 2,
+      "answerType": "distanceFromBike",
+      "radius": 1000,
+      "pois": []
+    },
+    {
       "task": "🎵 Zing een liedje in het openbaar",
       "question": "Oosten of westen van de tip van de watersportbaan?",
       "phase": 3,
@@ -117,7 +133,15 @@
       "pois": []
     },
     {
-      "task": "🌉 Steek een brug over",
+      "task": "� Speel een spelletje met een vreemdeling (bijv. tic-tac-toe op papier)",
+      "question": "Is de fiets binnen 500m van jouw huidige positie?",
+      "phase": 3,
+      "answerType": "distanceFromBike",
+      "radius": 500,
+      "pois": []
+    },
+    {
+      "task": "�🌉 Steek een brug over",
       "question": "Oosten of westen van de tip van de watersportbaan?",
       "phase": 3,
       "requiresAnswer": false,

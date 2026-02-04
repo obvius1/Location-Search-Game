@@ -579,6 +579,127 @@ body {
     color: var(--text-secondary);
 }
 
+/* Distance Calculator */
+.distance-calculator {
+    margin-top: 24px;
+    padding: 20px;
+    background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+    border-radius: var(--border-radius);
+    border: 2px solid #0ea5e9;
+}
+
+.distance-calculator h3 {
+    margin: 0 0 8px 0;
+    color: #0369a1;
+    font-size: 1.1rem;
+}
+
+.calculator-help {
+    font-size: 0.9rem;
+    color: #0c4a6e;
+    margin-bottom: 16px;
+}
+
+.calculator-section {
+    margin: 16px 0;
+}
+
+.calculator-section label {
+    display: block;
+    font-weight: 500;
+    margin-bottom: 8px;
+    color: var(--text-primary);
+}
+
+.coords-input {
+    width: 100%;
+    padding: 12px;
+    border: 2px solid #cbd5e1;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-family: 'Courier New', monospace;
+    margin-bottom: 8px;
+}
+
+.coords-input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+}
+
+.location-display {
+    margin-top: 12px;
+    padding: 12px;
+    background: white;
+    border-radius: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+}
+
+.location-coords {
+    font-family: 'Courier New', monospace;
+    font-size: 0.95rem;
+    color: var(--text-primary);
+    font-weight: 600;
+    flex: 1;
+}
+
+.distance-result {
+    margin-top: 12px;
+    padding: 16px;
+    background: white;
+    border-radius: 8px;
+    border-left: 4px solid #16a34a;
+}
+
+.distance-result.far {
+    border-left-color: #dc2626;
+}
+
+.distance-result strong {
+    display: block;
+    font-size: 1.2rem;
+    color: #16a34a;
+    margin-bottom: 4px;
+}
+
+.distance-result.far strong {
+    color: #dc2626;
+}
+
+.distance-result p {
+    margin: 4px 0;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.calculator-divider {
+    text-align: center;
+    color: #64748b;
+    font-weight: 600;
+    margin: 20px 0;
+    position: relative;
+}
+
+.calculator-divider::before,
+.calculator-divider::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    width: 40%;
+    height: 1px;
+    background: #cbd5e1;
+}
+
+.calculator-divider::before {
+    left: 0;
+}
+
+.calculator-divider::after {
+    right: 0;
+}
+
 /* Game Card */
 .card-counter {
     text-align: center;

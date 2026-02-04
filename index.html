@@ -137,6 +137,33 @@
             <section id="questions-section" class="card hidden">
                 <h2>❓ Automatische Antwoorden</h2>
                 <div id="questions-result" class="questions-list"></div>
+                
+                <!-- Distance Calculator -->
+                <div class="distance-calculator">
+                    <h3>🧭 Afstand Calculator</h3>
+                    <p class="calculator-help">Deel je locatie of check de afstand van een tegenstander</p>
+                    
+                    <div class="calculator-section">
+                        <button id="share-location-btn" class="btn btn-primary">📍 Deel Mijn Locatie</button>
+                        <div id="current-location-display" class="location-display hidden">
+                            <div class="location-coords" id="share-coords-text"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="calculator-divider">OF</div>
+                    
+                    <div class="calculator-section">
+                        <label for="opponent-coords-input">Coördinaten van tegenstander:</label>
+                        <input 
+                            type="text" 
+                            id="opponent-coords-input" 
+                            placeholder="51.0543, 3.7234"
+                            class="coords-input"
+                        >
+                        <button id="calculate-distance-btn" class="btn btn-secondary">📏 Bereken Afstand</button>
+                        <div id="distance-result" class="distance-result hidden"></div>
+                    </div>
+                </div>
             </section>
 
             <!-- Game Info -->

@@ -61,6 +61,14 @@ const completeChecklistBtn = document.getElementById('complete-checklist-btn');
 // Neighborhood modal elements
 const confirmNeighborhoodBtn = document.getElementById('confirm-neighborhood-btn');
 
+// Distance calculator elements
+const shareLocationBtn = document.getElementById('share-location-btn');
+const currentLocationDisplay = document.getElementById('current-location-display');
+const shareCoordsText = document.getElementById('share-coords-text');
+const opponentCoordsInput = document.getElementById('opponent-coords-input');
+const calculateDistanceBtn = document.getElementById('calculate-distance-btn');
+const distanceResult = document.getElementById('distance-result');
+
 // Checklist state
 let checklistCompleted = [];
 
@@ -80,6 +88,10 @@ copySeedBtn.addEventListener('click', handleCopySeed);
 resetGameBtn.addEventListener('click', handleResetGame);
 completeChecklistBtn.addEventListener('click', handleCompleteChecklist);
 confirmNeighborhoodBtn.addEventListener('click', confirmNeighborhoodAnswer);
+
+// Distance calculator event listeners
+shareLocationBtn.addEventListener('click', handleShareLocation);
+calculateDistanceBtn.addEventListener('click', handleCalculateDistance);
 
 // Initialize
 document.addEventListener('DOMContentLoaded', async () => {
@@ -1050,8 +1062,6 @@ function loadHiderChecklist() {
             <div class="checklist-text">${item}</div>
         </div>
     `).join('');
-    
-    console.log('Checklist rendered, HTML:', checklistItemsContainer.innerHTML);
     
     updateChecklistButton();
 }
@@ -2621,6 +2631,98 @@ function loadCardManagerState() {
         console.error('Fout bij laden card manager state:', error);
     }
     return null;
+}
+
+/**
+ * Haal huidige GPS locatie op en toon voor delen
+ */
+async function handleShareLocation() {
+    shareLocationBtn.disabled = true;
+    shareLocationBtn.textContent = '📍 Locatie ophalen...';
+    
+    try {
+        // Haal LIVE GPS positie op (niet de opgeslagen fiets locatie!)
+        const location = await getCurrentLocation();
+        
+        // Format coördinaten: lat, lng met 4 decimalen
+        const coordsText = `${location.lat.toFixed(4)}, ${location.lng.toFixed(4)}`;
+        
+        shareCoordsText.textContent = coordsText;
+        currentLocationDisplay.classList.remove('hidden');
+        
+        shareLocationBtn.textContent = '✅ Locatie opgehaald';
+        
+        // Reset knop na 3 seconden
+        setTimeout(() => {
+            shareLocationBtn.textContent = '📍 Deel Mijn Locatie';
+            shareLocationBtn.disabled = false;
+        }, 3000);
+        
+    } catch (error) {
+        alert('Fout bij ophalen locatie: ' + error.message);
+        shareLocationBtn.textContent = '📍 Deel Mijn Locatie';
+        shareLocationBtn.disabled = false;
+    }
+}
+
+/**
+ * Bereken afstand van ingevoerde coördinaten tot de fiets
+ */
+function handleCalculateDistance() {
+    const coordsInput = opponentCoordsInput.value.trim();
+    
+    if (!coordsInput) {
+        alert('Voer eerst coördinaten in');
+        return;
+    }
+    
+    // Parse coördinaten (formaat: "lat, lng" of "lat,lng")
+    const parts = coordsInput.split(',').map(p => p.trim());
+    if (parts.length !== 2) {
+        alert('Ongeldig formaat. Gebruik: 51.0543, 3.7234');
+        return;
+    }
+    
+    const lat = parseFloat(parts[0]);
+    const lng = parseFloat(parts[1]);
+    
+    if (isNaN(lat) || isNaN(lng)) {
+        alert('Ongeldige coördinaten. Controleer het formaat.');
+        return;
+    }
+    
+    // Haal fiets locatie op (bevestigde locatie)
+    const gameData = loadGameData();
+    if (!gameData.location) {
+        alert('Geen fiets locatie ingesteld. Bevestig eerst je locatie!');
+        return;
+    }
+    
+    const bikeLat = gameData.location.lat;
+    const bikeLng = gameData.location.lng;
+    
+    // Bereken afstand
+    const distance = calculateDistance(lat, lng, bikeLat, bikeLng);
+    const distanceRounded = Math.round(distance);
+    
+    // Toon resultaat
+    distanceResult.innerHTML = `
+        <strong>📏 Afstand: ${distanceRounded}m</strong>
+        <p>Van ingevoerde locatie tot de fiets</p>
+        <p style="font-size: 0.85rem; margin-top: 8px;">
+            <strong>Tegenstander:</strong> ${lat.toFixed(4)}, ${lng.toFixed(4)}<br>
+            <strong>Fiets:</strong> ${bikeLat.toFixed(4)}, ${bikeLng.toFixed(4)}
+        </p>
+    `;
+    
+    // Voeg kleur toe op basis van afstand
+    if (distanceRounded > 1000) {
+        distanceResult.classList.add('far');
+    } else {
+        distanceResult.classList.remove('far');
+    }
+    
+    distanceResult.classList.remove('hidden');
 }
 
 // Maak functies globaal beschikbaar voor onclick handlers
