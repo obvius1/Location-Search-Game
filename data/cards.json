@@ -46,6 +46,13 @@
       "pois": ["watersportbaan"]
     },
     {
+      "task": "Binnen de 35 minuten, bezoek 3 verschillende bakkerijen (/supermarkten) en koop en eet op elke locatie een koffiekoek/taart/broodje/patisserie",
+      "question": "Binnen 800m van het de spoorlijn Oostende-Antwerpen?",
+      "phase": 1,
+      "answerType": "bufferLine",
+      "pois": []
+    },
+    {
       "task": "Bezoek een museum of historisch huis dat minder dan 1000 reviews heeft op Google Maps (lijst van geldige museums in Gent, andere kunnen beargumenteerd worden)",
       "question": "Kopieer een vraag die al gevraagd is door de andere speler(s)",
       "phase": 2,

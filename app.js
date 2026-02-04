@@ -6,6 +6,8 @@ let gameZoneCircle = null;
 let inverseMask = null;
 let r40Polygon = null;
 let leieScheldeLine = null;
+let railwayLine = null;
+let railwayBuffer = null;
 let currentLocationMarker = null;
 let poiMarkers = {}; // Object om POI markers bij te houden
 let poiCollectionMarkers = []; // Array van POI collection markers (bibliotheken, etc.)
@@ -86,6 +88,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Laad zone data, wijken en kaarten
     await loadZones();
     await loadNeighborhoods();
+    await loadRailwayData();
     await loadCards();
     
     initializeMap();
@@ -323,6 +326,32 @@ function initializeMap() {
         }).addTo(map).bindPopup('<b>Leie-Schelde Lijn</b><br>Scheiding Noord-Zuid Gent');
     }
     
+    // Teken de spoorlijn Oostende-Antwerpen (standaard verborgen)
+    if (RAILWAY_LINE.length > 0) {
+        const railwayCoords = RAILWAY_LINE.map(point => [point.lat, point.lng]);
+        railwayLine = L.polyline(railwayCoords, {
+            color: '#dc2626',
+            weight: 3,
+            opacity: 0.8,
+            dashArray: '15, 10'
+        }).bindPopup('<b>Spoorlijn Oostende-Antwerpen</b><br>1.5km buffer zone');
+        // Niet direct toevoegen aan kaart - wordt getoond bij bufferLine kaarten
+    }
+    
+    // Teken de buffer zone (standaard verborgen)
+    if (RAILWAY_BUFFER.length > 0) {
+        const bufferCoords = RAILWAY_BUFFER.map(point => [point.lat, point.lng]);
+        railwayBuffer = L.polygon(bufferCoords, {
+            color: '#dc2626',
+            fillColor: '#fca5a5',
+            fillOpacity: 0.1,
+            weight: 2,
+            opacity: 0.5,
+            dashArray: '5, 5'
+        }).bindPopup('<b>1.5km Buffer Zone</b><br>Spoorlijn Oostende-Antwerpen');
+        // Niet direct toevoegen aan kaart - wordt getoond bij bufferLine kaarten
+    }
+    
     // Voeg andere belangrijke locaties toe (opslaan maar niet direct tonen)
     addLocationMarker(LOCATIONS.dampoort, 'Dampoort Station', 'blue', 'dampoort');
     addLocationMarker(LOCATIONS.watersportbaan_tip, 'Watersportbaan', 'green', 'watersportbaan');
@@ -449,6 +478,49 @@ function updateNeighborhoodVisibility() {
 }
 
 /**
+ * Toont de spoorlijn en buffer zone
+ */
+function showRailway() {
+    if (railwayLine && !map.hasLayer(railwayLine)) {
+        railwayLine.addTo(map);
+    }
+    if (railwayBuffer && !map.hasLayer(railwayBuffer)) {
+        railwayBuffer.addTo(map);
+    }
+}
+
+/**
+ * Verbergt de spoorlijn en buffer zone
+ */
+function hideRailway() {
+    if (railwayLine && map.hasLayer(railwayLine)) {
+        map.removeLayer(railwayLine);
+    }
+    if (railwayBuffer && map.hasLayer(railwayBuffer)) {
+        map.removeLayer(railwayBuffer);
+    }
+}
+
+/**
+ * Toont of verbergt spoorlijn op basis van de huidige kaart
+ */
+function updateRailwayVisibility() {
+    if (!cardManager) {
+        hideRailway();
+        return;
+    }
+    
+    const currentCard = cardManager.getCard(currentCardIndex);
+    
+    // Toon spoorlijn alleen als de huidige kaart een bufferLine vraag is
+    if (currentCard && currentCard.answerType === 'bufferLine') {
+        showRailway();
+    } else {
+        hideRailway();
+    }
+}
+
+/**
  * Voegt een legenda toe aan de kaart
  */
 function addMapLegend() {
@@ -466,6 +538,7 @@ function addMapLegend() {
             <div class="legend-content hidden">
                 <div><span class="legend-line" style="background: #fb923c;"></span> R40 Ring</div>
                 <div><span class="legend-line" style="background: #1e40af;"></span> Leie-Schelde Lijn</div>
+                <div><span class="legend-line" style="background: #dc2626;"></span> Spoorlijn Oostende-Antwerpen</div>
                 <div><span class="legend-line" style="background: #9ca3af;"></span> Stadswijken</div>
                 <div><span class="legend-marker" style="background: #dc2626;"></span> Belfort (centrum)</div>
                 <div><span class="legend-marker" style="background: #22c55e;"></span> Je locatie</div>
@@ -919,7 +992,8 @@ function displayQuestions(checks) {
         { label: 'Leie-Schelde', value: checks.leieSchelde.answer },
         { label: 'Weba/IKEA', value: `${checks.webaIkea.answer} (Weba: ${checks.webaIkea.distanceWeba}m / IKEA: ${checks.webaIkea.distanceIkea}m)` },
         { label: 'Dampoort', value: checks.dampoort.answer },
-        { label: 'Watersportbaan', value: checks.watersportbaan.answer }
+        { label: 'Watersportbaan', value: checks.watersportbaan.answer },
+        { label: 'Spoorlijn Oostende-Antwerpen', value: checks.railwayBuffer.answer }
     ];
     
     questionsResult.innerHTML = questions.map(q => `
@@ -1135,6 +1209,9 @@ function updateCardDisplay() {
     
     // Update neighborhood visibility (toon alleen bij neighborhood vragen)
     updateNeighborhoodVisibility();
+    
+    // Update railway visibility (toon alleen bij bufferLine vragen)
+    updateRailwayVisibility();
 }
 
 /**
@@ -1565,6 +1642,24 @@ function createExclusionLayer(answer) {
         return L.polygon(eastBox, exclusionStyle).bindPopup('❌ Uitgesloten: Oosten Watersportbaan');
     }
     
+    // Binnen 1,5km van spoorlijn -> je bent binnen buffer, sluit alles BUITEN buffer uit
+    if (answer === 'Binnen 1,5km van spoorlijn') {
+        const outerBox = [
+            [largeBounds.north, largeBounds.west],
+            [largeBounds.north, largeBounds.east],
+            [largeBounds.south, largeBounds.east],
+            [largeBounds.south, largeBounds.west]
+        ];
+        const bufferCoords = RAILWAY_BUFFER.map(point => [point.lat, point.lng]);
+        return L.polygon([outerBox, bufferCoords], exclusionStyle).bindPopup('❌ Uitgesloten: Buiten 1,5km buffer spoorlijn');
+    }
+    
+    // Buiten 1,5km van spoorlijn -> je bent buiten buffer, sluit alles BINNEN buffer uit
+    if (answer === 'Buiten 1,5km van spoorlijn') {
+        const bufferCoords = RAILWAY_BUFFER.map(point => [point.lat, point.lng]);
+        return L.polygon(bufferCoords, exclusionStyle).bindPopup('❌ Uitgesloten: Binnen 1,5km buffer spoorlijn');
+    }
+    
     return null;
 }
 
@@ -1791,6 +1886,9 @@ function switchView(view) {
         flopView.classList.remove('hidden');
         discardedView.classList.add('hidden');
         renderFlopView();
+        // Verberg wijken en spoorlijn in flop view
+        hideNeighborhoods();
+        hideRailway();
     } else if (view === 'discarded') {
         singleViewBtn.classList.remove('active');
         flopViewBtn.classList.remove('active');
@@ -1798,6 +1896,9 @@ function switchView(view) {
         flopView.classList.add('hidden');
         discardedView.classList.remove('hidden');
         renderDiscardedView();
+        // Verberg wijken en spoorlijn in discarded view
+        hideNeighborhoods();
+        hideRailway();
     }
 }
 
@@ -2371,6 +2472,8 @@ function getAnswerButtonsForQuestion(question) {
         return ['Oosten van Dampoort', 'Westen van Dampoort'];
     } else if (question.includes('Oosten of westen van de tip van de watersportbaan')) {
         return ['Oosten van watersportbaan tip', 'Westen van watersportbaan tip'];
+    } else if (question.includes('spoorlijn Oostende-Antwerpen')) {
+        return ['Binnen 1,5km van spoorlijn', 'Buiten 1,5km van spoorlijn'];
     } else {
         return ['Ja', 'Nee'];
     }

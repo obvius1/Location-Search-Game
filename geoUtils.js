@@ -1,7 +1,7 @@
 // Geografische utilities voor Gent Location Game
 
 // Constanten voor Gent
-const GAME_RADIUS = 4000; // 3km in meters
+const GAME_RADIUS = 3500; // 3km in meters
 
 // Belangrijke locaties in Gent - wordt geladen vanuit geo-data.json
 let LOCATIONS = {};
@@ -10,6 +10,10 @@ let LOCATIONS = {};
 let R40_POLYGON = [];
 // Leie-Schelde lijn - wordt geladen vanuit zones.json
 let LEIE_SCHELDE_LINE = [];
+// Spoorlijn Oostende-Antwerpen - wordt geladen vanuit Oostende-Antwerpen-Spoorlijn.geojson
+let RAILWAY_LINE = [];
+// Spoorlijn buffer zone (1.5km) - wordt geladen vanuit Oostende-Antwerpen-Spoorlijn-Buffer.geojson
+let RAILWAY_BUFFER = [];
 // Stadswijken - wordt geladen vanuit stadswijken-gent.geojson
 let CITY_NEIGHBORHOODS = [];
 // POI Collections (bijv. bibliotheken) - wordt geladen vanuit geo-data.json
@@ -67,6 +71,48 @@ async function loadZones() {
         LOCATIONS = {};
         R40_POLYGON = [];
         LEIE_SCHELDE_LINE = [];
+        throw error;
+    }
+}
+
+/**
+ * Laadt de spoorlijn Oostende-Antwerpen data
+ */
+async function loadRailwayData() {
+    try {
+        // Laad de spoorlijn (lijn)
+        const lineResponse = await fetch('./data/Oostende-Antwerpen-Spoorlijn.geojson');
+        if (lineResponse.ok) {
+            const lineData = await lineResponse.json();
+            const lineFeature = lineData.features[0];
+            if (lineFeature && lineFeature.geometry.coordinates) {
+                RAILWAY_LINE = lineFeature.geometry.coordinates.map(coord => ({
+                    lng: coord[0],
+                    lat: coord[1]
+                }));
+                console.log(`Spoorlijn Oostende-Antwerpen geladen: ${RAILWAY_LINE.length} punten`);
+            }
+        }
+        
+        // Laad de buffer zone (1.5km rondom de lijn)
+        const bufferResponse = await fetch('./data/Oostende-Antwerpen-Spoorlijn-Buffer.geojson');
+        if (bufferResponse.ok) {
+            const bufferData = await bufferResponse.json();
+            const bufferFeature = bufferData.features.find(f => f.properties.name === 'Track Buffer Zone');
+            if (bufferFeature && bufferFeature.geometry.coordinates[0]) {
+                RAILWAY_BUFFER = bufferFeature.geometry.coordinates[0].map(coord => ({
+                    lng: coord[0],
+                    lat: coord[1]
+                }));
+                console.log(`Spoorlijn buffer zone geladen: ${RAILWAY_BUFFER.length} punten`);
+            }
+        }
+        
+        return { line: RAILWAY_LINE, buffer: RAILWAY_BUFFER };
+    } catch (error) {
+        console.error('Fout bij laden spoorlijn data:', error);
+        RAILWAY_LINE = [];
+        RAILWAY_BUFFER = [];
         throw error;
     }
 }
@@ -273,6 +319,17 @@ function checkWatersportbaan(lat, lng) {
 }
 
 /**
+ * Controleert of een locatie binnen 1.5km van de spoorlijn Oostende-Antwerpen ligt
+ */
+function checkRailwayBuffer(lat, lng) {
+    const inside = isPointInPolygon(lat, lng, RAILWAY_BUFFER);
+    return {
+        answer: inside ? "Binnen 1,5km van spoorlijn" : "Buiten 1,5km van spoorlijn",
+        inside: inside
+    };
+}
+
+/**
  * Voert alle checks uit voor een gegeven locatie
  */
 function performAllChecks(lat, lng) {
@@ -298,6 +355,7 @@ function performAllChecks(lat, lng) {
             webaIkea: checkWebaIkea(lat, lng),
             dampoort: checkDampoort(lat, lng),
             watersportbaan: checkWatersportbaan(lat, lng),
+            railwayBuffer: checkRailwayBuffer(lat, lng),
             neighborhood: neighborhood
         }
     };
