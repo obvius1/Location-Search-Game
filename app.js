@@ -14,6 +14,8 @@ let poiCollectionMarkers = []; // Array van POI collection markers (bibliotheken
 let accuracyCircle = null;
 let exclusionLayers = []; // Array van uitgesloten zones op de kaart
 let neighborhoodLayers = []; // Array van wijk polygonen op de kaart
+let distanceCircle = null; // Cirkel voor distanceFromBike kaarten
+let opponentMarker = null; // Marker voor opponent locatie bij distanceFromBike
 let currentCardIndex = 0; // Index voor single card view
 
 // DOM elements
@@ -1183,16 +1185,41 @@ function updateCardDisplay() {
             </div>
         `;
     } else {
-        // Toon knoppen om antwoord in te voeren
-        answerSection.innerHTML = `
-            <div class="answer-input">
-                <div class="answer-label">💡 Voltooi de task, stel de vraag aan je tegenstander en voer het antwoord in:</div>
-                <div class="answer-buttons" id="answer-buttons-${currentCardIndex}">
-                    <!-- Buttons worden dynamisch gegenereerd op basis van vraag type -->
+        // Check of dit een distanceFromBike kaart is
+        if (card.answerType === 'distanceFromBike') {
+            // Speciale UI voor distanceFromBike kaarten
+            answerSection.innerHTML = `
+                <div class="answer-input">
+                    <div class="answer-label">💡 Vraag aan de seeker: "Ben je binnen ${card.radius}m van de fiets?"</div>
+                    <div class="distance-from-bike-input">
+                        <label for="opponent-location-input">Seeker zijn coördinaten (lat, lng):</label>
+                        <input 
+                            type="text" 
+                            id="opponent-location-input" 
+                            placeholder="51.0543, 3.7234"
+                            class="coords-input"
+                        >
+                        <button onclick="previewDistanceCircle(${currentCardIndex})" class="btn btn-secondary">🔍 Preview Cirkel</button>
+                    </div>
+                    <div class="answer-label" style="margin-top: 16px;">Antwoord van seeker:</div>
+                    <div class="answer-buttons" id="answer-buttons-${currentCardIndex}">
+                        <!-- Buttons worden dynamisch gegenereerd -->
+                    </div>
+                    <p class="answer-hint">→ Na het invoeren wordt de kaart automatisch opgelost</p>
                 </div>
-                <p class="answer-hint">→ Na het invoeren wordt de kaart automatisch opgelost</p>
-            </div>
-        `;
+            `;
+        } else {
+            // Normale antwoord sectie
+            answerSection.innerHTML = `
+                <div class="answer-input">
+                    <div class="answer-label">💡 Voltooi de task, stel de vraag aan je tegenstander en voer het antwoord in:</div>
+                    <div class="answer-buttons" id="answer-buttons-${currentCardIndex}">
+                        <!-- Buttons worden dynamisch gegenereerd op basis van vraag type -->
+                    </div>
+                    <p class="answer-hint">→ Na het invoeren wordt de kaart automatisch opgelost</p>
+                </div>
+            `;
+        }
         
         // Genereer de juiste antwoord knoppen op basis van de vraag
         generateAnswerButtons(currentCardIndex, card.question);
@@ -1242,6 +1269,16 @@ function generateAnswerButtons(cardIndex, question) {
             btn.className = 'btn-answer';
             btn.textContent = answer;
             btn.onclick = () => handleRadiusProximityAnswer(cardIndex, answer);
+            container.appendChild(btn);
+        });
+    } else if (card && card.answerType === 'distanceFromBike') {
+        // Voor distanceFromBike: Ja/Nee buttons
+        const buttons = ['Ja', 'Nee'];
+        buttons.forEach(answer => {
+            const btn = document.createElement('button');
+            btn.className = 'btn-answer';
+            btn.textContent = answer;
+            btn.onclick = () => handleDistanceFromBikeAnswer(cardIndex, answer);
             container.appendChild(btn);
         });
     } else {
@@ -1329,6 +1366,84 @@ function handleRadiusProximityAnswer(cardIndex, answer) {
     saveCardManagerState();
     
     // Update visualisatie
+    updateExclusionZones();
+    updateCardDisplay();
+}
+
+/**
+ * Verwerk Ja/Nee antwoord voor distanceFromBike kaarten
+ */
+function handleDistanceFromBikeAnswer(cardIndex, answer) {
+    const card = cardManager.getCard(cardIndex);
+    if (!card || !card.radius) return;
+    
+    // Haal de ingevoerde coördinaten op
+    const input = document.getElementById('opponent-location-input');
+    const coordsInput = input ? input.value.trim() : '';
+    
+    if (!coordsInput) {
+        alert('Voer eerst de coördinaten van de seeker in!');
+        return;
+    }
+    
+    // Parse coördinaten
+    const parts = coordsInput.split(',').map(p => p.trim());
+    if (parts.length !== 2) {
+        alert('Ongeldig formaat. Gebruik: 51.0543, 3.7234');
+        return;
+    }
+    
+    const lat = parseFloat(parts[0]);
+    const lng = parseFloat(parts[1]);
+    
+    if (isNaN(lat) || isNaN(lng)) {
+        alert('Ongeldige coördinaten. Controleer het formaat.');
+        return;
+    }
+    
+    // Sla exclusion zone op
+    const gameData = loadGameData();
+    const currentDiscardedCount = cardManager.discarded.length;
+    
+    gameData.exclusionZones = gameData.exclusionZones || [];
+    
+    // Map antwoord: Ja = binnen radius, Nee = buiten radius
+    const answerMap = { 'Ja': 'yes', 'Nee': 'no' };
+    const answerValue = answerMap[answer] || 'no';
+    
+    gameData.exclusionZones.push({
+        type: 'distanceFromBike',
+        answer: answerValue,
+        seekerLocation: { lat, lng },
+        radius: card.radius,
+        cardIndex: cardIndex
+    });
+    
+    saveGameData(gameData);
+    
+    // Discard de kaart
+    cardManager.discardCard(cardIndex);
+    saveDiscardedAnswer(currentDiscardedCount, answer, card.task, cardIndex);
+    
+    // Sla het antwoord ook op als opponent answer
+    if (card.id) {
+        saveOpponentAnswer(card.id, answer, card.task);
+    }
+    
+    // Save state
+    saveCardManagerState();
+    
+    // Verwijder preview cirkel en marker
+    if (distanceCircle) {
+        map.removeLayer(distanceCircle);
+        distanceCircle = null;
+    }
+    if (opponentMarker) {
+        map.removeLayer(opponentMarker);
+        opponentMarker = null;
+    }
+    
+    // Update visualisatie met exclusion zones
     updateExclusionZones();
     updateCardDisplay();
 }
@@ -1652,8 +1767,8 @@ function createExclusionLayer(answer) {
         return L.polygon(eastBox, exclusionStyle).bindPopup('❌ Uitgesloten: Oosten Watersportbaan');
     }
     
-    // Binnen 1,5km van spoorlijn -> je bent binnen buffer, sluit alles BUITEN buffer uit
-    if (answer === 'Binnen 1,5km van spoorlijn') {
+    // Binnen 800m van spoorlijn -> je bent binnen buffer, sluit alles BUITEN buffer uit
+    if (answer === 'Binnen 800m van spoorlijn') {
         const outerBox = [
             [largeBounds.north, largeBounds.west],
             [largeBounds.north, largeBounds.east],
@@ -1661,13 +1776,13 @@ function createExclusionLayer(answer) {
             [largeBounds.south, largeBounds.west]
         ];
         const bufferCoords = RAILWAY_BUFFER.map(point => [point.lat, point.lng]);
-        return L.polygon([outerBox, bufferCoords], exclusionStyle).bindPopup('❌ Uitgesloten: Buiten 1,5km buffer spoorlijn');
+        return L.polygon([outerBox, bufferCoords], exclusionStyle).bindPopup('❌ Uitgesloten: Buiten 800m buffer spoorlijn');
     }
     
-    // Buiten 1,5km van spoorlijn -> je bent buiten buffer, sluit alles BINNEN buffer uit
-    if (answer === 'Buiten 1,5km van spoorlijn') {
+    // Buiten 800m van spoorlijn -> je bent buiten buffer, sluit alles BINNEN buffer uit
+    if (answer === 'Buiten 800m van spoorlijn') {
         const bufferCoords = RAILWAY_BUFFER.map(point => [point.lat, point.lng]);
-        return L.polygon(bufferCoords, exclusionStyle).bindPopup('❌ Uitgesloten: Binnen 1,5km buffer spoorlijn');
+        return L.polygon(bufferCoords, exclusionStyle).bindPopup('❌ Uitgesloten: Binnen 800m buffer spoorlijn');
     }
     
     return null;
@@ -1831,6 +1946,74 @@ function createExclusionLayerFromData(exclusionData) {
 
             console.log(`Created grid outside-union mask with ${layers.length} cells`);
             return L.featureGroup(layers);
+        }
+    }
+    
+    // Distance From Bike exclusions
+    if (exclusionData.type === 'distanceFromBike') {
+        const { answer, seekerLocation, radius } = exclusionData;
+        
+        console.log(`Creating exclusion zones: type=distanceFromBike, answer=${answer}, radius=${radius}`);
+        
+        if (!seekerLocation || !seekerLocation.lat || !seekerLocation.lng) {
+            console.warn('No seeker location provided for distanceFromBike');
+            return null;
+        }
+        
+        if (answer === 'yes') {
+            // "Ja" = seeker is BINNEN radius van de fiets
+            // Sluit alles BUITEN de cirkel uit (rood)
+            // Gebruik een grote bounding box met een gat in het midden
+            
+            const largeBounds = {
+                north: 51.15,
+                south: 50.95,
+                east: 3.90,
+                west: 3.55
+            };
+            
+            // Bereken cirkel punten
+            const numPoints = 64;
+            const circlePoints = [];
+            const earthRadius = 6371000; // meters
+            
+            for (let i = 0; i < numPoints; i++) {
+                const angle = (i / numPoints) * 2 * Math.PI;
+                const latOffset = (radius / earthRadius) * (180 / Math.PI);
+                const lngOffset = (radius / (earthRadius * Math.cos(seekerLocation.lat * Math.PI / 180))) * (180 / Math.PI);
+                
+                const pointLat = seekerLocation.lat + latOffset * Math.cos(angle);
+                const pointLng = seekerLocation.lng + lngOffset * Math.sin(angle);
+                circlePoints.push([pointLat, pointLng]);
+            }
+            
+            // Outer box met cirkel gat
+            const outerBox = [
+                [largeBounds.north, largeBounds.west],
+                [largeBounds.north, largeBounds.east],
+                [largeBounds.south, largeBounds.east],
+                [largeBounds.south, largeBounds.west]
+            ];
+            
+            return L.polygon([outerBox, circlePoints], exclusionStyle).bindPopup(
+                `❌ Uitgesloten: Buiten ${radius}m van seeker`
+            );
+        } else {
+            // "Nee" = seeker is BUITEN radius van de fiets
+            // Sluit alles BINNEN de cirkel uit (rood)
+            
+            const circle = L.circle([seekerLocation.lat, seekerLocation.lng], {
+                color: exclusionStyle.color,
+                fillColor: exclusionStyle.fillColor,
+                fillOpacity: exclusionStyle.fillOpacity,
+                radius: radius,
+                weight: exclusionStyle.weight,
+                dashArray: exclusionStyle.dashArray,
+                interactive: false,
+                pane: 'exclusionPane'
+            }).bindPopup(`❌ Uitgesloten: Binnen ${radius}m van seeker`);
+            
+            return circle;
         }
     }
     
@@ -2483,7 +2666,7 @@ function getAnswerButtonsForQuestion(question) {
     } else if (question.includes('Oosten of westen van de tip van de watersportbaan')) {
         return ['Oosten van watersportbaan tip', 'Westen van watersportbaan tip'];
     } else if (question.includes('spoorlijn Oostende-Antwerpen')) {
-        return ['Binnen 1,5km van spoorlijn', 'Buiten 1,5km van spoorlijn'];
+        return ['Binnen 800m van spoorlijn', 'Buiten 800m van spoorlijn'];
     } else {
         return ['Ja', 'Nee'];
     }
@@ -2725,6 +2908,73 @@ function handleCalculateDistance() {
     distanceResult.classList.remove('hidden');
 }
 
+/**
+ * Teken een preview cirkel op de kaart op basis van ingevoerde coördinaten (seeker locatie)
+ */
+function previewDistanceCircle(cardIndex) {
+    const card = cardManager.getCard(cardIndex);
+    if (!card || !card.radius) return;
+    
+    const input = document.getElementById('opponent-location-input');
+    const coordsInput = input.value.trim();
+    
+    if (!coordsInput) {
+        alert('Voer eerst coördinaten in!');
+        return;
+    }
+    
+    // Parse coördinaten (formaat: "lat, lng" of "lat,lng")
+    const parts = coordsInput.split(',').map(p => p.trim());
+    if (parts.length !== 2) {
+        alert('Ongeldig formaat. Gebruik: 51.0543, 3.7234');
+        return;
+    }
+    
+    const lat = parseFloat(parts[0]);
+    const lng = parseFloat(parts[1]);
+    
+    if (isNaN(lat) || isNaN(lng)) {
+        alert('Ongeldige coördinaten. Controleer het formaat.');
+        return;
+    }
+    
+    // Verwijder oude cirkel indien aanwezig
+    if (distanceCircle) {
+        map.removeLayer(distanceCircle);
+    }
+    
+    // Teken nieuwe cirkel
+    distanceCircle = L.circle([lat, lng], {
+        color: '#3b82f6',
+        fillColor: '#3b82f6',
+        fillOpacity: 0.2,
+        radius: card.radius,
+        weight: 2
+    }).addTo(map);
+    
+    // Voeg popup toe
+    distanceCircle.bindPopup(`� Preview: Seeker locatie<br>Radius: ${card.radius}m<br><small>Dit is alleen een preview. Klik Ja/Nee om exclusion zone te maken.</small>`);
+    
+    // Zoom naar de cirkel
+    map.fitBounds(distanceCircle.getBounds(), { padding: [50, 50] });
+    
+    // Verwijder oude opponent marker indien aanwezig
+    if (opponentMarker) {
+        map.removeLayer(opponentMarker);
+    }
+    
+    // Voeg marker toe op de exacte locatie
+    opponentMarker = L.marker([lat, lng], {
+        icon: L.divIcon({
+            className: 'opponent-marker',
+            html: '<div style="background: #3b82f6; color: white; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 16px; border: 2px solid white;">🔍</div>',
+            iconSize: [30, 30],
+            iconAnchor: [15, 15]
+        })
+    }).addTo(map).bindPopup('Seeker locatie (preview)').openPopup();
+}
+
 // Maak functies globaal beschikbaar voor onclick handlers
 window.viewCardDetail = viewCardDetail;
 window.discardCardFromFlop = discardCardFromFlop;
+window.previewDistanceCircle = previewDistanceCircle;

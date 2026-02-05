@@ -54,10 +54,10 @@
     },
     {
       "task": "📍 Vind een specifiek adres dat je online opzoekt en maak een foto bij de voordeur",
-      "question": "Is de fiets binnen 3km van jouw huidige positie?",
+      "question": "Is de fiets binnen 2km van jouw huidige positie?",
       "phase": 1,
       "answerType": "distanceFromBike",
-      "radius": 3000,
+      "radius": 2000,
       "pois": []
     },
     {
