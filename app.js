@@ -1797,17 +1797,7 @@ function createExclusionLayerFromData(exclusionData) {
     const exclusionStyle = {
         color: '#ef4444',
         fillColor: '#ef4444',
-        fillOpacity: 0.25,
-        weight: 2,
-        dashArray: '5, 5',
-        interactive: false,
-        pane: 'exclusionPane'
-    };
-    
-    const inclusionStyle = {
-        color: '#22c55e',
-        fillColor: '#22c55e',
-        fillOpacity: 0.2,
+        fillOpacity: 0.5,
         weight: 2,
         dashArray: '5, 5',
         interactive: false,

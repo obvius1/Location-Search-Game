@@ -44,6 +44,12 @@
       { "lat": 51.07136025792719, "lng": 3.705542715480363, "name": "Filiaal Van Beverenplein" },
       { "lat": 51.00203007240293, "lng": 3.712713178571009, "name": "Filiaal Zwijnaarde" },
       { "lat": 51.0222396541761, "lng": 3.718868486101757, "name": "Filiaal Nieuw Gent" }
+    ],
+    "Hospitals": [
+      { "lat": 51.02434, "lng": 3.72613, "name": "UZ Gent" },
+      { "lat": 51.04922, "lng": 3.70020, "name": "AZ Jan Palfijn" },
+      { "lat": 51.06185, "lng": 3.72281, "name": "AZ Sint-Lucas" },
+      { "lat": 51.02712, "lng": 3.70048, "name": "AZ Maria Middelares" }
     ]
   },
   "features": [

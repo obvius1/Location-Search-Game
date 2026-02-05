@@ -53,7 +53,7 @@
       "pois": []
     },
     {
-      "task": "📍 Vind een specifiek adres dat je online opzoekt en maak een foto bij de voordeur",
+      "task": "Rij 7 stops mee met het openbaar vervoer",
       "question": "Is de fiets binnen 2km van jouw huidige positie?",
       "phase": 1,
       "answerType": "distanceFromBike",
@@ -83,21 +83,7 @@
       "pois": []
     },
     {
-      "task": "💬 Vraag de weg aan een vreemdeling",
-      "question": "Dichter bij Weba of IKEA?",
-      "phase": 2,
-      "answerType": "proximity",
-      "pois": ["weba", "ikea"]
-    },
-    {
-      "task": "🎨 Vind iets kunst en maak een foto",
-      "question": "Oosten of westen van station Gent Dampoort?",
-      "phase": 2,
-      "answerType": "dampoort",
-      "pois": ["dampoort"]
-    },
-    {
-      "task": "🚶 Loop naar een plek waar je nog nooit bent geweest in deze stad",
+      "task": "Neem een foto van een origineel schilderij. Het mag geen copy of reprint zijn",
       "question": "Is de fiets binnen 1km van jouw huidige positie?",
       "phase": 2,
       "answerType": "distanceFromBike",
@@ -105,35 +91,7 @@
       "pois": []
     },
     {
-      "task": "🎵 Zing een liedje in het openbaar",
-      "question": "Oosten of westen van de tip van de watersportbaan?",
-      "phase": 3,
-      "answerType": "watersportbaan",
-      "pois": ["watersportbaan"]
-    },
-    {
-      "task": "🤸 Doe 10 jumping jacks",
-      "question": "Oosten of westen van station Gent Dampoort?",
-      "phase": 3,
-      "answerType": "dampoort",
-      "pois": ["dampoort"]
-    },
-    {
-      "task": "📱 Maak een TikTok/Reel",
-      "question": "Oosten of westen van de tip van de watersportbaan?",
-      "phase": 3,
-      "answerType": "watersportbaan",
-      "pois": ["watersportbaan"]
-    },
-    {
-      "task": "🍦 Koop iets te eten/drinken",
-      "question": "Binnen of buiten R40?",
-      "phase": 3,
-      "answerType": "r40",
-      "pois": []
-    },
-    {
-      "task": "� Speel een spelletje met een vreemdeling (bijv. tic-tac-toe op papier)",
+      "task": "Vind een vlag van een land dat niet België is en maak er een foto van",
       "question": "Is de fiets binnen 500m van jouw huidige positie?",
       "phase": 3,
       "answerType": "distanceFromBike",
@@ -141,12 +99,34 @@
       "pois": []
     },
     {
-      "task": "�🌉 Steek een brug over",
-      "question": "Oosten of westen van de tip van de watersportbaan?",
+      "task": "Vind iets dat vernoemd is naar Artevelde of waar hij op afgebeeld staat(arteveldestraat/plein/beeld/winkel/)",
+      "question": "Staat het in een eenrichtingsstraat?",
       "phase": 3,
-      "requiresAnswer": false,
-      "answerType": "watersportbaan",
-      "pois": ["watersportbaan"]
+      "requiresAnswer": false
+    },
+    {
+      "task": "Fotografeer iets waar het logo van een Gentse voetbalploeg op staat",
+      "question": "Foto Links",
+      "phase": 3,
+      "requiresAnswer": false
+    },
+    {
+      "task": "Foto gele fiets (minstens 50% van de fiets is geel)",
+      "question": "Foto Rechts",
+      "phase": 3,
+      "requiresAnswer": false
+    },
+    {
+      "task": "Neem een 3 foto's met 1 verschillend zoogdier op (geen mensen)",
+      "question": "Foto Achter",
+      "phase": 3,
+      "requiresAnswer": false
+    },
+    {
+      "task": "??????????????????",
+      "question": "Foto Voor",
+      "phase": 3,
+      "requiresAnswer": false
     }
   ]
 }
