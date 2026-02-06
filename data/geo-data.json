@@ -2,9 +2,9 @@
   "type": "FeatureCollection",
   "locations": {
     "belfort": {
-      "lat": 51.0536844,
-      "lng": 3.72476097,
-      "name": "Belfort Gent"
+      "lat": 51.0493,
+      "lng": 3.72578,
+      "name": "WEC"
     },
     "dampoort": {
       "lat": 51.056221,
@@ -49,7 +49,8 @@
       { "lat": 51.02434, "lng": 3.72613, "name": "UZ Gent" },
       { "lat": 51.04922, "lng": 3.70020, "name": "AZ Jan Palfijn" },
       { "lat": 51.06185, "lng": 3.72281, "name": "AZ Sint-Lucas" },
-      { "lat": 51.02712, "lng": 3.70048, "name": "AZ Maria Middelares" }
+      { "lat": 51.02712, "lng": 3.70048, "name": "AZ Maria Middelares campus Sint-Jozef" },
+      { "lat": 51.02714, "lng": 3.70047, "name": "AZ Maria Middelares" }
     ]
   },
   "features": [

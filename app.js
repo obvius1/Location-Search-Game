@@ -324,7 +324,7 @@ function initializeMap() {
     r40Polygon = L.polygon(r40Coords, {
         color: '#ea580c',
         fillColor: '#fb923c',
-        fillOpacity: 0.1,
+        fillOpacity: 0.05,
         weight: 2,
         dashArray: '5, 10'
     }).addTo(map).bindPopup('<b>R40 Ring</b><br>Gentse binnenring');
@@ -348,7 +348,7 @@ function initializeMap() {
             weight: 3,
             opacity: 0.8,
             dashArray: '15, 10'
-        }).bindPopup('<b>Spoorlijn Oostende-Antwerpen</b><br>1.5km buffer zone');
+        }).bindPopup('<b>Spoorlijn Oostende-Antwerpen</b><br>800m buffer zone');
         // Niet direct toevoegen aan kaart - wordt getoond bij bufferLine kaarten
     }
     
@@ -358,19 +358,19 @@ function initializeMap() {
         railwayBuffer = L.polygon(bufferCoords, {
             color: '#dc2626',
             fillColor: '#fca5a5',
-            fillOpacity: 0.1,
+            fillOpacity: 0.05,
             weight: 2,
             opacity: 0.5,
             dashArray: '5, 5'
-        }).bindPopup('<b>1.5km Buffer Zone</b><br>Spoorlijn Oostende-Antwerpen');
+        }).bindPopup('<b>800m Buffer Zone</b><br>Spoorlijn Oostende-Antwerpen');
         // Niet direct toevoegen aan kaart - wordt getoond bij bufferLine kaarten
     }
     
     // Voeg andere belangrijke locaties toe (opslaan maar niet direct tonen)
     addLocationMarker(LOCATIONS.dampoort, 'Dampoort Station', 'blue', 'dampoort');
-    addLocationMarker(LOCATIONS.watersportbaan_tip, 'Watersportbaan', 'green', 'watersportbaan');
-    addLocationMarker(LOCATIONS.weba, 'Weba Shopping', 'orange', 'weba');
-    addLocationMarker(LOCATIONS.ikea, 'IKEA Gent', 'orange', 'ikea');
+    addLocationMarker(LOCATIONS.watersportbaan_tip, 'Watersportbaan', 'blue', 'watersportbaan');
+    addLocationMarker(LOCATIONS.weba, 'Weba Shopping', 'blue', 'weba');
+    addLocationMarker(LOCATIONS.ikea, 'IKEA Gent', 'blue', 'ikea');
     
     // Stadswijken worden alleen getoond bij neighborhood vragen
     // drawNeighborhoods() wordt aangeroepen vanuit updateCardDisplay()
@@ -1190,9 +1190,9 @@ function updateCardDisplay() {
             // Speciale UI voor distanceFromBike kaarten
             answerSection.innerHTML = `
                 <div class="answer-input">
-                    <div class="answer-label">💡 Vraag aan de seeker: "Ben je binnen ${card.radius}m van de fiets?"</div>
+                    <div class="answer-label">💡 Vraag aan de seeker: "Ben ik binnen ${card.radius}m van de fiets?"</div>
                     <div class="distance-from-bike-input">
-                        <label for="opponent-location-input">Seeker zijn coördinaten (lat, lng):</label>
+                        <label for="opponent-location-input">Mijn coördinaten (lat, lng):</label>
                         <input 
                             type="text" 
                             id="opponent-location-input" 
@@ -1201,7 +1201,7 @@ function updateCardDisplay() {
                         >
                         <button onclick="previewDistanceCircle(${currentCardIndex})" class="btn btn-secondary">🔍 Preview Cirkel</button>
                     </div>
-                    <div class="answer-label" style="margin-top: 16px;">Antwoord van seeker:</div>
+                    <div class="answer-label" style="margin-top: 16px;">Antwoord:</div>
                     <div class="answer-buttons" id="answer-buttons-${currentCardIndex}">
                         <!-- Buttons worden dynamisch gegenereerd -->
                     </div>
