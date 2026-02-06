@@ -4,6 +4,7 @@
     "Maak een foto kijkend naar de rechterkant",
     "Maak een foto kijkend naar voren",
     "Maak een foto kijkend naar achteren",
+    "Maak een foto kijkend naar beneden",
     "Maak een foto van het dichtbijzijnde gebouw",
     "Noteer de straatnaam",
     "Noteer of het een eenrichtingsstraat is",
@@ -123,8 +124,14 @@
       "requiresAnswer": false
     },
     {
-      "task": "??????????????????",
+      "task": "Omhels een boom wijd genoeg dat de armen van geen enkele 1 persoon van de groep er rond kunnen",
       "question": "Foto Voor",
+      "phase": 3,
+      "requiresAnswer": false
+    },
+    {
+      "task": "??????????????????",
+      "question": "Foto naar onder",
       "phase": 3,
       "requiresAnswer": false
     }
