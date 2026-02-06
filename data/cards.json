@@ -84,6 +84,15 @@
       "pois": []
     },
     {
+      "task": "Fotografeer een AED (Automatische Externe Defibrillator)",
+      "question": "Is er een ziekenhuis binnen 900m?",
+      "phase": 2,
+      "answerType": "radiusProximity",
+      "radius": 900,
+      "poiType": "hospitals",
+      "pois": []
+    },
+    {
       "task": "Neem een foto van een origineel schilderij. Het mag geen copy of reprint zijn",
       "question": "Is de fiets binnen 1km van jouw huidige positie?",
       "phase": 2,

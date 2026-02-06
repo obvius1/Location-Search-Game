@@ -998,10 +998,23 @@ function displayQuestions(checks) {
             }
         }
     }
+
+    let hospitalWithin900m = 'Nee';
+    if (currentLocation) {
+        const hospitals = getPOIsByType('hospitals');
+        for (const hospital of hospitals) {
+            const distance = calculateDistance(currentLocation.lat, currentLocation.lng, hospital.lat, hospital.lng);
+            if (distance <= 900) {
+                hospitalWithin900m = `Ja (${hospital.name}, ${Math.round(distance)}m)`;
+                break;
+            }
+        }
+    }
     
     const questions = [
         { label: 'Huidige Wijk', value: currentNeighborhood },
         { label: 'Bibliotheek binnen 750m', value: libraryWithin750m },
+        { label: 'Ziekenhuis binnen 900m', value: hospitalWithin900m },
         { label: 'R40', value: checks.r40.answer },
         { label: 'Leie-Schelde', value: checks.leieSchelde.answer },
         { label: 'Weba/IKEA', value: `${checks.webaIkea.answer} (Weba: ${checks.webaIkea.distanceWeba}m / IKEA: ${checks.webaIkea.distanceIkea}m)` },
@@ -1876,6 +1889,52 @@ function createExclusionLayerFromData(exclusionData) {
             // "Ja" = er IS een POI binnen radius
             // Doel: kleur ALLES BUITEN de unie van alle cirkels rood,
             // zodat overlappende cirkels NIET rood worden.
+            
+            // Voor hospitals: maak grote rode polygon met gaten voor de cirkels
+            if (poiType === 'hospitals') {
+                const earthRadius = 6371000;
+                const belfort = LOCATIONS.belfort;
+                const gameRadius = GAME_RADIUS;
+                
+                // Maak een grote rechthoek rond het speelveld
+                const degPerMeterLat = 1 / 111320;
+                const degPerMeterLng = (lat) => 1 / (111320 * Math.cos((lat * Math.PI) / 180));
+                
+                const latDelta = gameRadius * degPerMeterLat;
+                const lngDelta = gameRadius * degPerMeterLng(belfort.lat);
+                
+                const outerBounds = [
+                    [belfort.lat + latDelta, belfort.lng - lngDelta],
+                    [belfort.lat + latDelta, belfort.lng + lngDelta],
+                    [belfort.lat - latDelta, belfort.lng + lngDelta],
+                    [belfort.lat - latDelta, belfort.lng - lngDelta],
+                    [belfort.lat + latDelta, belfort.lng - lngDelta]
+                ];
+                
+                // Maak gaten (holes) voor elke hospital cirkel
+                const holes = pois.map(poi => {
+                    const hole = [];
+                    for (let angle = 360; angle >= 0; angle -= 5) {
+                        const rad = (angle * Math.PI) / 180;
+                        const latOffset = (radius / earthRadius) * (180 / Math.PI) * Math.cos(rad);
+                        const lngOffset = 
+                            ((radius / earthRadius) * (180 / Math.PI) * Math.sin(rad)) /
+                            Math.cos((poi.lat * Math.PI) / 180);
+                        
+                        hole.push([poi.lat + latOffset, poi.lng + lngOffset]);
+                    }
+                    return hole;
+                });
+                
+                // Polygon met outer ring en holes
+                const polygonWithHoles = L.polygon([outerBounds, ...holes], exclusionStyle)
+                    .bindPopup(`❌ Uitgesloten: Buiten ${radius / 1000}km van alle ${poiType}`);
+                
+                console.log(`Created exclusion polygon with ${holes.length} holes for hospitals (yes)`);
+                return polygonWithHoles;
+            }
+            
+            // Voor andere POI types (bijv. libraries): gebruik raster
             // Implementatie: raster van kleine rechthoeken; cellen buiten de
             // (radius rond eender welke POI) krijgen een rood vak.
 
