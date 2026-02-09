@@ -33,14 +33,14 @@
       "pois": ["weba", "ikea"]
     },
     {
-      "task": "??????????????",
+      "task": "Koop iets dat in Gent gemaakt is",
       "question": "Oosten of westen van station Gent Dampoort?",
       "phase": 1,
       "answerType": "dampoort",
       "pois": ["dampoort"]
     },
     {
-      "task": "???????????????",
+      "task": "Film een vogel continu voor 5 minuten, de vogel mag het beeld niet verlaten",
       "question": "Oosten of westen van de tip van de watersportbaan?",
       "phase": 1,
       "answerType": "watersportbaan",
@@ -141,6 +141,24 @@
     {
       "task": "??????????????????",
       "question": "Foto naar onder",
+      "phase": 3,
+      "requiresAnswer": false
+    },
+    {
+      "task": "Maak 4 foto's waar 4  verschillende deuren in staan met 4 verschillende kleuren (Geldige kleuren: geel, rood, blauw, oranje, groen, paars, zwart, wit)",
+      "question": "Foto dichtstbijzijnde gebouw",
+      "phase": 3,
+      "requiresAnswer": false
+    },
+    {
+      "task": "(her)Plant een plantje (In een park? (plaats met naam park op maps?))",
+      "question": "Is er een boom (minstens 2m hoog) binnen de 5 meter",
+      "phase": 3,
+      "requiresAnswer": false
+    },
+    {
+      "task": "Foto met een gevel dat van 1875 of ervoor is (bouwjaar zichtbaar op foto)",
+      "question": "Lengte dichtstbijzijnde straatnaam (Volledige officiële naam, inclusief spaties en leestekens)",
       "phase": 3,
       "requiresAnswer": false
     }
