@@ -319,12 +319,12 @@ function checkWatersportbaan(lat, lng) {
 }
 
 /**
- * Controleert of een locatie binnen 1.5km van de spoorlijn Oostende-Antwerpen ligt
+ * Controleert of een locatie binnen 800m van de spoorlijn Oostende-Antwerpen ligt
  */
 function checkRailwayBuffer(lat, lng) {
     const inside = isPointInPolygon(lat, lng, RAILWAY_BUFFER);
     return {
-        answer: inside ? "Binnen 1,5km van spoorlijn" : "Buiten 1,5km van spoorlijn",
+        answer: inside ? "Binnen 800m van spoorlijn" : "Buiten 800m van spoorlijn",
         inside: inside
     };
 }
