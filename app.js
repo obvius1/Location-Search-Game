@@ -1954,7 +1954,7 @@ function createExclusionLayerFromData(exclusionData) {
             const maxLng = belfort.lng + lngDelta;
 
             // Raster resolutie (meters). Lager = fijner, maar zwaarder.
-            const cellSizeM = 75; // 150m balans tussen performance en kwaliteit
+            const cellSizeM = 60; // 150m balans tussen performance en kwaliteit
 
             // Stapgroottes in graden voor huidige breedtegraad
             const dLat = cellSizeM * degPerMeterLat;

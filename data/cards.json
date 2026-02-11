@@ -133,7 +133,7 @@
       "requiresAnswer": false
     },
     {
-      "task": "Omhels een boom wijd genoeg dat de armen van geen enkele 1 persoon van de groep er rond kunnen",
+      "task": "(her)Plant een plantje (In een park? (plaats met naam park op maps?))",
       "question": "Foto Voor",
       "phase": 3,
       "requiresAnswer": false
@@ -151,7 +151,7 @@
       "requiresAnswer": false
     },
     {
-      "task": "(her)Plant een plantje (In een park? (plaats met naam park op maps?))",
+      "task": "Omhels een boom wijd genoeg dat de armen van geen enkele 1 persoon van de groep er rond kunnen",
       "question": "Is er een boom (minstens 2m hoog) binnen de 5 meter",
       "phase": 3,
       "requiresAnswer": false
