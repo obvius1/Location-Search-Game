@@ -1010,11 +1010,24 @@ function displayQuestions(checks) {
             }
         }
     }
+
+    let watertowerWithin1000m = 'Nee';
+    if (currentLocation) {
+        const watertowers = getPOIsByType('watertowers');
+        for (const tower of watertowers) {
+            const distance = calculateDistance(currentLocation.lat, currentLocation.lng, tower.lat, tower.lng);
+            if (distance <= 1000) {
+                watertowerWithin1000m = `Ja (${tower.name}, ${Math.round(distance)}m)`;
+                break;
+            }
+        }
+     }
     
     const questions = [
         { label: 'Huidige Wijk', value: currentNeighborhood },
         { label: 'Bibliotheek binnen 750m', value: libraryWithin750m },
         { label: 'Ziekenhuis binnen 900m', value: hospitalWithin900m },
+        { label: 'Watertoren binnen 1000m', value: watertowerWithin1000m },
         { label: 'R40', value: checks.r40.answer },
         { label: 'Leie-Schelde', value: checks.leieSchelde.answer },
         { label: 'Weba/IKEA', value: `${checks.webaIkea.answer} (Weba: ${checks.webaIkea.distanceWeba}m / IKEA: ${checks.webaIkea.distanceIkea}m)` },
@@ -1891,7 +1904,7 @@ function createExclusionLayerFromData(exclusionData) {
             // zodat overlappende cirkels NIET rood worden.
             
             // Voor hospitals: maak grote rode polygon met gaten voor de cirkels
-            if (poiType === 'hospitals') {
+            if (poiType === 'hospitals' || poiType === 'watertowers') {
                 const earthRadius = 6371000;
                 const belfort = LOCATIONS.belfort;
                 const gameRadius = GAME_RADIUS;

@@ -93,6 +93,15 @@
       "pois": []
     },
     {
+      "task": "Vind alle letters van u teamnaam in graffiti",
+      "question": "Is er een watertoren binnen 1km?",
+      "phase": 2,
+      "answerType": "radiusProximity",
+      "radius": 1000,
+      "poiType": "watertowers",
+      "pois": []
+    },
+    {
       "task": "Neem een foto van een origineel schilderij. Het mag geen copy of reprint zijn",
       "question": "Is de fiets binnen 1km van jouw huidige positie?",
       "phase": 2,

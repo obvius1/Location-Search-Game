@@ -52,6 +52,13 @@
       { "lat": 51.06185, "lng": 3.72281, "name": "AZ Sint-Lucas" },
       { "lat": 51.04296, "lng": 3.75566, "name": "AZ Maria Middelares campus Sint-Jozef" },
       { "lat": 51.02714, "lng": 3.70047, "name": "AZ Maria Middelares" }
+    ],
+    "watertowers": [
+      { "lat": 51.07648, "lng": 3.7500213683094974, "name": "Watertoren" },
+      { "lat": 51.07301450611987, "lng": 3.713052435544813, "name": "Watertoren Bloemekenswijk" },
+      { "lat": 51.04260630610165, "lng": 3.7231084945393516, "name": "Watertoren Centrum" },
+      { "lat": 51.034460958159386, "lng": 3.7586129435104465, "name": "Watertoren Gentbrugge" },
+      { "lat": 51.00911018246588, "lng": 3.7194032775200876, "name": "Watertoren Zwijnaarde" }
     ]
   },
   "features": [
