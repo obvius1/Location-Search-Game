@@ -93,7 +93,7 @@
       "pois": []
     },
     {
-      "task": "Vind alle letters van u teamnaam in graffiti",
+      "task": "Vind alle letters van uw teamnaam in graffiti",
       "question": "Is er een watertoren binnen 1km?",
       "phase": 2,
       "answerType": "radiusProximity",
