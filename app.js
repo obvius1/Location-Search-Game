@@ -182,7 +182,7 @@ function loadSavedGameData() {
                 locationResult.innerHTML = `
                     <div class="location-detail-item">
                         <span class="detail-icon">🎯</span>
-                        <span class="detail-label">Afstand tot Belfort:</span>
+                        <span class="detail-label">Afstand tot center:</span>
                         <span class="detail-value">${Math.round(distanceToCenter)}m</span>
                     </div>
                     <div class="location-detail-item">
@@ -644,7 +644,7 @@ function updatePOICollectionMarkers() {
     }
     
     const currentCard = cardManager.getCard(currentCardIndex);
-    if (!currentCard || currentCard.answerType !== 'radiusProximity') {
+    if (!currentCard || (currentCard.answerType !== 'radiusProximity' && currentCard.answerType !== 'FurthestDistance')) {
         return;
     }
     
@@ -1033,7 +1033,8 @@ function displayQuestions(checks) {
         { label: 'Weba/IKEA', value: `${checks.webaIkea.answer} (Weba: ${checks.webaIkea.distanceWeba}m / IKEA: ${checks.webaIkea.distanceIkea}m)` },
         { label: 'Dampoort', value: checks.dampoort.answer },
         { label: 'Watersportbaan', value: checks.watersportbaan.answer },
-        { label: 'Spoorlijn Oostende-Antwerpen', value: checks.railwayBuffer.answer }
+        { label: 'Spoorlijn Oostende-Antwerpen', value: checks.railwayBuffer.answer },
+        { label: 'Verste Colruyt', value: checks.furthestColruyt.answer ? `${checks.furthestColruyt.name} (${checks.furthestColruyt.distance}m)` : 'Nee' }
     ];
     
     questionsResult.innerHTML = questions.map(q => `
@@ -1307,6 +1308,46 @@ function generateAnswerButtons(cardIndex, question) {
             btn.onclick = () => handleDistanceFromBikeAnswer(cardIndex, answer);
             container.appendChild(btn);
         });
+    } else if (card && card.answerType === 'FurthestDistance') {
+        // Voor FurthestDistance: Dropdown met Colruyts
+        const poiType = card.poiType || 'colruyts';
+        const pois = getPOIsByType(poiType);
+        
+        if (pois.length > 0) {
+            const select = document.createElement('select');
+            select.className = 'poi-select';
+            select.id = `poi-select-${cardIndex}`;
+            
+            // Default optie
+            const defaultOption = document.createElement('option');
+            defaultOption.value = '';
+            defaultOption.textContent = `Selecteer ${poiType}...`;
+            select.appendChild(defaultOption);
+            
+            // Voeg alle POIs toe
+            pois.forEach(poi => {
+                const option = document.createElement('option');
+                option.value = poi.name;
+                option.textContent = poi.name;
+                select.appendChild(option);
+            });
+            
+            container.appendChild(select);
+            
+            // Bevestig knop
+            const btn = document.createElement('button');
+            btn.className = 'btn-answer';
+            btn.textContent = 'Bevestig';
+            btn.onclick = () => {
+                const selectedPOI = select.value;
+                if (selectedPOI) {
+                    handleFurthestDistanceAnswer(cardIndex, selectedPOI);
+                } else {
+                    alert(`Selecteer eerst een ${poiType}`);
+                }
+            };
+            container.appendChild(btn);
+        }
     } else {
         // Normale antwoord knoppen
         const buttons = getAnswerButtonsForQuestion(question);
@@ -1468,6 +1509,58 @@ function handleDistanceFromBikeAnswer(cardIndex, answer) {
         map.removeLayer(opponentMarker);
         opponentMarker = null;
     }
+    
+    // Update visualisatie met exclusion zones
+    updateExclusionZones();
+    updateCardDisplay();
+}
+
+/**
+ * Verwerk FurthestDistance antwoord (verste Colruyt/POI)
+ */
+function handleFurthestDistanceAnswer(cardIndex, selectedPOI) {
+    const card = cardManager.getCard(cardIndex);
+    if (!card) return;
+    
+    const poiType = card.poiType || 'colruyts';
+    const pois = getPOIsByType(poiType);
+    const selectedPOIData = pois.find(p => p.name === selectedPOI);
+    
+    if (!selectedPOIData) {
+        console.error('POI niet gevonden:', selectedPOI);
+        return;
+    }
+    
+    // Voeg exclusion zone toe
+    const gameData = loadGameData();
+    if (!gameData.exclusionZones) {
+        gameData.exclusionZones = [];
+    }
+    
+    gameData.exclusionZones.push({
+        type: 'furthestDistance',
+        answer: selectedPOI,
+        poiType: poiType,
+        selectedPOI: selectedPOIData,
+        cardIndex: cardIndex
+    });
+    
+    saveGameData(gameData);
+    
+    // Bewaar het antwoord voor deze discarded kaart (voordat we discard)
+    const currentDiscardedCount = cardManager.discarded.length;
+    
+    // Discard de kaart
+    cardManager.discardCard(cardIndex);
+    saveDiscardedAnswer(currentDiscardedCount, selectedPOI, card.task, cardIndex);
+    
+    // Sla het antwoord ook op als opponent answer
+    if (card.id) {
+        saveOpponentAnswer(card.id, selectedPOI);
+    }
+    
+    // Save state
+    saveCardManagerState();
     
     // Update visualisatie met exclusion zones
     updateExclusionZones();
@@ -2007,6 +2100,84 @@ function createExclusionLayerFromData(exclusionData) {
             }
 
             console.log(`Created grid outside-union mask with ${layers.length} cells`);
+            return L.featureGroup(layers);
+        }
+    }
+    
+    // FurthestDistance exclusions (verste Colruyt/POI)
+    if (exclusionData.type === 'furthestDistance') {
+        const { poiType, selectedPOI } = exclusionData;
+        const pois = getPOIsByType(poiType);
+        
+        console.log(`Creating exclusion zones: type=furthestDistance, poiType=${poiType}, selectedPOI=${selectedPOI.name}`);
+        
+        if (pois.length === 0) {
+            console.warn(`No POIs found for type: ${poiType}`);
+            return null;
+        }
+        
+        // Het gebied dat het DICHTST bij de geselecteerde POI ligt moet rood worden
+        // (want als deze POI het verste is, kan de hider daar niet zijn)
+        
+        const earthRadius = 6371000;
+        const belfort = LOCATIONS.belfort;
+        const gameRadius = GAME_RADIUS;
+        
+        // Bepaal bounds rond Belfort
+        const degPerMeterLat = 1 / 111320;
+        const degPerMeterLng = (lat) => 1 / (111320 * Math.cos((lat * Math.PI) / 180));
+        
+        const latDelta = gameRadius * degPerMeterLat;
+        const lngDelta = gameRadius * degPerMeterLng(belfort.lat);
+        const minLat = belfort.lat - latDelta;
+        const maxLat = belfort.lat + latDelta;
+        const minLng = belfort.lng - lngDelta;
+        const maxLng = belfort.lng + lngDelta;
+        
+        // Raster resolutie
+        const cellSizeM = 50;
+        const dLat = cellSizeM * degPerMeterLat;
+        const dLng = cellSizeM * degPerMeterLng(belfort.lat);
+        
+        const layers = [];
+        
+        for (let lat = minLat; lat < maxLat; lat += dLat) {
+            for (let lng = minLng; lng < maxLng; lng += dLng) {
+                const cLat = lat + dLat / 2;
+                const cLng = lng + dLng / 2;
+                
+                // Sla cellen buiten het speelveld over
+                const centerDistToBelfort = calculateDistance(cLat, cLng, belfort.lat, belfort.lng);
+                if (centerDistToBelfort > gameRadius) {
+                    continue;
+                }
+                
+                // Bereken afstand naar de geselecteerde POI
+                const distToSelected = calculateDistance(cLat, cLng, selectedPOI.lat, selectedPOI.lng);
+                
+                // Bereken afstand naar alle andere POIs
+                let isClosestToSelected = true;
+                for (let i = 0; i < pois.length; i++) {
+                    const otherPOI = pois[i];
+                    if (otherPOI.name === selectedPOI.name) continue;
+                    
+                    const distToOther = calculateDistance(cLat, cLng, otherPOI.lat, otherPOI.lng);
+                    if (distToOther <= distToSelected) {
+                        isClosestToSelected = false;
+                        break;
+                    }
+                }
+                
+                // Als dit punt het dichtst bij de geselecteerde POI ligt, kleur het rood
+                if (isClosestToSelected) {
+                    const bounds = [[lat, lng], [lat + dLat, lng + dLng]];
+                    layers.push(L.rectangle(bounds, exclusionStyle));
+                }
+            }
+        }
+        
+        console.log(`Created ${layers.length} exclusion cells for furthestDistance (${selectedPOI.name})`);
+        if (layers.length > 0) {
             return L.featureGroup(layers);
         }
     }

@@ -330,6 +330,38 @@ function checkRailwayBuffer(lat, lng) {
 }
 
 /**
+ * Controleert welke Colruyt het verste is van huidige locatie
+ */
+function checkFurthestColruyt(lat, lng) {
+    const colruyts = getPOIsByType('colruyts');
+    
+    if (colruyts.length === 0) {
+        return {
+            answer: null,
+            name: null,
+            distance: null
+        };
+    }
+    
+    // Bereken afstand naar elke Colruyt
+    const distances = colruyts.map(colruyt => ({
+        name: colruyt.name,
+        distance: calculateDistance(lat, lng, colruyt.lat, colruyt.lng)
+    }));
+    
+    // Vind de verste Colruyt
+    const furthest = distances.reduce((max, current) => 
+        current.distance > max.distance ? current : max
+    );
+    
+    return {
+        answer: furthest.name,
+        name: furthest.name,
+        distance: Math.round(furthest.distance)
+    };
+}
+
+/**
  * Voert alle checks uit voor een gegeven locatie
  */
 function performAllChecks(lat, lng) {
@@ -356,6 +388,7 @@ function performAllChecks(lat, lng) {
             dampoort: checkDampoort(lat, lng),
             watersportbaan: checkWatersportbaan(lat, lng),
             railwayBuffer: checkRailwayBuffer(lat, lng),
+            furthestColruyt: checkFurthestColruyt(lat, lng),
             neighborhood: neighborhood
         }
     };

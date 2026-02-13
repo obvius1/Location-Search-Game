@@ -63,8 +63,7 @@
     "colruyts": [
       { "lat": 51.05341588971266, "lng": 3.7530265369535503, "name": "Colruyt Sint-Amandsberg" },
       { "lat": 51.03606651980976, "lng": 3.7484510367970474, "name": "Colruyt Ledeberg" },
-      { "lat": 51.05520468268748, "lng": 3.6946707048070717, "name": "Colruyt Watersportbaan" },
-      { "lat": 51.087129452791146, "lng": 3.7089934365397332, "name": "Colruyt Wondelgem" }
+      { "lat": 51.05520468268748, "lng": 3.6946707048070717, "name": "Colruyt Watersportbaan" }
     ]
   },
   "features": [

@@ -62,7 +62,7 @@
       "pois": []
     },
     {
-      "task": "Drink een dreupel (of iets niet alcoholisch) in het dreupelkot. Indien het dreupelkot niet open is (of niets niet-alcoholisch heeft), zoek dan een Dreupelglas en drink daar iets uit voor het dreupelkot",
+      "task": "Koop een item in 1 winkel, vind een identiek item in een andere winkel maar voor een lagere prijs",
       "question": "Welke Colruyt binnen de speelzone is het verste?",
       "phase": 1,
       "answerType": "FurthestDistance",
