@@ -1011,13 +1011,13 @@ function displayQuestions(checks) {
         }
     }
 
-    let watertowerWithin1000m = 'Nee';
+    let watertowerWithin1250m = 'Nee';
     if (currentLocation) {
         const watertowers = getPOIsByType('watertowers');
         for (const tower of watertowers) {
             const distance = calculateDistance(currentLocation.lat, currentLocation.lng, tower.lat, tower.lng);
-            if (distance <= 1000) {
-                watertowerWithin1000m = `Ja (${tower.name}, ${Math.round(distance)}m)`;
+            if (distance <= 1250) {
+                watertowerWithin1250m = `Ja (${tower.name}, ${Math.round(distance)}m)`;
                 break;
             }
         }
@@ -1027,7 +1027,7 @@ function displayQuestions(checks) {
         { label: 'Huidige Wijk', value: currentNeighborhood },
         { label: 'Bibliotheek binnen 750m', value: libraryWithin750m },
         { label: 'Ziekenhuis binnen 900m', value: hospitalWithin900m },
-        { label: 'Watertoren binnen 1000m', value: watertowerWithin1000m },
+        { label: 'Watertoren binnen 1250m', value: watertowerWithin1250m },
         { label: 'R40', value: checks.r40.answer },
         { label: 'Leie-Schelde', value: checks.leieSchelde.answer },
         { label: 'Weba/IKEA', value: `${checks.webaIkea.answer} (Weba: ${checks.webaIkea.distanceWeba}m / IKEA: ${checks.webaIkea.distanceIkea}m)` },

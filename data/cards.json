@@ -62,6 +62,14 @@
       "pois": []
     },
     {
+      "task": "Drink een dreupel (of iets niet alcoholisch) in het dreupelkot. Indien het dreupelkot niet open is (of niets niet-alcoholisch heeft), zoek dan een Dreupelglas en drink daar iets uit voor het dreupelkot",
+      "question": "Welke Colruyt binnen de speelzone is het verste?",
+      "phase": 1,
+      "answerType": "FurthestDistance",
+      "poiType": "colruyts",
+      "pois": []
+    },
+    {
       "task": "Bezoek een museum of historisch huis dat minder dan 1000 reviews heeft op Google Maps (lijst van geldige museums in Gent, andere kunnen beargumenteerd worden)",
       "question": "Kopieer een vraag die al gevraagd is door de andere speler(s)",
       "phase": 2,
@@ -94,10 +102,10 @@
     },
     {
       "task": "Vind alle letters van uw teamnaam in graffiti",
-      "question": "Is er een watertoren binnen 1km?",
+      "question": "Is er een watertoren binnen 1,25km?",
       "phase": 2,
       "answerType": "radiusProximity",
-      "radius": 1000,
+      "radius": 1250,
       "poiType": "watertowers",
       "pois": []
     },

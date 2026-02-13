@@ -59,6 +59,12 @@
       { "lat": 51.04260630610165, "lng": 3.7231084945393516, "name": "Watertoren Centrum" },
       { "lat": 51.034460958159386, "lng": 3.7586129435104465, "name": "Watertoren Gentbrugge" },
       { "lat": 51.00911018246588, "lng": 3.7194032775200876, "name": "Watertoren Zwijnaarde" }
+    ],
+    "colruyts": [
+      { "lat": 51.05341588971266, "lng": 3.7530265369535503, "name": "Colruyt Sint-Amandsberg" },
+      { "lat": 51.03606651980976, "lng": 3.7484510367970474, "name": "Colruyt Ledeberg" },
+      { "lat": 51.05520468268748, "lng": 3.6946707048070717, "name": "Colruyt Watersportbaan" },
+      { "lat": 51.087129452791146, "lng": 3.7089934365397332, "name": "Colruyt Wondelgem" }
     ]
   },
   "features": [
