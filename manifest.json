@@ -1,7 +1,7 @@
 {
-  "name": "Jet Lag The Game Ripoff maar dan anders",
+  "name": "Jet Lag The Knock-Off",
   "short_name": "Jet Lag Game",
-  "description": "Location-based game in Gent - Jet Lag style",
+  "description": "Knock-Off versie van het spel Jet Lag, in Gent",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
