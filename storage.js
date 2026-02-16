@@ -134,7 +134,7 @@ function loadChecklistState() {
 /**
  * Sla antwoord van tegenstander op voor een specifieke kaart
  */
-function saveOpponentAnswer(cardId, opponentAnswer, cardTask = null) {
+function saveOpponentAnswer(cardId, opponentAnswer, cardTask = null, cardIndex = null) {
     const data = loadGameData();
     
     // Check of er al een antwoord is voor deze kaart
@@ -152,11 +152,15 @@ function saveOpponentAnswer(cardId, opponentAnswer, cardTask = null) {
         cardId,
         opponentAnswer,
         cardTask, // Sla task op voor latere referentie
+        cardIndex, // Sla index op voor latere referentie
         timestamp: new Date().toISOString()
     };
     
     if (existingIndex >= 0) {
-        // Update bestaand antwoord
+        // Update bestaand antwoord - behoud cardIndex als die er al was
+        if (cardIndex === null && data.cardAnswers[existingIndex].cardIndex !== undefined) {
+            answerData.cardIndex = data.cardAnswers[existingIndex].cardIndex;
+        }
         data.cardAnswers[existingIndex] = answerData;
     } else {
         // Voeg nieuw antwoord toe
@@ -220,6 +224,24 @@ function getDiscardedAnswerData(discardedIndex) {
     } catch {
         return { answer: stored }; // Oude string format
     }
+}
+
+/**
+ * Update opponent answer op basis van card ID
+ */
+function updateOpponentAnswerById(cardId, newAnswer) {
+    const data = loadGameData();
+    
+    // Zoek de opponent answer met deze cardId
+    const answerEntry = data.cardAnswers.find(a => a.cardId === cardId);
+    
+    if (answerEntry) {
+        answerEntry.opponentAnswer = newAnswer;
+        saveGameData(data);
+        return true;
+    }
+    
+    return false;
 }
 
 /**

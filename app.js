@@ -1416,7 +1416,7 @@ function handleOpponentAnswer(cardIndex, answer) {
         return;
     }
     
-    saveOpponentAnswer(card.id, answer, card.task);
+    saveOpponentAnswer(card.id, answer, card.task, cardIndex);
     updateExclusionZones();
     
     // Automatisch discard de kaart wanneer antwoord is gegeven
@@ -1531,7 +1531,7 @@ function handleDistanceFromBikeAnswer(cardIndex, answer) {
     
     // Sla het antwoord ook op als opponent answer
     if (card.id) {
-        saveOpponentAnswer(card.id, answer, card.task);
+        saveOpponentAnswer(card.id, answer, card.task, cardIndex);
     }
     
     // Save state
@@ -1593,7 +1593,7 @@ function handleFurthestDistanceAnswer(cardIndex, selectedPOI) {
     
     // Sla het antwoord ook op als opponent answer
     if (card.id) {
-        saveOpponentAnswer(card.id, selectedPOI);
+        saveOpponentAnswer(card.id, selectedPOI, card.task, cardIndex);
     }
     
     // Save state
@@ -1643,7 +1643,7 @@ function handleEliminateNeighborhoodAnswer(cardIndex, selectedNeighborhood) {
     
     // Sla het antwoord ook op als opponent answer
     if (card.id) {
-        saveOpponentAnswer(card.id, selectedNeighborhood);
+        saveOpponentAnswer(card.id, selectedNeighborhood, card.task, cardIndex);
     }
     
     // Save state
@@ -1667,7 +1667,7 @@ function changeOpponentAnswer(cardIndex) {
     
     if (confirm('Wil je het antwoord van de tegenstander wijzigen?')) {
         // Verwijder het antwoord uit opponentAnswers
-        saveOpponentAnswer(card.id, null);
+        saveOpponentAnswer(card.id, null, card.task, cardIndex);
         
         // Voor kaarten met exclusion zones, verwijder ook de exclusion zone
         const gameData = loadGameData();
@@ -2607,9 +2607,11 @@ function editDiscardedAnswer(discardedIndex) {
             
             saveDiscardedAnswer(discardedIndex, answer, card.task, originalCardIndex);
             
-            // Speciaal voor radiusProximity kaarten: update exclusionZones entry
+            // Laad gameData ÉÉN KEER voor alle updates
+            const gameData = loadGameData();
+            
+            // Update voor radiusProximity kaarten: update exclusionZones entry
             if (card.answerType === 'radiusProximity') {
-                const gameData = loadGameData();
                 gameData.exclusionZones = gameData.exclusionZones || [];
                 
                 // Verwijder bestaande zone voor deze kaart
@@ -2629,30 +2631,49 @@ function editDiscardedAnswer(discardedIndex) {
                     radius: card.radius,
                     cardIndex: originalCardIndex
                 });
+            }
+            
+            // Voor kaarten die NIET exclusionOnly zijn: update opponent answer
+            const exclusionOnlyTypes = ['radiusProximity', 'eliminateNeighborhood', 'SameOrAdjacentNeighborhood'];
+            
+            if (!exclusionOnlyTypes.includes(card.answerType)) {
+                // Update de opponent answer (in dezelfde gameData!)
+                let updated = false;
                 
-                saveGameData(gameData);
-            }
-            
-            // Update de opponent answer via originele cardIndex
-            let updated = false;
-            if (originalCardIndex !== null && originalCardIndex !== undefined) {
-                updated = updateOpponentAnswerByIndex(originalCardIndex, answer);
-            }
-            
-            // Fallback: probeer via cardTask
-            if (!updated) {
-                updated = updateOpponentAnswerByTask(card.task, answer);
-            }
-            
-            // Fallback 2: Als er maar 1 opponent answer is, update die
-            if (!updated) {
-                const gameData = loadGameData();
-                if (gameData.cardAnswers && gameData.cardAnswers.length === 1) {
-                    gameData.cardAnswers[0].opponentAnswer = answer;
-                    saveGameData(gameData);
-                    updated = true;
+                // Methode 1: Via card.id (meest betrouwbaar)
+                if (card.id) {
+                    const answerEntry = gameData.cardAnswers.find(a => a.cardId === card.id);
+                    if (answerEntry) {
+                        answerEntry.opponentAnswer = answer;
+                        updated = true;
+                    }
+                }
+                
+                // Methode 2: Via originele cardIndex
+                if (!updated && originalCardIndex !== null && originalCardIndex !== undefined) {
+                    const answerEntry = gameData.cardAnswers.find(a => a.cardIndex === originalCardIndex);
+                    if (answerEntry) {
+                        answerEntry.opponentAnswer = answer;
+                        updated = true;
+                    }
+                }
+                
+                // Methode 3: Via cardTask
+                if (!updated) {
+                    const answerEntry = gameData.cardAnswers.find(a => a.cardTask === card.task);
+                    if (answerEntry) {
+                        answerEntry.opponentAnswer = answer;
+                        updated = true;
+                    }
+                }
+                
+                if (!updated) {
+                    console.warn('Could not update opponent answer for card:', card.task);
                 }
             }
+            
+            // Sla gameData ÉÉN KEER op
+            saveGameData(gameData);
             
             updateExclusionZones(); // Update kaart zones
             closeEditModal();
@@ -2873,7 +2894,7 @@ function editFurthestDistanceDiscardedAnswer(discardedIndex) {
                 return;
             }
             
-            // Update exclusion zones
+            // Laad gameData ÉÉN KEER
             const gameData = loadGameData();
             if (!gameData.exclusionZones) {
                 gameData.exclusionZones = [];
@@ -2893,21 +2914,24 @@ function editFurthestDistanceDiscardedAnswer(discardedIndex) {
                 cardIndex: originalCardIndex
             });
             
+            // Update de opponent answer (in dezelfde gameData!)
+            if (card.id) {
+                const answerEntry = gameData.cardAnswers.find(a => a.cardId === card.id);
+                if (answerEntry) {
+                    answerEntry.opponentAnswer = selectedPOI;
+                } else if (originalCardIndex !== null && originalCardIndex !== undefined) {
+                    const answerEntry2 = gameData.cardAnswers.find(a => a.cardIndex === originalCardIndex);
+                    if (answerEntry2) {
+                        answerEntry2.opponentAnswer = selectedPOI;
+                    }
+                }
+            }
+            
+            // Sla gameData ÉÉN KEER op
             saveGameData(gameData);
             
             // Update discarded answer
             saveDiscardedAnswer(discardedIndex, selectedPOI, card.task, originalCardIndex);
-            
-            // Update de opponent answer via originele cardIndex
-            let updated = false;
-            if (originalCardIndex !== null && originalCardIndex !== undefined) {
-                updated = updateOpponentAnswerByIndex(originalCardIndex, selectedPOI);
-            }
-            
-            // Fallback: probeer via cardTask
-            if (!updated) {
-                updated = updateOpponentAnswerByTask(card.task, selectedPOI);
-            }
             
             // Update visualisatie
             updateExclusionZones();
@@ -3013,21 +3037,11 @@ function editEliminateNeighborhoodDiscardedAnswer(discardedIndex) {
                 cardIndex: originalCardIndex
             });
             
+            // Sla gameData ÉÉN KEER op
             saveGameData(gameData);
             
             // Update discarded answer
             saveDiscardedAnswer(discardedIndex, selectedNeighborhood, card.task, originalCardIndex);
-            
-            // Update de opponent answer via originele cardIndex
-            let updated = false;
-            if (originalCardIndex !== null && originalCardIndex !== undefined) {
-                updated = updateOpponentAnswerByIndex(originalCardIndex, selectedNeighborhood);
-            }
-            
-            // Fallback: probeer via cardTask
-            if (!updated) {
-                updated = updateOpponentAnswerByTask(card.task, selectedNeighborhood);
-            }
             
             // Update visualisatie
             updateExclusionZones();
@@ -3349,12 +3363,6 @@ function handleDiscardCard() {
     
     const card = cardManager.getCard(currentCardIndex);
     if (!card) return;
-    
-    // Check of dit een SameOrAdjacentNeighborhood vraag is
-    if (card.answerType === 'SameOrAdjacentNeighborhood') {
-        openNeighborhoodModal(currentCardIndex);
-        return;
-    }
     
     if (confirm(`Kaart "${card.task}" markeren als opgelost?\nEen nieuwe kaart wordt getrokken.`)) {
         // Bewaar het antwoord voor deze discarded kaart (voordat we discard)
