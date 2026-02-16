@@ -84,10 +84,17 @@
       "requiresAnswer": false
     },
     {
-      "task": "Ruim afval op in 4 wijken",
+      "task": "Ruim afval op in 4 wijken, de laatste wijk is de wijk waar de vraag wordt over gesteld",
       "question": "Is de huidige wijk of de wijk er naast de wijk waar het item staat",
       "phase": 2,
       "answerType": "SameOrAdjacentNeighborhood",
+      "pois": []
+    },
+    {
+      "task": "Zet een X met krijt in 3 wijken die je wilt elimineren",
+      "question": "3 wijken gegeven, 1 uit die lijst moet geëlimineerd worden",
+      "phase": 2,
+      "answerType": "eliminateNeighborhood",
       "pois": []
     },
     {

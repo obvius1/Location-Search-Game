@@ -484,7 +484,7 @@ function updateNeighborhoodVisibility() {
     const currentCard = cardManager.getCard(currentCardIndex);
     
     // Toon wijken alleen als de huidige kaart een neighborhood vraag is
-    if (currentCard && currentCard.answerType === 'SameOrAdjacentNeighborhood') {
+    if (currentCard && (currentCard.answerType === 'SameOrAdjacentNeighborhood' || currentCard.answerType === 'eliminateNeighborhood')) {
         drawNeighborhoods();
     } else {
         hideNeighborhoods();
@@ -1348,6 +1348,43 @@ function generateAnswerButtons(cardIndex, question) {
             };
             container.appendChild(btn);
         }
+    } else if (card && card.answerType === 'eliminateNeighborhood') {
+        // Voor eliminateNeighborhood: Dropdown met wijken
+        if (CITY_NEIGHBORHOODS && CITY_NEIGHBORHOODS.length > 0) {
+            const select = document.createElement('select');
+            select.className = 'poi-select';
+            select.id = `neighborhood-eliminate-select-${cardIndex}`;
+            
+            // Default optie
+            const defaultOption = document.createElement('option');
+            defaultOption.value = '';
+            defaultOption.textContent = 'Selecteer te elimineren wijk...';
+            select.appendChild(defaultOption);
+            
+            // Voeg alle wijken toe
+            CITY_NEIGHBORHOODS.forEach(neighborhood => {
+                const option = document.createElement('option');
+                option.value = neighborhood.name;
+                option.textContent = neighborhood.name;
+                select.appendChild(option);
+            });
+            
+            container.appendChild(select);
+            
+            // Bevestig knop
+            const btn = document.createElement('button');
+            btn.className = 'btn-answer';
+            btn.textContent = 'Elimineer Wijk';
+            btn.onclick = () => {
+                const selectedNeighborhood = select.value;
+                if (selectedNeighborhood) {
+                    handleEliminateNeighborhoodAnswer(cardIndex, selectedNeighborhood);
+                } else {
+                    alert('Selecteer eerst een wijk om te elimineren');
+                }
+            };
+            container.appendChild(btn);
+        }
     } else {
         // Normale antwoord knoppen
         const buttons = getAnswerButtonsForQuestion(question);
@@ -1557,6 +1594,56 @@ function handleFurthestDistanceAnswer(cardIndex, selectedPOI) {
     // Sla het antwoord ook op als opponent answer
     if (card.id) {
         saveOpponentAnswer(card.id, selectedPOI);
+    }
+    
+    // Save state
+    saveCardManagerState();
+    
+    // Update visualisatie met exclusion zones
+    updateExclusionZones();
+    updateCardDisplay();
+}
+
+/**
+ * Verwerk antwoord voor eliminateNeighborhood kaarten
+ */
+function handleEliminateNeighborhoodAnswer(cardIndex, selectedNeighborhood) {
+    const card = cardManager.getCard(cardIndex);
+    if (!card) return;
+    
+    // Vind de geselecteerde wijk data
+    const neighborhoodData = CITY_NEIGHBORHOODS.find(n => n.name === selectedNeighborhood);
+    
+    if (!neighborhoodData) {
+        console.error('Wijk niet gevonden:', selectedNeighborhood);
+        return;
+    }
+    
+    // Voeg exclusion zone toe
+    const gameData = loadGameData();
+    if (!gameData.exclusionZones) {
+        gameData.exclusionZones = [];
+    }
+    
+    gameData.exclusionZones.push({
+        type: 'eliminateNeighborhood',
+        answer: selectedNeighborhood,
+        neighborhoodData: neighborhoodData,
+        cardIndex: cardIndex
+    });
+    
+    saveGameData(gameData);
+    
+    // Bewaar het antwoord voor deze discarded kaart (voordat we discard)
+    const currentDiscardedCount = cardManager.discarded.length;
+    
+    // Discard de kaart
+    cardManager.discardCard(cardIndex);
+    saveDiscardedAnswer(currentDiscardedCount, selectedNeighborhood, card.task, cardIndex);
+    
+    // Sla het antwoord ook op als opponent answer
+    if (card.id) {
+        saveOpponentAnswer(card.id, selectedNeighborhood);
     }
     
     // Save state
@@ -1966,6 +2053,22 @@ function createExclusionLayerFromData(exclusionData) {
         if (layers.length > 0) {
             return L.featureGroup(layers);
         }
+    }
+    
+    // Eliminate Neighborhood exclusions
+    if (exclusionData.type === 'eliminateNeighborhood') {
+        const { answer, neighborhoodData } = exclusionData;
+        
+        if (!neighborhoodData) {
+            console.warn('No neighborhood data provided for eliminateNeighborhood');
+            return null;
+        }
+        
+        // Teken de geëlimineerde wijk in het rood
+        const coords = neighborhoodData.polygon.map(point => [point.lat, point.lng]);
+        return L.polygon(coords, exclusionStyle).bindPopup(
+            `❌ Geëlimineerde wijk: ${neighborhoodData.name}`
+        );
     }
     
     // Radius Proximity exclusions (bijv. bibliotheken binnen 1km)
@@ -2473,6 +2576,13 @@ function editDiscardedAnswer(discardedIndex) {
         return;
     }
     
+    // Check of dit een eliminateNeighborhood vraag is
+    if (card.answerType === 'eliminateNeighborhood') {
+        // Voor eliminateNeighborhood vragen, gebruik een speciale modal met dropdown
+        editEliminateNeighborhoodDiscardedAnswer(discardedIndex);
+        return;
+    }
+    
     // Toon modal met kaart en antwoordknoppen
     const modal = document.getElementById('edit-answer-modal');
     const taskEl = document.getElementById('edit-card-task');
@@ -2808,6 +2918,126 @@ function editFurthestDistanceDiscardedAnswer(discardedIndex) {
         buttonsContainer.appendChild(btn);
     } else {
         buttonsContainer.innerHTML = '<p>Geen POIs beschikbaar</p>';
+    }
+    
+    // Toon modal
+    modal.classList.remove('hidden');
+}
+
+/**
+ * Bewerk antwoord van een discarded eliminateNeighborhood kaart
+ */
+function editEliminateNeighborhoodDiscardedAnswer(discardedIndex) {
+    if (!cardManager) return;
+    
+    const card = cardManager.discarded[discardedIndex];
+    if (!card) return;
+    
+    // Haal de originele cardIndex op
+    const discardedData = getDiscardedAnswerData(discardedIndex);
+    const originalCardIndex = discardedData?.originalCardIndex;
+    
+    // Toon modal met kaart en wijk dropdown
+    const modal = document.getElementById('edit-answer-modal');
+    const taskEl = document.getElementById('edit-card-task');
+    const questionEl = document.getElementById('edit-card-question');
+    const buttonsContainer = document.getElementById('edit-answer-buttons');
+    
+    taskEl.textContent = card.task;
+    questionEl.textContent = card.question;
+    
+    // Genereer dropdown + bevestig knop
+    buttonsContainer.innerHTML = '';
+    
+    if (CITY_NEIGHBORHOODS && CITY_NEIGHBORHOODS.length > 0) {
+        const select = document.createElement('select');
+        select.className = 'poi-select';
+        select.id = `edit-neighborhood-select-${discardedIndex}`;
+        
+        // Default optie
+        const defaultOption = document.createElement('option');
+        defaultOption.value = '';
+        defaultOption.textContent = 'Selecteer te elimineren wijk...';
+        select.appendChild(defaultOption);
+        
+        // Voeg alle wijken toe
+        CITY_NEIGHBORHOODS.forEach(neighborhood => {
+            const option = document.createElement('option');
+            option.value = neighborhood.name;
+            option.textContent = neighborhood.name;
+            
+            // Selecteer de huidige waarde indien beschikbaar
+            const currentAnswer = getDiscardedAnswer(discardedIndex);
+            if (currentAnswer === neighborhood.name) {
+                option.selected = true;
+            }
+            
+            select.appendChild(option);
+        });
+        
+        buttonsContainer.appendChild(select);
+        
+        // Bevestig knop
+        const btn = document.createElement('button');
+        btn.className = 'btn-answer';
+        btn.textContent = 'Elimineer Wijk';
+        btn.onclick = () => {
+            const selectedNeighborhood = select.value;
+            if (!selectedNeighborhood) {
+                alert('Selecteer eerst een wijk om te elimineren');
+                return;
+            }
+            
+            const neighborhoodData = CITY_NEIGHBORHOODS.find(n => n.name === selectedNeighborhood);
+            if (!neighborhoodData) {
+                console.error('Wijk niet gevonden:', selectedNeighborhood);
+                return;
+            }
+            
+            // Update exclusion zones
+            const gameData = loadGameData();
+            if (!gameData.exclusionZones) {
+                gameData.exclusionZones = [];
+            }
+            
+            // Verwijder oude eliminateNeighborhood exclusion voor deze kaart
+            gameData.exclusionZones = gameData.exclusionZones.filter(ez => 
+                !(ez.type === 'eliminateNeighborhood' && ez.cardIndex === originalCardIndex)
+            );
+            
+            // Voeg nieuwe zone toe
+            gameData.exclusionZones.push({
+                type: 'eliminateNeighborhood',
+                answer: selectedNeighborhood,
+                neighborhoodData: neighborhoodData,
+                cardIndex: originalCardIndex
+            });
+            
+            saveGameData(gameData);
+            
+            // Update discarded answer
+            saveDiscardedAnswer(discardedIndex, selectedNeighborhood, card.task, originalCardIndex);
+            
+            // Update de opponent answer via originele cardIndex
+            let updated = false;
+            if (originalCardIndex !== null && originalCardIndex !== undefined) {
+                updated = updateOpponentAnswerByIndex(originalCardIndex, selectedNeighborhood);
+            }
+            
+            // Fallback: probeer via cardTask
+            if (!updated) {
+                updated = updateOpponentAnswerByTask(card.task, selectedNeighborhood);
+            }
+            
+            // Update visualisatie
+            updateExclusionZones();
+            closeEditModal();
+            renderDiscardedView();
+            renderFlopView();
+        };
+        buttonsContainer.appendChild(btn);
+    } else {
+        buttonsContainer.innerHTML = '<p>Geen wijken beschikbaar</p>';
     }
     
     // Toon modal
