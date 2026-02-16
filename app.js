@@ -1579,8 +1579,20 @@ function changeOpponentAnswer(cardIndex) {
     }
     
     if (confirm('Wil je het antwoord van de tegenstander wijzigen?')) {
-        // Verwijder het antwoord en update display
+        // Verwijder het antwoord uit opponentAnswers
         saveOpponentAnswer(card.id, null);
+        
+        // Voor kaarten met exclusion zones, verwijder ook de exclusion zone
+        const gameData = loadGameData();
+        if (gameData.exclusionZones) {
+            // Verwijder exclusion zones voor deze cardIndex
+            gameData.exclusionZones = gameData.exclusionZones.filter(ez => 
+                ez.cardIndex !== cardIndex
+            );
+            saveGameData(gameData);
+        }
+        
+        // Update visualisatie en display
         updateExclusionZones();
         updateCardDisplay();
     }
@@ -2454,6 +2466,13 @@ function editDiscardedAnswer(discardedIndex) {
         return;
     }
     
+    // Check of dit een FurthestDistance vraag is
+    if (card.answerType === 'FurthestDistance') {
+        // Voor FurthestDistance vragen, gebruik een speciale modal met dropdown
+        editFurthestDistanceDiscardedAnswer(discardedIndex);
+        return;
+    }
+    
     // Toon modal met kaart en antwoordknoppen
     const modal = document.getElementById('edit-answer-modal');
     const taskEl = document.getElementById('edit-card-task');
@@ -2665,6 +2684,131 @@ function editNeighborhoodDiscardedAnswer(discardedIndex) {
         delete modal.dataset.discardedIndex;
         delete modal.dataset.editMode;
     });
+    
+    // Toon modal
+    modal.classList.remove('hidden');
+}
+
+/**
+ * Bewerk het antwoord van een opgeloste FurthestDistance kaart
+ */
+function editFurthestDistanceDiscardedAnswer(discardedIndex) {
+    if (!cardManager) return;
+    
+    const card = cardManager.discarded[discardedIndex];
+    if (!card) return;
+    
+    // Haal de originele cardIndex op
+    const discardedData = getDiscardedAnswerData(discardedIndex);
+    const originalCardIndex = discardedData?.originalCardIndex;
+    
+    // Toon modal met kaart en POI dropdown
+    const modal = document.getElementById('edit-answer-modal');
+    const taskEl = document.getElementById('edit-card-task');
+    const questionEl = document.getElementById('edit-card-question');
+    const buttonsContainer = document.getElementById('edit-answer-buttons');
+    
+    taskEl.textContent = card.task;
+    questionEl.textContent = card.question;
+    
+    // Haal POIs op
+    const poiType = card.poiType || 'colruyts';
+    const pois = getPOIsByType(poiType);
+    
+    // Genereer dropdown + bevestig knop
+    buttonsContainer.innerHTML = '';
+    
+    if (pois.length > 0) {
+        const select = document.createElement('select');
+        select.className = 'poi-select';
+        select.id = `edit-poi-select-${discardedIndex}`;
+        
+        // Default optie
+        const defaultOption = document.createElement('option');
+        defaultOption.value = '';
+        defaultOption.textContent = `Selecteer ${poiType}...`;
+        select.appendChild(defaultOption);
+        
+        // Voeg alle POIs toe
+        pois.forEach(poi => {
+            const option = document.createElement('option');
+            option.value = poi.name;
+            option.textContent = poi.name;
+            
+            // Selecteer de huidige waarde indien beschikbaar
+            const currentAnswer = getDiscardedAnswer(discardedIndex);
+            if (currentAnswer === poi.name) {
+                option.selected = true;
+            }
+            
+            select.appendChild(option);
+        });
+        
+        buttonsContainer.appendChild(select);
+        
+        // Bevestig knop
+        const btn = document.createElement('button');
+        btn.className = 'btn-answer';
+        btn.textContent = 'Bevestig';
+        btn.onclick = () => {
+            const selectedPOI = select.value;
+            if (!selectedPOI) {
+                alert(`Selecteer eerst een ${poiType}`);
+                return;
+            }
+            
+            const selectedPOIData = pois.find(p => p.name === selectedPOI);
+            if (!selectedPOIData) {
+                console.error('POI niet gevonden:', selectedPOI);
+                return;
+            }
+            
+            // Update exclusion zones
+            const gameData = loadGameData();
+            if (!gameData.exclusionZones) {
+                gameData.exclusionZones = [];
+            }
+            
+            // Verwijder oude furthestDistance exclusion voor deze kaart
+            gameData.exclusionZones = gameData.exclusionZones.filter(ez => 
+                !(ez.type === 'furthestDistance' && ez.cardIndex === originalCardIndex)
+            );
+            
+            // Voeg nieuwe zone toe
+            gameData.exclusionZones.push({
+                type: 'furthestDistance',
+                answer: selectedPOI,
+                poiType: poiType,
+                selectedPOI: selectedPOIData,
+                cardIndex: originalCardIndex
+            });
+            
+            saveGameData(gameData);
+            
+            // Update discarded answer
+            saveDiscardedAnswer(discardedIndex, selectedPOI, card.task, originalCardIndex);
+            
+            // Update de opponent answer via originele cardIndex
+            let updated = false;
+            if (originalCardIndex !== null && originalCardIndex !== undefined) {
+                updated = updateOpponentAnswerByIndex(originalCardIndex, selectedPOI);
+            }
+            
+            // Fallback: probeer via cardTask
+            if (!updated) {
+                updated = updateOpponentAnswerByTask(card.task, selectedPOI);
+            }
+            
+            // Update visualisatie
+            updateExclusionZones();
+            closeEditModal();
+            renderDiscardedView();
+            renderFlopView();
+        };
+        buttonsContainer.appendChild(btn);
+    } else {
+        buttonsContainer.innerHTML = '<p>Geen POIs beschikbaar</p>';
+    }
     
     // Toon modal
     modal.classList.remove('hidden');

@@ -12,7 +12,7 @@
   ],
   "cards": [
     {
-      "task": "??????????",
+      "task": "Leer een stuk geschiedenis (vind een bord met informatie over de geschiedenis van Gent)",
       "question": "Binnen of buiten R40 (binnenring)?",
       "phase": 1,
       "answerType": "r40",
@@ -40,7 +40,7 @@
       "pois": ["dampoort"]
     },
     {
-      "task": "Film een vogel continu voor 5 minuten, de vogel mag het beeld niet verlaten",
+      "task": "Film een vogel continu voor 4 minuten, de vogel mag het beeld niet verlaten",
       "question": "Oosten of westen van de tip van de watersportbaan?",
       "phase": 1,
       "answerType": "watersportbaan",
