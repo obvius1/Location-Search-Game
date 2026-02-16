@@ -91,7 +91,7 @@
       "pois": []
     },
     {
-      "task": "Fotografeer een gedicht op een muur/raam dat van op straat zichtbaar is",
+      "task": "Vind een boek in een boekenruilkastje dat tekst bevat dat niet in het nederlands is",
       "question": "Is er een bibliotheek binnen 750m?",
       "phase": 2,
       "answerType": "radiusProximity",
@@ -164,7 +164,7 @@
       "requiresAnswer": false
     },
     {
-      "task": "??????????????????",
+      "task": "Fotografeer een gedicht op een muur/raam dat van op straat zichtbaar is",
       "question": "Foto naar onder",
       "phase": 3,
       "requiresAnswer": false
