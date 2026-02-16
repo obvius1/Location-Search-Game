@@ -64,6 +64,13 @@
       { "lat": 51.05341588971266, "lng": 3.7530265369535503, "name": "Colruyt Sint-Amandsberg" },
       { "lat": 51.03606651980976, "lng": 3.7484510367970474, "name": "Colruyt Ledeberg" },
       { "lat": 51.05520468268748, "lng": 3.6946707048070717, "name": "Colruyt Watersportbaan" }
+    ],
+    "catlocations": [
+      { "lat": 51.070364216619176, "lng": 3.692708209077292, "name": "Poezenboot" },
+      { "lat": 51.059262847389775, "lng": 3.730092578868196, "name": "DreamCATchers Kattenadoptiecafé" },
+      { "lat": 51.053203853314095, "lng": 3.7696888540836038, "name": "Kapoela" },
+      { "lat": 51.03902744503181, "lng": 3.7191664197986727, "name": "Aquariumgrot" },
+      { "lat": 51.04959388667933, "lng": 3.6933293139281984, "name": "Dierenasiel Gent" }
     ]
   },
   "features": [

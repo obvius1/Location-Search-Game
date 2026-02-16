@@ -70,6 +70,14 @@
       "pois": []
     },
     {
+      "task": "Fotografeer een levende kat",
+      "question": "Welke kattenopvang/asiel is het verste?",
+      "phase": 1,
+      "answerType": "FurthestDistance",
+      "poiType": "catlocations",
+      "pois": []
+    },
+    {
       "task": "Bezoek een museum of historisch huis dat minder dan 1000 reviews heeft op Google Maps (lijst van geldige museums in Gent, andere kunnen beargumenteerd worden)",
       "question": "Kopieer een vraag die al gevraagd is door de andere speler(s)",
       "phase": 2,
