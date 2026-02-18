@@ -362,6 +362,38 @@ function checkFurthestColruyt(lat, lng) {
 }
 
 /**
+ * Controleert welke kattenopvang/asiel het verste is
+ */
+function checkFurthestCatlocation(lat, lng) {
+    const catlocations = getPOIsByType('catlocations');
+    
+    if (catlocations.length === 0) {
+        return {
+            answer: null,
+            name: null,
+            distance: null
+        };
+    }
+    
+    // Bereken afstand naar elke kattenopvang
+    const distances = catlocations.map(catlocation => ({
+        name: catlocation.name,
+        distance: calculateDistance(lat, lng, catlocation.lat, catlocation.lng)
+    }));
+    
+    // Vind de verste kattenopvang
+    const furthest = distances.reduce((max, current) => 
+        current.distance > max.distance ? current : max
+    );
+    
+    return {
+        answer: furthest.name,
+        name: furthest.name,
+        distance: Math.round(furthest.distance)
+    };
+}
+
+/**
  * Voert alle checks uit voor een gegeven locatie
  */
 function performAllChecks(lat, lng) {
@@ -389,6 +421,7 @@ function performAllChecks(lat, lng) {
             watersportbaan: checkWatersportbaan(lat, lng),
             railwayBuffer: checkRailwayBuffer(lat, lng),
             furthestColruyt: checkFurthestColruyt(lat, lng),
+            furthestCatlocation: checkFurthestCatlocation(lat, lng),
             neighborhood: neighborhood
         }
     };
