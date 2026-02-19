@@ -8,6 +8,9 @@ let r40Polygon = null;
 let leieScheldeLine = null;
 let railwayLine = null;
 let railwayBuffer = null;
+let dampoortLine = null; // Verticale lijn door Dampoort
+let watersportbaanLine = null; // Verticale lijn door Watersportbaan
+let proximityCircles = []; // Cirkels voor proximity vragen (Weba/IKEA)
 let currentLocationMarker = null;
 let poiMarkers = {}; // Object om POI markers bij te houden
 let poiCollectionMarkers = []; // Array van POI collection markers (bibliotheken, etc.)
@@ -520,6 +523,88 @@ function hideRailway() {
 }
 
 /**
+ * Toon verticale lijn door Dampoort (oost/west grens)
+ */
+function showDampoortLine() {
+    if (!LOCATIONS.dampoort) return;
+    
+    hideDampoortLine();
+    
+    // Teken een verticale lijn (noord-zuid) door Dampoort
+    const lng = LOCATIONS.dampoort.lng;
+    dampoortLine = L.polyline([
+        [51.12, lng],  // Noord (boven Gent)
+        [50.98, lng]   // Zuid (onder Gent)
+    ], {
+        color: '#dc2626',
+        weight: 3,
+        opacity: 0.6,
+        dashArray: '10, 10'
+    }).bindPopup('<b>Oost/West grens</b><br>Station Dampoort').addTo(map);
+}
+
+/**
+ * Verberg Dampoort lijn
+ */
+function hideDampoortLine() {
+    if (dampoortLine && map.hasLayer(dampoortLine)) {
+        map.removeLayer(dampoortLine);
+        dampoortLine = null;
+    }
+}
+
+/**
+ * Toon verticale lijn door Watersportbaan (oost/west grens)
+ */
+function showWatersportbaanLine() {
+    if (!LOCATIONS.watersportbaan_tip) return;
+    
+    hideWatersportbaanLine();
+    
+    // Teken een verticale lijn (noord-zuid) door Watersportbaan tip
+    const lng = LOCATIONS.watersportbaan_tip.lng;
+    watersportbaanLine = L.polyline([
+        [51.12, lng],  // Noord (boven Gent)
+        [50.98, lng]   // Zuid (onder Gent)
+    ], {
+        color: '#dc2626',
+        weight: 3,
+        opacity: 0.6,
+        dashArray: '10, 10'
+    }).bindPopup('<b>Oost/West grens</b><br>Watersportbaan tip').addTo(map);
+}
+
+/**
+ * Verberg Watersportbaan lijn
+ */
+function hideWatersportbaanLine() {
+    if (watersportbaanLine && map.hasLayer(watersportbaanLine)) {
+        map.removeLayer(watersportbaanLine);
+        watersportbaanLine = null;
+    }
+}
+
+/**
+ * Toon cirkels rond Weba en IKEA voor proximity vragen
+ */
+function showProximityCircles() {
+    // Geen visualisatie nodig voor proximity vragen
+    // Markers worden al getoond via updatePOIMarkers
+}
+
+/**
+ * Verberg proximity cirkels
+ */
+function hideProximityCircles() {
+    proximityCircles.forEach(circle => {
+        if (map.hasLayer(circle)) {
+            map.removeLayer(circle);
+        }
+    });
+    proximityCircles = [];
+}
+
+/**
  * Toont of verbergt spoorlijn op basis van de huidige kaart
  */
 function updateRailwayVisibility() {
@@ -646,6 +731,9 @@ function updatePOIMarkers() {
         return;
     }
     
+    // Verwijder alle oude proximity cirkels
+    hideProximityCircles();
+    
     // Haal de huidige kaart op (alleen de enkele kaart view)
     const currentCard = cardManager.getCard(currentCardIndex);
     const activePois = (currentCard && currentCard.pois) || [];
@@ -664,6 +752,26 @@ function updatePOIMarkers() {
         }
     });
     
+    // Toon visualisaties op basis van answerType
+    if (currentCard) {
+        // Dampoort lijn
+        if (currentCard.answerType === 'dampoort') {
+            showDampoortLine();
+        } else {
+            hideDampoortLine();
+        }
+        
+        // Watersportbaan lijn
+        if (currentCard.answerType === 'watersportbaan') {
+            showWatersportbaanLine();
+        } else {
+            hideWatersportbaanLine();
+        }
+    } else {
+        hideDampoortLine();
+        hideWatersportbaanLine();
+    }
+    
     // Toon POI collections (bijv. bibliotheken) als kaart radiusProximity is
     updatePOICollectionMarkers();
 }
@@ -672,7 +780,7 @@ function updatePOIMarkers() {
  * Update markers voor POI collections (bibliotheken, etc.)
  */
 function updatePOICollectionMarkers() {
-    // Verwijder oude POI collection markers
+    // Verwijder oude POI collection markers en cirkels
     poiCollectionMarkers.forEach(marker => {
         if (map.hasLayer(marker)) {
             map.removeLayer(marker);
@@ -697,6 +805,9 @@ function updatePOICollectionMarkers() {
         return;
     }
     
+    // Haal radius op voor radiusProximity kaarten
+    const radius = currentCard.radius;
+    
     // Toon alle POIs met dezelfde marker stijl als andere POIs
     pois.forEach(poi => {
         const marker = L.marker([poi.lat, poi.lng], {
@@ -711,6 +822,21 @@ function updatePOICollectionMarkers() {
         }).bindPopup(`<b>${poi.name}</b><br>${poi.address || ''}`).addTo(map);
         
         poiCollectionMarkers.push(marker);
+        
+        // Voor radiusProximity kaarten: voeg cirkel met stippellijn toe rondom POI
+        if (currentCard.answerType === 'radiusProximity' && radius) {
+            const circle = L.circle([poi.lat, poi.lng], {
+                radius: radius,
+                color: '#dc2626',
+                fillColor: 'transparent',
+                fillOpacity: 0,
+                weight: 2,
+                opacity: 0.6,
+                dashArray: '10, 10'
+            }).addTo(map);
+            
+            poiCollectionMarkers.push(circle);
+        }
     });
 }
 
