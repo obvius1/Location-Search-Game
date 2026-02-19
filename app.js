@@ -1022,12 +1022,18 @@ function displayQuestions(checks) {
     const gameData = loadGameData();
     const currentLocation = gameData.location;
     
-    // Bepaal huidige wijk
+    // Bepaal huidige wijk en aangrenzende wijken
     let currentNeighborhood = 'Onbekend';
     if (currentLocation) {
         const neighborhood = getNeighborhoodAtLocation(currentLocation.lat, currentLocation.lng);
         if (neighborhood) {
             currentNeighborhood = neighborhood.name;
+            
+            // Haal aangrenzende wijken op
+            const adjacentNeighborhoods = getAdjacentNeighborhoods(neighborhood.name);
+            if (adjacentNeighborhoods && adjacentNeighborhoods.length > 0) {
+                currentNeighborhood += ` (aangrenzend: ${adjacentNeighborhoods.join(', ')})`;
+            }
         }
     }
     
