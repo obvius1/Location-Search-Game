@@ -275,6 +275,37 @@ body {
     height: 3px;
 }
 
+/* Legend checkbox styling */
+.legend-item-with-checkbox {
+    display: flex !important;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    gap: 8px;
+}
+
+.legend-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+    user-select: none;
+    margin-left: auto;
+}
+
+.legend-checkbox input[type="checkbox"] {
+    cursor: pointer;
+    width: 16px;
+    height: 16px;
+    margin: 0;
+}
+
+.checkbox-label {
+    font-size: 11px;
+    color: var(--text-secondary);
+    white-space: nowrap;
+}
+
 /* Neighborhood Labels */
 .neighborhood-label {
     background: transparent;

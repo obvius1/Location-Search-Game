@@ -147,7 +147,11 @@ function loadSavedGameData() {
                         popupAnchor: [1, -34],
                         shadowSize: [41, 41]
                     })
-                }).addTo(map);
+                });
+                // Voeg alleen toe aan map als checkbox checked is
+                if (shouldShowBikeMarker()) {
+                    currentLocationMarker.addTo(map);
+                }
             }
             
             // Zoom naar locatie
@@ -555,7 +559,13 @@ function addMapLegend() {
                 <div><span class="legend-line" style="background: #dc2626;"></span> Spoorlijn Oostende-Antwerpen</div>
                 <div><span class="legend-line" style="background: #9ca3af;"></span> Stadswijken</div>
                 <div><span class="legend-marker" style="background: #dc2626;"></span> Belfort (centrum)</div>
-                <div><span class="legend-marker" style="background: #22c55e;"></span> Je locatie</div>
+                <div class="legend-item-with-checkbox">
+                    <span class="legend-marker" style="background: #22c55e;"></span> Je locatie
+                    <label class="legend-checkbox">
+                        <input type="checkbox" id="toggleBikeMarker" checked onchange="toggleBikeMarkerVisibility()">
+                        <span class="checkbox-label">Toon</span>
+                    </label>
+                </div>
             </div>
         `;
         
@@ -592,6 +602,37 @@ function toggleLegenda(event) {
         content.classList.add('hidden');
         toggle.textContent = '▶';
     }
+}
+
+/**
+ * Toggle fiets marker zichtbaarheid
+ */
+function toggleBikeMarkerVisibility() {
+    const checkbox = document.getElementById('toggleBikeMarker');
+    
+    if (!currentLocationMarker) {
+        return;
+    }
+    
+    if (checkbox.checked) {
+        // Toon de marker
+        if (!map.hasLayer(currentLocationMarker)) {
+            currentLocationMarker.addTo(map);
+        }
+    } else {
+        // Verberg de marker
+        if (map.hasLayer(currentLocationMarker)) {
+            map.removeLayer(currentLocationMarker);
+        }
+    }
+}
+
+/**
+ * Check of de fiets marker zichtbaar moet zijn
+ */
+function shouldShowBikeMarker() {
+    const checkbox = document.getElementById('toggleBikeMarker');
+    return checkbox ? checkbox.checked : true; // Standaard zichtbaar
 }
 
 /**
@@ -771,7 +812,11 @@ async function handleGetGPS() {
                     popupAnchor: [1, -34],
                     shadowSize: [41, 41]
                 })
-            }).addTo(map);
+            });
+            // Voeg alleen toe aan map als checkbox checked is
+            if (shouldShowBikeMarker()) {
+                currentLocationMarker.addTo(map);
+            }
         }
         
         // Voeg een nauwkeurigheids-cirkel toe
