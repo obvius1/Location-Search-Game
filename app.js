@@ -2815,6 +2815,11 @@ function editDiscardedAnswer(discardedIndex) {
             const exclusionOnlyTypes = ['radiusProximity', 'eliminateNeighborhood', 'SameOrAdjacentNeighborhood'];
             
             if (!exclusionOnlyTypes.includes(card.answerType)) {
+                // Zorg ervoor dat cardAnswers array bestaat
+                if (!gameData.cardAnswers) {
+                    gameData.cardAnswers = [];
+                }
+                
                 // Update de opponent answer (in dezelfde gameData!)
                 let updated = false;
                 
@@ -2843,6 +2848,18 @@ function editDiscardedAnswer(discardedIndex) {
                         answerEntry.opponentAnswer = answer;
                         updated = true;
                     }
+                }
+                
+                // Als geen entry gevonden: maak nieuwe entry aan
+                if (!updated) {
+                    console.log('Creating new cardAnswer entry for card:', card.task);
+                    gameData.cardAnswers.push({
+                        cardId: card.id,
+                        cardTask: card.task,
+                        cardIndex: originalCardIndex,
+                        opponentAnswer: answer
+                    });
+                    updated = true;
                 }
                 
                 if (!updated) {
