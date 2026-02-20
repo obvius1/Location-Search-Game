@@ -165,7 +165,7 @@
       "requiresAnswer": false
     },
     {
-      "task": "(her)Plant een plantje (In een park? (plaats met naam park op maps?))",
+      "task": "Herplant een plantje van een park naar een ander park",
       "question": "Foto Voor",
       "phase": 3,
       "requiresAnswer": false
