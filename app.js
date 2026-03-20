@@ -107,6 +107,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     await loadNeighborhoods();
     await loadRailwayData();
     await loadCards();
+    await loadRules();
     
     initializeMap();
     initializeControls();
@@ -3788,3 +3789,41 @@ function previewDistanceCircle(cardIndex) {
 window.viewCardDetail = viewCardDetail;
 window.discardCardFromFlop = discardCardFromFlop;
 window.previewDistanceCircle = previewDistanceCircle;
+
+// ============================================================
+// Spelregels
+// ============================================================
+
+let rulesData = [];
+
+async function loadRules() {
+    try {
+        const response = await fetch('./data/rules.json?t=' + Date.now());
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        const data = await response.json();
+        rulesData = data.rules || [];
+    } catch (e) {
+        console.error('Kon spelregels niet laden:', e);
+    }
+}
+
+function openRulesModal() {
+    const modal = document.getElementById('rules-modal');
+    const list = document.getElementById('rules-list');
+    list.innerHTML = rulesData
+        .map(rule => `<li>${rule}</li>`)
+        .join('');
+    modal.classList.remove('hidden');
+}
+
+function closeRulesModal() {
+    document.getElementById('rules-modal').classList.add('hidden');
+}
+
+document.getElementById('show-rules-btn').addEventListener('click', openRulesModal);
+
+document.getElementById('rules-modal').addEventListener('click', function(e) {
+    if (e.target === this) closeRulesModal();
+});
+
+window.closeRulesModal = closeRulesModal;

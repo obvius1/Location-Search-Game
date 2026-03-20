@@ -9,6 +9,7 @@ const urlsToCache = [
   './storage.js',
   './manifest.json',
   './data/cards.json',
+  './data/rules.json',
   './data/geo-data.json',
   './data/stadswijken-gent.geojson',
   './icons/android-chrome-192x192.png',
