@@ -1446,3 +1446,31 @@ body {
 .rules-list li:last-child {
     border-bottom: none;
 }
+
+/* Card Link Button */
+.card-link-btn {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.25);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    text-decoration: none;
+    border: 1.5px solid rgba(255, 255, 255, 0.5);
+    transition: background 0.2s;
+    z-index: 1;
+}
+
+.card-link-btn:hover {
+    background: rgba(255, 255, 255, 0.45);
+}
+
+.game-card.has-link .phase-badge {
+    right: 48px;
+}

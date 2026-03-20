@@ -1359,6 +1359,25 @@ function updateCardDisplay() {
     phaseBadge.textContent = phaseNames[card.phase] || 'Phase ' + card.phase;
     phaseBadge.className = `phase-badge phase-${card.phase}`;
     
+    // Voeg of verwijder link knop toe
+    let linkBtn = currentCardElement.querySelector('.card-link-btn');
+    if (card.link) {
+        if (!linkBtn) {
+            linkBtn = document.createElement('a');
+            linkBtn.className = 'card-link-btn';
+            linkBtn.target = '_blank';
+            linkBtn.rel = 'noopener noreferrer';
+            linkBtn.title = 'Open link';
+            linkBtn.textContent = '🔗';
+            currentCardElement.appendChild(linkBtn);
+        }
+        linkBtn.href = card.link;
+        currentCardElement.classList.add('has-link');
+    } else {
+        if (linkBtn) linkBtn.remove();
+        currentCardElement.classList.remove('has-link');
+    }
+    
     // Check of deze kaart een antwoord vereist
     const requiresAnswer = card.requiresAnswer !== false; // Default true
     
