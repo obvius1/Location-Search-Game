@@ -236,6 +236,128 @@
         </div>
     </div>
 
+    <!-- Demo Mode Modal -->
+    <div id="demo-modal" class="modal hidden">
+        <div class="modal-content demo-modal-content">
+            <div class="modal-header demo-modal-header">
+                <h3>📖 Hoe werkt het spel?</h3>
+                <button class="modal-close" onclick="closeDemoModal()">×</button>
+            </div>
+            <div class="demo-modal-body">
+                <div id="demo-steps-container">
+                    <!-- Stap 1 -->
+                    <div class="demo-step active" data-step="0">
+                        <div class="demo-step-icon">🗺️</div>
+                        <h4 class="demo-step-title">Welkom bij Jet Lag: The Knock-Off!</h4>
+                        <p>Het speelveld is een zone van <strong>3,5km rond de WEC</strong>.</p>
+                        <p>Er zijn <strong>2 teams</strong>, beide verstoppen een fiets.</p>
+                        <p>Het doel: om als eerste de fiets van het andere team te vinden.</p>
+                    </div>
+
+                    <!-- Stap 2 -->
+                    <div class="demo-step" data-step="1">
+                        <div class="demo-step-icon">📡</div>
+                        <h4 class="demo-step-title">Geen centrale server — alles zelf bijhouden</h4>
+                        <p>Er is <strong>geen centrale server</strong>. De app berekent alles lokaal op je eigen toestel.</p>
+                        <p>Beide spelers voeren <strong>dezelfde code</strong> in om dezelfde kaarten te krijgen. Deel de code via WhatsApp of Messenger.</p>
+                        <p>Indien de tegenstander een vraag oplost is het dus ook uiterst belangrijk dat je die ook als <strong>🗑️ Tegenstander speelde dit eerst</strong> markeert!</p>
+                        <div class="demo-info-box">
+                            <strong>Communicatie gaat volledig via chat:</strong>
+                            <ul>
+                                <li>Antwoorden op vragen</li>
+                                <li>Bewijsfotos van taken</li>
+                                <li>GPS-coördinaten voor afstand</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- Stap 3 -->
+                    <div class="demo-step" data-step="2">
+                        <div class="demo-step-icon">🎮</div>
+                        <h4 class="demo-step-title">Hoe verloopt een spelronde?</h4>
+                        <ol>
+                            <li>De <strong>hider</strong> verstopt de fiets en vult de <strong>checklist</strong> in (foto's, straatnaam, …)</li>
+                            <li>Je voert de <strong>taak</strong> op de kaart uit (bv. "fotografeer een kat")</li>
+                            <li>Dan stel je de bijhorende <strong>vraag</strong> aan de tegenstander via chat</li>
+                            <li>Het antwoord sluit een deel van de kaart <strong>uit</strong></li>
+                            <li>Hoe meer vragen, hoe kleiner het zoekgebied wordt</li>
+                        </ol>
+                    </div>
+
+                    <!-- Stap 4 -->
+                    <div class="demo-step" data-step="3">
+                        <div class="demo-step-icon">🃏</div>
+                        <h4 class="demo-step-title">Kaarten & Fases</h4>
+                        <p>Er zijn altijd maximaal<strong>12 kaarten tegelijk zichtbaar</strong> (de "flop"), verdeeld in 3 fases:</p>
+                        <div class="demo-phase-list">
+                            <div class="demo-phase demo-phase-1">
+                                <strong>🟢 Early Game (fase 1)</strong>
+                                <span>Brede vragen, geeft algemene richting</span>
+                            </div>
+                            <div class="demo-phase demo-phase-2">
+                                <strong>🟡 Mid Game (fase 2)</strong>
+                                <span>Gaat de kaart meer opdelen maar geeft (normaal gezien) geen richting aan</span>
+                            </div>
+                            <div class="demo-phase demo-phase-3">
+                                <strong>🔴 Late Game (fase 3)</strong>
+                                <span>Specifieke vragen, geeft directe hints naar de exacte locatie van de fiets</span>
+                            </div>
+                        </div>
+                        <p style="margin-top:12px">Als je een kaart oplost, komt er automatisch een nieuwe uit het deck.</p>
+                    </div>
+
+                    <!-- Stap 5 -->
+                    <div class="demo-step" data-step="4">
+                        <div class="demo-step-icon">📍</div>
+                        <h4 class="demo-step-title">Locatie delen & afstand checken</h4>
+                        <p>In het tabblad <strong>"Automatische Antwoorden"</strong> vind je de afstandscalculator:</p>
+                        <ol>
+                            <li>Druk op <strong>"Deel Mijn Locatie"</strong> → kopieer je coördinaten</li>
+                            <li>Stuur ze via <strong>WhatsApp/Messenger</strong> naar de andere speler</li>
+                            <li>Die plakt ze in het veld <strong>"Coördinaten van tegenstander"</strong></li>
+                            <li>Druk op <strong>"Bereken Afstand"</strong> → je ziet exact hoever je nog bent</li>
+                        </ol>
+                        <div class="demo-info-box">
+                            Coördinaten zien er zo uit: <code>51.0493, 3.7257</code>
+                        </div>
+                    </div>
+
+                    <!-- Stap 6 -->
+                    <div class="demo-step" data-step="5">
+                        <div class="demo-step-icon">🗺️</div>
+                        <h4 class="demo-step-title">Exclusion zones op de kaart</h4>
+                        <p>Na elk antwoord kleurt de kaart een <strong>gekleurd vlak</strong> in. Dat is het gebied waar de fiets <strong>NIET</strong> kan zijn.</p>
+                        <p>Hoe meer vragen beantwoord worden, hoe kleiner het zoekgebied.</p>
+                        <div class="demo-info-box">
+                            <p>Tik op een opgeloste kaart in de flop om het antwoord te <strong>wijzigen</strong> als er een fout werd gemaakt.</p>
+                            <p>Dit gebruik je ook om een vraag te "kopiëren" wanneer je dat mag doen.</p>
+                        </div>
+                    </div>
+
+                    <!-- Stap 7 -->
+                    <div class="demo-step" data-step="6">
+                        <div class="demo-step-icon">💡</div>
+                        <h4 class="demo-step-title">Tips & Veel Plezier!</h4>
+                        <ul class="demo-tips-list">
+                            <li>🌤️ Zorg voor goede GPS-ontvangst: ga even naar buiten en wacht op een nauwkeurige fix</li>
+                            <li>📸 De hider moet bij het begin direct de <strong>checklist</strong> invullen (foto's en notities)</li>
+                            <li>💬 Alle communicatie gaat via <strong>chat</strong> — de app heeft geen chat functie</li>
+                            <li>🏆 De winnaar is het team dat als eerste de fiets van het andere team kan vinden!</li>
+                        </ul>
+                        <button class="btn btn-primary demo-close-btn" onclick="closeDemoModal()">🎲 Start een echt spel!</button>
+                    </div>
+                </div>
+
+                <!-- Navigation -->
+                <div class="demo-navigation">
+                    <button class="btn btn-secondary demo-nav-btn" id="demo-prev-btn" onclick="demoPrevStep()" disabled>← Vorige</button>
+                    <div class="demo-dots" id="demo-dots"></div>
+                    <button class="btn btn-primary demo-nav-btn" id="demo-next-btn" onclick="demoNextStep()">Volgende →</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Rules Modal -->
     <div id="rules-modal" class="modal hidden">
         <div class="modal-content">

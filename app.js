@@ -854,14 +854,20 @@ function handleGenerateSeed() {
  */
 function handleStartGame() {
     const seed = seedInput.value.trim().toUpperCase();
-    
+
     if (!seed) {
         alert('Voer een spel code in of genereer er een!');
         return;
     }
-    
+
     // Update input veld met hoofdletters
     seedInput.value = seed;
+
+    // Demo modus
+    if (seed === 'DEMOMODE') {
+        showDemoModal();
+        return;
+    }
     
     // Check of dit een NIEUWE seed is (verschillend van opgeslagen seed)
     const gameData = loadGameData();
@@ -3846,3 +3852,83 @@ document.getElementById('rules-modal').addEventListener('click', function(e) {
 });
 
 window.closeRulesModal = closeRulesModal;
+
+// ===== DEMO MODE =====
+let demoCurrentStep = 0;
+const DEMO_TOTAL_STEPS = 7;
+
+function showDemoModal() {
+    demoCurrentStep = 0;
+    renderDemoDots();
+    showDemoStep(0);
+    document.getElementById('demo-modal').classList.remove('hidden');
+}
+
+function closeDemoModal() {
+    document.getElementById('demo-modal').classList.add('hidden');
+    // Wis het seed input veld zodat de gebruiker een echte code kan ingeven
+    document.getElementById('seed-input').value = '';
+}
+
+function showDemoStep(index) {
+    const steps = document.querySelectorAll('.demo-step');
+    steps.forEach((step, i) => {
+        step.classList.toggle('active', i === index);
+    });
+
+    document.getElementById('demo-prev-btn').disabled = index === 0;
+
+    const nextBtn = document.getElementById('demo-next-btn');
+    if (index === DEMO_TOTAL_STEPS - 1) {
+        nextBtn.style.display = 'none';
+    } else {
+        nextBtn.style.display = '';
+        nextBtn.textContent = 'Volgende →';
+    }
+
+    const dots = document.querySelectorAll('.demo-dot');
+    dots.forEach((dot, i) => {
+        dot.classList.toggle('active', i === index);
+    });
+
+    // Scroll de stap-container terug naar boven bij elke stap
+    document.getElementById('demo-steps-container').scrollTop = 0;
+}
+
+function demoNextStep() {
+    if (demoCurrentStep < DEMO_TOTAL_STEPS - 1) {
+        demoCurrentStep++;
+        showDemoStep(demoCurrentStep);
+    }
+}
+
+function demoPrevStep() {
+    if (demoCurrentStep > 0) {
+        demoCurrentStep--;
+        showDemoStep(demoCurrentStep);
+    }
+}
+
+function renderDemoDots() {
+    const container = document.getElementById('demo-dots');
+    container.innerHTML = '';
+    for (let i = 0; i < DEMO_TOTAL_STEPS; i++) {
+        const dot = document.createElement('button');
+        dot.className = 'demo-dot' + (i === 0 ? ' active' : '');
+        dot.setAttribute('aria-label', `Stap ${i + 1}`);
+        dot.addEventListener('click', () => {
+            demoCurrentStep = i;
+            showDemoStep(i);
+        });
+        container.appendChild(dot);
+    }
+}
+
+document.getElementById('demo-modal').addEventListener('click', function(e) {
+    if (e.target === this) closeDemoModal();
+});
+
+window.showDemoModal = showDemoModal;
+window.closeDemoModal = closeDemoModal;
+window.demoNextStep = demoNextStep;
+window.demoPrevStep = demoPrevStep;
