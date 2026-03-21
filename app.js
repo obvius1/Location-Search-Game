@@ -863,12 +863,6 @@ function handleStartGame() {
     // Update input veld met hoofdletters
     seedInput.value = seed;
 
-    // Demo modus
-    if (seed === 'DEMOMODE') {
-        showDemoModal();
-        return;
-    }
-    
     // Check of dit een NIEUWE seed is (verschillend van opgeslagen seed)
     const gameData = loadGameData();
     const isNewSeed = !gameData.seed || gameData.seed !== seed;
@@ -3866,8 +3860,6 @@ function showDemoModal() {
 
 function closeDemoModal() {
     document.getElementById('demo-modal').classList.add('hidden');
-    // Wis het seed input veld zodat de gebruiker een echte code kan ingeven
-    document.getElementById('seed-input').value = '';
 }
 
 function showDemoStep(index) {

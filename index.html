@@ -178,6 +178,7 @@
             <!-- Rules Section -->
             <section class="card rules-section">
                 <button id="show-rules-btn" class="btn btn-secondary btn-rules-toggle">📋 Bekijk Spelregels</button>
+                <button class="btn btn-secondary btn-rules-toggle" onclick="showDemoModal()">📖 Hoe werkt het spel?</button>
             </section>
         </div>
     </div>
@@ -277,7 +278,7 @@
                         <h4 class="demo-step-title">Hoe verloopt een spelronde?</h4>
                         <ol>
                             <li>De <strong>hider</strong> verstopt de fiets en vult de <strong>checklist</strong> in (foto's, straatnaam, …)</li>
-                            <li>Je voert de <strong>taak</strong> op de kaart uit (bv. "fotografeer een kat")</li>
+                            <li>Je voert de <strong>taak</strong> op de kaart uit (bv. "fotografeer een X")</li>
                             <li>Dan stel je de bijhorende <strong>vraag</strong> aan de tegenstander via chat</li>
                             <li>Het antwoord sluit een deel van de kaart <strong>uit</strong></li>
                             <li>Hoe meer vragen, hoe kleiner het zoekgebied wordt</li>
@@ -315,7 +316,8 @@
                             <li>Druk op <strong>"Deel Mijn Locatie"</strong> → kopieer je coördinaten</li>
                             <li>Stuur ze via <strong>WhatsApp/Messenger</strong> naar de andere speler</li>
                             <li>Die plakt ze in het veld <strong>"Coördinaten van tegenstander"</strong></li>
-                            <li>Druk op <strong>"Bereken Afstand"</strong> → je ziet exact hoever je nog bent</li>
+                            <li>Die drukt op <strong>"Bereken Afstand"</strong> → Andere team ziet exact hoever je nog bent</li>
+                            <li><strong>Belangrijk:</strong> Bij <strong>"Mijn coördinaten"</strong> geef je je doorgestuurde coordinaten weer!<li>
                         </ol>
                         <div class="demo-info-box">
                             Coördinaten zien er zo uit: <code>51.0493, 3.7257</code>
@@ -326,7 +328,7 @@
                     <div class="demo-step" data-step="5">
                         <div class="demo-step-icon">🗺️</div>
                         <h4 class="demo-step-title">Exclusion zones op de kaart</h4>
-                        <p>Na elk antwoord kleurt de kaart een <strong>gekleurd vlak</strong> in. Dat is het gebied waar de fiets <strong>NIET</strong> kan zijn.</p>
+                        <p>Na elk antwoord kleurt de kaart een <strong>rood gekleurd vlak</strong> in. Dat is het gebied waar de fiets <strong>NIET</strong> kan zijn.</p>
                         <p>Hoe meer vragen beantwoord worden, hoe kleiner het zoekgebied.</p>
                         <div class="demo-info-box">
                             <p>Tik op een opgeloste kaart in de flop om het antwoord te <strong>wijzigen</strong> als er een fout werd gemaakt.</p>
@@ -339,12 +341,12 @@
                         <div class="demo-step-icon">💡</div>
                         <h4 class="demo-step-title">Tips & Veel Plezier!</h4>
                         <ul class="demo-tips-list">
-                            <li>🌤️ Zorg voor goede GPS-ontvangst: ga even naar buiten en wacht op een nauwkeurige fix</li>
-                            <li>📸 De hider moet bij het begin direct de <strong>checklist</strong> invullen (foto's en notities)</li>
-                            <li>💬 Alle communicatie gaat via <strong>chat</strong> — de app heeft geen chat functie</li>
-                            <li>🏆 De winnaar is het team dat als eerste de fiets van het andere team kan vinden!</li>
+                            <li>Zorg voor goede GPS-ontvangst: ga even naar buiten en wacht op een nauwkeurige fix</li>
+                            <li>De hider moet bij het begin direct de <strong>checklist</strong> invullen (foto's en notities)</li>
+                            <li>Alle communicatie gaat via <strong>chat</strong> er is geen chat functie hier!</li>
+                            <li>De winnaar is het team dat als eerste de fiets van het andere team kan vinden!</li>
                         </ul>
-                        <button class="btn btn-primary demo-close-btn" onclick="closeDemoModal()">🎲 Start een echt spel!</button>
+                        <button class="btn btn-primary demo-close-btn" onclick="closeDemoModal()">Sluiten</button>
                     </div>
                 </div>
 
