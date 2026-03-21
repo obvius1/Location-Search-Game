@@ -3849,7 +3849,7 @@ window.closeRulesModal = closeRulesModal;
 
 // ===== DEMO MODE =====
 let demoCurrentStep = 0;
-const DEMO_TOTAL_STEPS = 7;
+const DEMO_TOTAL_STEPS = 8;
 
 function showDemoModal() {
     demoCurrentStep = 0;
