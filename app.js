@@ -20,6 +20,10 @@ let neighborhoodLayers = []; // Array van wijk polygonen op de kaart
 let distanceCircle = null; // Cirkel voor distanceFromBike kaarten
 let opponentMarker = null; // Marker voor opponent locatie bij distanceFromBike
 let currentCardIndex = 0; // Index voor single card view
+let liveMarker = null; // Blauw bolletje voor live locatie
+let liveAccuracyCircle = null; // Nauwkeurigheidscirkel voor live locatie
+let liveWatchId = null; // ID van watchPosition voor opruimen
+let liveTrackingEnabled = false; // Of live tracking aan staat
 
 // DOM elements
 const controlsContainer = document.getElementById('controls-container');
@@ -97,6 +101,13 @@ confirmNeighborhoodBtn.addEventListener('click', confirmNeighborhoodAnswer);
 // Distance calculator event listeners
 shareLocationBtn.addEventListener('click', handleShareLocation);
 calculateDistanceBtn.addEventListener('click', handleCalculateDistance);
+
+// Stop live tracking bij afsluiten
+window.addEventListener('beforeunload', () => {
+    if (liveWatchId !== null) {
+        navigator.geolocation.clearWatch(liveWatchId);
+    }
+});
 
 // Initialize
 document.addEventListener('DOMContentLoaded', async () => {
@@ -1303,6 +1314,103 @@ function updateChecklistButton() {
 }
 
 /**
+ * Start live locatie tracking met blauw bolletje
+ */
+function startLiveLocation() {
+    if (!navigator.geolocation) return;
+    if (liveWatchId !== null) return; // Al bezig
+
+    liveTrackingEnabled = true;
+    updateLiveTrackingBtn();
+
+    liveWatchId = navigator.geolocation.watchPosition(
+        (position) => {
+            const { latitude: lat, longitude: lng, accuracy } = position.coords;
+
+            if (liveMarker) {
+                liveMarker.setLatLng([lat, lng]);
+            } else {
+                liveMarker = L.circleMarker([lat, lng], {
+                    radius: 8,
+                    color: '#ffffff',
+                    weight: 2,
+                    fillColor: '#2563eb',
+                    fillOpacity: 1,
+                    className: 'live-location-dot'
+                }).addTo(map);
+            }
+
+            if (liveAccuracyCircle) {
+                liveAccuracyCircle.setLatLng([lat, lng]);
+                liveAccuracyCircle.setRadius(accuracy);
+            } else {
+                liveAccuracyCircle = L.circle([lat, lng], {
+                    radius: accuracy,
+                    color: '#2563eb',
+                    fillColor: '#93c5fd',
+                    fillOpacity: 0.15,
+                    weight: 1
+                }).addTo(map);
+            }
+        },
+        (error) => {
+            console.warn('Live locatie fout:', error);
+        },
+        {
+            enableHighAccuracy: false,
+            maximumAge: 10000,
+            timeout: 15000
+        }
+    );
+}
+
+/**
+ * Stop live locatie tracking en verwijder markers
+ */
+function stopLiveLocation() {
+    if (liveWatchId !== null) {
+        navigator.geolocation.clearWatch(liveWatchId);
+        liveWatchId = null;
+    }
+    if (liveMarker) {
+        map.removeLayer(liveMarker);
+        liveMarker = null;
+    }
+    if (liveAccuracyCircle) {
+        map.removeLayer(liveAccuracyCircle);
+        liveAccuracyCircle = null;
+    }
+    liveTrackingEnabled = false;
+    updateLiveTrackingBtn();
+}
+
+/**
+ * Toggle live locatie tracking aan/uit
+ */
+function toggleLiveLocation() {
+    if (liveTrackingEnabled) {
+        stopLiveLocation();
+    } else {
+        startLiveLocation();
+    }
+}
+
+/**
+ * Update de tekst/stijl van de live tracking knop
+ */
+function updateLiveTrackingBtn() {
+    const btn = document.getElementById('live-tracking-btn');
+    if (!btn) return;
+    if (liveTrackingEnabled) {
+        btn.textContent = '🔵 Live aan';
+        btn.classList.add('live-tracking-active');
+    } else {
+        btn.textContent = '⚫ Live uit';
+        btn.classList.remove('live-tracking-active');
+    }
+}
+
+/**
  * Handle checklist completion
  */
 function handleCompleteChecklist() {
@@ -1310,13 +1418,18 @@ function handleCompleteChecklist() {
     saveChecklistCompleted();
     
     checklistSection.classList.add('hidden');
-    
+
     // Toon vragen sectie en kaarten sectie
     const position = currentLocationMarker.getLatLng();
     const result = performAllChecks(position.lat, position.lng);
     displayQuestions(result.checks);
-    
+
     cardsSection.classList.remove('hidden');
+
+    // Toon en start live locatie tracking
+    const liveBtn = document.getElementById('live-tracking-btn');
+    if (liveBtn) liveBtn.classList.remove('hidden');
+    startLiveLocation();
 }
 
 /**
@@ -2601,9 +2714,12 @@ function handleResetGame() {
         return;
     }
     
+    // Stop live tracking voor cleanup
+    stopLiveLocation();
+
     // Reset storage
     resetGameData();
-    
+
     // Force reload zonder cache en redirect naar root
     window.location.href = window.location.origin + window.location.pathname + '?t=' + Date.now();
 }
