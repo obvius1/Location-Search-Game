@@ -125,9 +125,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     initializeMap();
     initializeControls();
     loadSavedGameData();
-    
+
     // Laad exclusion zones na initialisatie
     updateExclusionZones();
+
+    // Start live locatie tracking vanaf het begin
+    const liveBtn = document.getElementById('live-tracking-btn');
+    if (liveBtn) liveBtn.classList.remove('hidden');
+    startLiveLocation();
 });
 
 /**
@@ -1433,10 +1438,7 @@ function handleCompleteChecklist() {
 
     cardsSection.classList.remove('hidden');
 
-    // Toon en start live locatie tracking
-    const liveBtn = document.getElementById('live-tracking-btn');
-    if (liveBtn) liveBtn.classList.remove('hidden');
-    startLiveLocation();
+    // Live locatie tracking loopt al vanaf app start
 
     // Toon zone lock indicator
     const zoneLockWrapper = document.getElementById('zone-lock-wrapper');
