@@ -24,6 +24,8 @@ let liveMarker = null; // Blauw bolletje voor live locatie
 let liveAccuracyCircle = null; // Nauwkeurigheidscirkel voor live locatie
 let liveWatchId = null; // ID van watchPosition voor opruimen
 let liveTrackingEnabled = false; // Of live tracking aan staat
+let currentLiveLat = null; // Meest recente live GPS latitude
+let currentLiveLng = null; // Meest recente live GPS longitude
 
 // DOM elements
 const controlsContainer = document.getElementById('controls-container');
@@ -1327,6 +1329,11 @@ function startLiveLocation() {
         (position) => {
             const { latitude: lat, longitude: lng, accuracy } = position.coords;
 
+            // Sla huidige positie op voor zone-check
+            currentLiveLat = lat;
+            currentLiveLng = lng;
+            updateZoneLockIndicator();
+
             if (liveMarker) {
                 liveMarker.setLatLng([lat, lng]);
             } else {
@@ -1430,6 +1437,11 @@ function handleCompleteChecklist() {
     const liveBtn = document.getElementById('live-tracking-btn');
     if (liveBtn) liveBtn.classList.remove('hidden');
     startLiveLocation();
+
+    // Toon zone lock indicator
+    const zoneLockWrapper = document.getElementById('zone-lock-wrapper');
+    if (zoneLockWrapper) zoneLockWrapper.classList.remove('hidden');
+    updateZoneLockIndicator();
 }
 
 /**
@@ -2033,6 +2045,177 @@ function updateExclusionZones() {
     if (inverseMask) {
         inverseMask.bringToFront();
     }
+
+    // Update zone lock indicator na elke zone-wijziging
+    updateZoneLockIndicator();
+}
+
+/**
+ * Controleer of de speler momenteel in een uitgesloten zone staat
+ * @returns {{ inZone: boolean, zoneName: string }}
+ */
+function isPlayerInExclusionZone(lat, lng) {
+    if (!lat || !lng) return { inZone: false, zoneName: '' };
+
+    const gameData = loadGameData();
+
+    // ── Eenvoudige cardAnswers (R40, Leie-Schelde, Dampoort, …) ──────────────
+    if (gameData.cardAnswers && gameData.cardAnswers.length > 0) {
+        for (const ca of gameData.cardAnswers) {
+            const ans = ca.opponentAnswer;
+            if (!ans) continue;
+
+            // R40
+            if (ans === 'Binnen R40' || ans === 'Buiten R40') {
+                const check = checkR40(lat, lng);
+                if (check.answer !== ans) return { inZone: true, zoneName: ans === 'Binnen R40' ? 'Buiten R40 (uitgesloten)' : 'Binnen R40 (uitgesloten)' };
+            }
+            // Leie-Schelde
+            else if (ans === 'Noorden van Leie-Schelde' || ans === 'Zuiden van Leie-Schelde') {
+                const check = checkLeieSchelde(lat, lng);
+                if (check.answer !== ans) return { inZone: true, zoneName: check.answer + ' (uitgesloten)' };
+            }
+            // Weba/IKEA
+            else if (ans === 'Dichter bij Weba' || ans === 'Dichter bij IKEA') {
+                const check = checkWebaIkea(lat, lng);
+                if (check.answer !== ans) return { inZone: true, zoneName: check.answer + ' (uitgesloten)' };
+            }
+            // Dampoort
+            else if (ans === 'Westen van Dampoort' || ans === 'Oosten van Dampoort') {
+                const check = checkDampoort(lat, lng);
+                if (check.answer !== ans) return { inZone: true, zoneName: check.answer + ' (uitgesloten)' };
+            }
+            // Watersportbaan
+            else if (ans === 'Westen van watersportbaan tip' || ans === 'Oosten van watersportbaan tip') {
+                const check = checkWatersportbaan(lat, lng);
+                if (check.answer !== ans) return { inZone: true, zoneName: check.answer + ' (uitgesloten)' };
+            }
+            // Spoorlijn buffer
+            else if (ans === 'Binnen 800m van spoorlijn' || ans === 'Buiten 800m van spoorlijn') {
+                const check = checkRailwayBuffer(lat, lng);
+                if (check.answer !== ans) return { inZone: true, zoneName: check.answer + ' (uitgesloten)' };
+            }
+        }
+    }
+
+    // ── Complexe exclusionZones (wijken, radius, …) ───────────────────────────
+    if (gameData.exclusionZones && gameData.exclusionZones.length > 0) {
+        for (const ez of gameData.exclusionZones) {
+
+            // Wijkvraag: is de fiets in deze wijk of aangrenzende?
+            if (ez.type === 'neighborhood' && ez.allowedNeighborhoods) {
+                const here = getNeighborhoodAtLocation(lat, lng);
+                const hereName = here ? here.name : null;
+                if (ez.answer === 'yes') {
+                    // Fiets IS in allowedNeighborhoods → speler uitgesloten als NIET in allowed
+                    if (hereName && !ez.allowedNeighborhoods.includes(hereName)) {
+                        return { inZone: true, zoneName: `Buiten wijk ${ez.selectedNeighborhood} (uitgesloten)` };
+                    }
+                } else if (ez.answer === 'no') {
+                    // Fiets is NIET in allowedNeighborhoods → speler uitgesloten als WEL in allowed
+                    if (hereName && ez.allowedNeighborhoods.includes(hereName)) {
+                        return { inZone: true, zoneName: `Wijk ${ez.selectedNeighborhood} (uitgesloten)` };
+                    }
+                }
+            }
+
+            // Elimineer wijk
+            if (ez.type === 'eliminateNeighborhood' && ez.neighborhoodData) {
+                const polygon = ez.neighborhoodData.polygon || ez.neighborhoodData;
+                if (polygon && Array.isArray(polygon) && isPointInPolygon(lat, lng, polygon)) {
+                    return { inZone: true, zoneName: `Wijk ${ez.answer} (geëlimineerd)` };
+                }
+            }
+
+            // Radius proximity (bibliotheek, ziekenhuis, watertoren…)
+            if (ez.type === 'radiusProximity' && ez.poiType && ez.radius) {
+                const pois = getPOIsByType(ez.poiType);
+                const withinRadius = pois.some(poi =>
+                    calculateDistance(lat, lng, poi.lat, poi.lng) <= ez.radius
+                );
+                if (ez.answer === 'yes' && !withinRadius) {
+                    return { inZone: true, zoneName: `Buiten ${ez.radius}m van ${ez.poiType} (uitgesloten)` };
+                }
+                if (ez.answer === 'no' && withinRadius) {
+                    return { inZone: true, zoneName: `Binnen ${ez.radius}m van ${ez.poiType} (uitgesloten)` };
+                }
+            }
+        }
+    }
+
+    return { inZone: false, zoneName: '' };
+}
+
+/**
+ * Update de zone lock indicator knop op basis van huidige positie
+ */
+function updateZoneLockIndicator() {
+    const btn = document.getElementById('zone-lock-indicator');
+    if (!btn) return;
+
+    // Geen live positie of regel staat uit → toon neutrale staat
+    if (!currentLiveLat || !getGameRule('zoneLockEnabled')) {
+        btn.textContent = '🔒 Zone';
+        btn.className = 'map-overlay-btn zone-lock-btn zone-lock-neutral';
+        btn.dataset.zoneInfo = 'Zone vergrendeling is uitgeschakeld of positie nog niet bekend.';
+        return;
+    }
+
+    const result = isPlayerInExclusionZone(currentLiveLat, currentLiveLng);
+    if (result.inZone) {
+        btn.textContent = '🔴 Zone geblokkeerd';
+        btn.className = 'map-overlay-btn zone-lock-btn zone-lock-blocked';
+        btn.dataset.zoneInfo = `Je staat in een uitgesloten zone: ${result.zoneName}. Verplaats je om taken uit te voeren.`;
+    } else {
+        btn.textContent = '🟢 Zone OK';
+        btn.className = 'map-overlay-btn zone-lock-btn zone-lock-ok';
+        btn.dataset.zoneInfo = 'Je staat in een actieve zone. Je mag taken uitvoeren.';
+    }
+}
+
+/**
+ * Toggle de zone lock info tooltip
+ */
+function toggleZoneLockInfo() {
+    const btn = document.getElementById('zone-lock-indicator');
+    const tooltip = document.getElementById('zone-lock-tooltip');
+    if (!btn || !tooltip) return;
+    tooltip.textContent = btn.dataset.zoneInfo || '';
+    tooltip.classList.toggle('hidden');
+}
+
+/**
+ * Open de spelregels modal
+ */
+function openGameRulesModal() {
+    updateGameRulesUI();
+    document.getElementById('game-rules-modal').classList.remove('hidden');
+}
+
+/**
+ * Sluit de spelregels modal
+ */
+function closeGameRulesModal() {
+    document.getElementById('game-rules-modal').classList.add('hidden');
+}
+
+/**
+ * Update de toggle-knoppen in de spelregels modal op basis van huidige regels
+ */
+function updateGameRulesUI() {
+    const rules = loadGameRules();
+    Object.keys(rules).forEach(key => {
+        const toggle = document.getElementById(`rule-toggle-${key}`);
+        if (toggle) toggle.checked = rules[key];
+    });
+}
+
+/**
+ * Toggle een spelregel vanuit de UI en update de indicator
+ */
+function handleToggleGameRule(key) {
+    toggleGameRule(key);
+    updateZoneLockIndicator();
 }
 
 /**
@@ -3638,10 +3821,11 @@ function viewCardDetail(index) {
  */
 function handleDirectDiscard(cardIndex) {
     if (!cardManager) return;
-    
+
+
     const card = cardManager.getCard(cardIndex);
     if (!card) return;
-    
+
     // Bewaar geen antwoord, gewoon discarden
     cardManager.discardCard(cardIndex);
     saveCardManagerState();
@@ -3691,10 +3875,11 @@ function discardCardFromFlop(index) {
  */
 function handleDiscardCard() {
     if (!cardManager) return;
-    
+
+
     const card = cardManager.getCard(currentCardIndex);
     if (!card) return;
-    
+
     if (confirm(`Kaart "${card.task}" markeren als opgelost?\nEen nieuwe kaart wordt getrokken.`)) {
         // Bewaar het antwoord voor deze discarded kaart (voordat we discard)
         const answer = card && card.id ? getOpponentAnswer(card.id) : null;

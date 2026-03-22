@@ -31,6 +31,12 @@
 
     <!-- Live Tracking Toggle (zichtbaar op kaart) -->
     <button id="live-tracking-btn" class="live-tracking-btn hidden" onclick="toggleLiveLocation()">⚫ Live uit</button>
+
+    <!-- Zone Lock Indicator (zichtbaar tijdens spel) -->
+    <div class="zone-lock-wrapper hidden" id="zone-lock-wrapper">
+        <button id="zone-lock-indicator" class="map-overlay-btn zone-lock-btn zone-lock-neutral" onclick="toggleZoneLockInfo()" data-zone-info="">🔒 Zone</button>
+        <div id="zone-lock-tooltip" class="zone-lock-tooltip hidden"></div>
+    </div>
     
     <!-- Bottom Controls Sheet -->
     <div id="controls-container" class="hidden">
@@ -182,6 +188,7 @@
             <section class="card rules-section">
                 <button id="show-rules-btn" class="btn btn-secondary btn-rules-toggle">📋 Bekijk Spelregels</button>
                 <button class="btn btn-secondary btn-rules-toggle" onclick="showDemoModal()">📖 Hoe werkt het spel?</button>
+                <button class="btn btn-secondary btn-rules-toggle" onclick="openGameRulesModal()">⚙️ Optionele Spelregels</button>
             </section>
         </div>
     </div>
@@ -236,6 +243,31 @@
                 <button id="confirm-neighborhood-btn" class="btn btn-primary" style="margin-top: 16px;">Bevestig Antwoord</button>
                 
                 <div id="neighborhood-info" class="result-box hidden" style="margin-top: 16px;"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Spelregels Modal -->
+    <div id="game-rules-modal" class="modal hidden">
+        <div class="modal-content game-rules-modal-content">
+            <div class="modal-header">
+                <h3>⚙️ Optionele Spelregels</h3>
+                <button class="modal-close" onclick="closeGameRulesModal()">×</button>
+            </div>
+            <div class="game-rules-body">
+                <p class="game-rules-intro">Deze regels zijn optioneel en kunnen aan- of uitgezet worden. Ze worden bewaard tussen sessies.</p>
+
+                <!-- Regel: Zone vergrendeling -->
+                <div class="game-rule-item">
+                    <div class="game-rule-info">
+                        <div class="game-rule-name">🔒 Zone vergrendeling</div>
+                        <div class="game-rule-desc">Taken kunnen niet worden uitgevoerd in al-uitgesloten zones. Dit dwingt spelers om weg te bewegen uit het centrum en zorgt voor meer replay value.</div>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="rule-toggle-zoneLockEnabled" onchange="handleToggleGameRule('zoneLockEnabled')">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
             </div>
         </div>
     </div>

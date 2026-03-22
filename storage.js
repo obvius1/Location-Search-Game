@@ -288,6 +288,59 @@ function hasLocation() {
     return data.location !== null;
 }
 
+// ─── Spelregels ───────────────────────────────────────────────────────────────
+
+const GAME_RULES_KEY = 'gameRules';
+
+const defaultGameRules = {
+    zoneLockEnabled: true   // Taken mogen niet uitgevoerd worden in uitgesloten zones
+};
+
+/**
+ * Laad spelregels uit localStorage (met defaults als fallback)
+ */
+function loadGameRules() {
+    try {
+        const stored = localStorage.getItem(GAME_RULES_KEY);
+        if (!stored) return { ...defaultGameRules };
+        return { ...defaultGameRules, ...JSON.parse(stored) };
+    } catch {
+        return { ...defaultGameRules };
+    }
+}
+
+/**
+ * Sla spelregels op
+ */
+function saveGameRules(rules) {
+    try {
+        localStorage.setItem(GAME_RULES_KEY, JSON.stringify(rules));
+        return true;
+    } catch {
+        return false;
+    }
+}
+
+/**
+ * Haal één spelregel op (geeft default terug als niet gevonden)
+ */
+function getGameRule(key) {
+    const rules = loadGameRules();
+    return rules[key] !== undefined ? rules[key] : defaultGameRules[key];
+}
+
+/**
+ * Toggle één spelregel en sla op
+ */
+function toggleGameRule(key) {
+    const rules = loadGameRules();
+    rules[key] = !rules[key];
+    saveGameRules(rules);
+    return rules[key];
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+
 /**
  * Reset alle game data (nieuw spel)
  */

@@ -1305,6 +1305,153 @@ body {
     }
 }
 
+/* Zone Lock Indicator */
+.zone-lock-wrapper {
+    position: fixed;
+    bottom: 130px;
+    right: 12px;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 6px;
+}
+
+.map-overlay-btn {
+    background: white;
+    border: 2px solid #e5e7eb;
+    border-radius: 20px;
+    padding: 6px 12px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    transition: all 0.2s;
+    width: auto;
+}
+
+.zone-lock-btn.zone-lock-ok {
+    border-color: #16a34a;
+    color: #16a34a;
+    background: #f0fdf4;
+}
+
+.zone-lock-btn.zone-lock-blocked {
+    border-color: #dc2626;
+    color: #dc2626;
+    background: #fef2f2;
+}
+
+.zone-lock-btn.zone-lock-neutral {
+    border-color: #e5e7eb;
+    color: #64748b;
+}
+
+.zone-lock-tooltip {
+    background: rgba(0,0,0,0.82);
+    color: white;
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 12px;
+    max-width: 220px;
+    text-align: right;
+    line-height: 1.4;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+
+@media (min-width: 1100px) {
+    .zone-lock-wrapper {
+        bottom: 60px;
+        right: calc(35% + 12px);
+    }
+}
+
+/* Spelregels Modal */
+.game-rules-modal-content {
+    max-width: 480px;
+    width: 100%;
+}
+
+.game-rules-body {
+    padding: 16px 20px 20px;
+}
+
+.game-rules-intro {
+    font-size: 14px;
+    color: #64748b;
+    margin-bottom: 16px;
+}
+
+.game-rule-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    padding: 14px 0;
+    border-top: 1px solid #e5e7eb;
+}
+
+.game-rule-info {
+    flex: 1;
+}
+
+.game-rule-name {
+    font-weight: 700;
+    font-size: 15px;
+    margin-bottom: 4px;
+}
+
+.game-rule-desc {
+    font-size: 13px;
+    color: #64748b;
+    line-height: 1.4;
+}
+
+/* Toggle Switch */
+.toggle-switch {
+    position: relative;
+    display: inline-block;
+    width: 48px;
+    height: 26px;
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+
+.toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.toggle-slider {
+    position: absolute;
+    cursor: pointer;
+    inset: 0;
+    background: #cbd5e1;
+    border-radius: 26px;
+    transition: 0.2s;
+}
+
+.toggle-slider::before {
+    content: '';
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    left: 3px;
+    bottom: 3px;
+    background: white;
+    border-radius: 50%;
+    transition: 0.2s;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+
+.toggle-switch input:checked + .toggle-slider {
+    background: #16a34a;
+}
+
+.toggle-switch input:checked + .toggle-slider::before {
+    transform: translateX(22px);
+}
+
 /* Modal Styles */
 .modal {
     position: fixed;
