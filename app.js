@@ -2216,6 +2216,10 @@ function updateGameRulesUI() {
 function handleToggleGameRule(key) {
     toggleGameRule(key);
     updateZoneLockIndicator();
+    // Herrender spelregels lijst als die modal open is
+    if (!document.getElementById('rules-modal').classList.contains('hidden')) {
+        renderRulesList();
+    }
 }
 
 /**
@@ -4115,6 +4119,7 @@ window.previewDistanceCircle = previewDistanceCircle;
 // ============================================================
 
 let rulesData = [];
+let optionalRulesData = [];
 
 async function loadRules() {
     try {
@@ -4122,18 +4127,29 @@ async function loadRules() {
         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
         const data = await response.json();
         rulesData = data.rules || [];
+        optionalRulesData = data.optionalRules || [];
     } catch (e) {
         console.error('Kon spelregels niet laden:', e);
     }
 }
 
-function openRulesModal() {
-    const modal = document.getElementById('rules-modal');
+function renderRulesList() {
     const list = document.getElementById('rules-list');
-    list.innerHTML = rulesData
-        .map(rule => `<li>${rule}</li>`)
-        .join('');
-    modal.classList.remove('hidden');
+    if (!list) return;
+    const fixedItems = rulesData.map(rule => `<li>${rule}</li>`);
+    const activeOptional = optionalRulesData.filter(r => getGameRule(r.key));
+    const optionalItems = activeOptional.map(r =>
+        `<li class="rules-list-optional">
+            <span class="rules-optional-badge">⚙️ Via instellingen</span>
+            ${r.text}
+        </li>`
+    );
+    list.innerHTML = [...fixedItems, ...optionalItems].join('');
+}
+
+function openRulesModal() {
+    renderRulesList();
+    document.getElementById('rules-modal').classList.remove('hidden');
 }
 
 function closeRulesModal() {

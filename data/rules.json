@@ -12,5 +12,11 @@
     "Teams delen steeds hun locatie met elkaar vanaf we beginnen zoeken.",
     "Foto's moeten genomen worden met 1x zoom. Identificeerbare tekst mag verwijderd worden.",
     "Je mag niet aan een task beginnen werken als deze nog niet in de flop zit."
+  ],
+  "optionalRules": [
+    {
+      "key": "zoneLockEnabled",
+      "text": "Taken mogen niet uitgevoerd worden in al-uitgesloten zones op de kaart."
+    }
   ]
 }
