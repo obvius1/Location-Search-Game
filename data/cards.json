@@ -63,7 +63,7 @@
     },
     {
       "task": "Koop een item in 1 winkel, vind een identiek item in een andere winkel maar voor een lagere prijs",
-      "question": "Welke Colruyt binnen de speelzone is het verste?",
+      "question": "Welke Colruyt binnen de speelzone is zeker NIET de dichtste bij de fiets?",
       "phase": 1,
       "answerType": "FurthestDistance",
       "poiType": "colruyts",
@@ -71,7 +71,7 @@
     },
     {
       "task": "Fotografeer een levende kat",
-      "question": "Welke kattenopvang/asiel is het verste?",
+      "question": "Welke kattenopvang/asiel is zeker NIET de dichtste bij de fiets?",
       "phase": 1,
       "answerType": "FurthestDistance",
       "poiType": "catlocations",

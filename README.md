@@ -1,126 +1,121 @@
 # 🎯 Gent Location Game
 
-Een locatie-gebaseerd spel voor Gent, geïnspireerd door Jet Lag: The Game. Speel met vrienden in een zone van 3km rond het Belfort van Gent!
+Een locatiegebaseerd spel voor 2 teams in Gent, geïnspireerd door Jet Lag: The Game. Elk team verstopt een fiets — het andere team probeert die te vinden via kaarten, vragen en uitsluitingszones op de kaart.
 
-## 🎮 Hoe te spelen
+## 🎮 Spelconcept
 
-1. **Start het spel**: Open de website en genereer een spel code (seed), of voer een gedeelde code in
-2. **Deel de code**: Stuur de seed naar je vrienden via WhatsApp/Messenger zodat jullie dezelfde kaarten hebben
-3. **Check je locatie**: Gebruik de "Check Mijn Locatie" knop om te zien of je binnen de speelzone bent
-4. **Bekijk antwoorden**: De website geeft automatisch antwoorden op geografische vragen over je locatie
-5. **Speel kaarten**: Voer de task op de kaart uit en stel de vraag aan je tegenstander via chat
-
-## 📍 Spelregels
+- **2 teams**, elk met een fiets die ze verstoppen in Gent
+- **Hider**: verstopt de fiets, vult een 9-item checklist in (foto's, notities), en beantwoordt vragen van het andere team
+- **Seeker**: voert taken uit op kaarten, stelt vragen aan de hider via WhatsApp/Messenger, en probeert de fiets te lokaliseren via uitsluitingszones op de kaart
+- **Doel**: als eerste de fiets van het andere team vinden
 
 ### Speelveld
-- 3km radius rond het Belfort van Gent
+- **Locatie**: Gent (België)
+- **Radius**: 3,5 km rond de WEC
 - Locaties buiten deze zone zijn ongeldig
 
-### Vragen die automatisch beantwoord worden
-- **R40**: Binnen of buiten de binnenring?
-- **Leie-Schelde**: Noorden of zuiden van de lijn?
-- **Weba/IKEA**: Dichter bij welke locatie?
-- **Dampoort**: Oosten of westen van het station?
-- **Watersportbaan**: Oosten of westen van de tip?
+## 🕹️ Hoe te spelen
 
-### Speelkaarten
-- Elke kaart heeft een **task** (bijv. "Voeder een duif")
-- Als je de task voltooit, stel je de bijhorende **vraag** aan je tegenstander
-- De tegenstander antwoordt, en afhankelijk van hun antwoord wordt een deel van de kaart uitgesloten
-- Beide spelers hebben dezelfde kaarten in dezelfde volgorde (dankzij de seed)
+1. **Voer een seed in**: Beide teams gebruiken **exact dezelfde** 6-karakter code → identieke kaartvolgorde
+2. **Verstop de fiets**: De hider vult de 9-item checklist in (foto's, omschrijvingen) en bevestigt de GPS-locatie
+3. **Speel kaarten**: Beide teams zien dezelfde 12 kaarten (de "flop" — 4 per fase)
+4. **Voer tasks uit**: Voer de task op de kaart uit, stel daarna de bijhorende vraag aan je tegenstander via chat
+5. **Antwoord berekend**: De app berekent het antwoord automatisch op basis van GPS → een uitsluitingszone verschijnt op de kaart
+6. **Zoekgebied verkleint**: Hoe meer kaarten gespeeld, hoe kleiner het gebied waar de fiets kan zijn
+7. **Fiets gevonden**: Het team dat als eerste de fiets van de tegenstander vindt, wint
 
-## 🚀 Deployment op GitHub Pages
+### Geen centrale server
+Alles verloopt lokaal — communicatie via WhatsApp/Messenger. Antwoorden, bewijsfoto's en GPS-coördinaten worden via chat gedeeld.
 
-### Stap 1: Push naar GitHub
-```bash
-cd C:\Users\LaurenSchouppe\source\repos\gent-location-game
-git init
-git add .
-git commit -m "Initial commit: Gent Location Game"
-git branch -M main
-git remote add origin https://github.com/JOUW-USERNAME/gent-location-game.git
-git push -u origin main
-```
+## 🗺️ Automatische antwoorden
 
-### Stap 2: Activeer GitHub Pages
-1. Ga naar je repository op GitHub
-2. Klik op **Settings**
-3. Scroll naar **Pages** (in het zijmenu)
-4. Bij **Source**, selecteer **main** branch en **/ (root)**
-5. Klik op **Save**
-6. Na een paar minuten is je site live op: `https://JOUW-USERNAME.github.io/gent-location-game/`
+De app berekent automatisch het antwoord op basis van de GPS-locatie van de hider:
 
-## 🛠️ Technische Details
+| Type | Vraag |
+|---|---|
+| **R40** | Binnen of buiten de R40 binnenring? |
+| **Leie-Schelde** | Noorden of zuiden van de Leie-Schelde lijn? |
+| **Weba/IKEA** | Dichter bij Weba of IKEA? |
+| **Dampoort** | Oosten of westen van Dampoort-station? |
+| **Watersportbaan** | Oosten of westen van de watersportbaantip? |
+| **Spoorlijn buffer** | Binnen 800m van de spoorlijn Oostende–Antwerpen? |
+| **Afstand van fiets** | Is de fiets binnen X meter van een bepaalde positie? *(hider checkt manueel)* |
+| **Verste POI** | Welke [POI] is zeker NIET de dichtste? *(Voronoi-cel exclusion)* |
+| **Radius POI** | Is er een [bibliotheek/ziekenhuis/watertoren] binnen X meter? |
+| **Wijk** | In welke of aangrenzende wijk staat de fiets? |
+| **Wijk elimineren** | Welke van deze 3 wijken kan je uitsluiten? |
+| **Foto-hints** | Foto van links/rechts/voor/achter/beneden/gebouw *(hider stuurt via chat)* |
 
-### Structuur
+## ⚙️ Optionele spelregels
+
+Bereikbaar via de **⚙️ Optionele Spelregels** knop. Regels kunnen alleen aangepast worden **voor** de start van het spel.
+
+| Regel | Default | Beschrijving |
+|---|---|---|
+| **Zone vergrendeling** | AAN | Taken mogen niet uitgevoerd worden in al-uitgesloten zones |
+
+## 🚀 Deployment
+
+### GitHub Pages
+1. Push de repository naar GitHub
+2. Ga naar **Settings → Pages**
+3. Selecteer branch **main** en root **/**
+4. De app is live op: `https://JOUW-USERNAME.github.io/gent-location-game/`
+
+## 🛠️ Technische details
+
+### Bestandsstructuur
 ```
 gent-location-game/
-├── index.html          # Hoofd HTML bestand
-├── styles.css          # CSS styling (mobile-first)
-├── app.js             # Hoofd applicatie logica
-├── geoUtils.js        # Geografische berekeningen
-├── cards.js           # Kaarten systeem met seed-based shuffling
-└── README.md          # Deze documentatie
+├── index.html              # PWA entry point
+├── styles.css              # Mobile-first CSS
+├── app.js                  # Hoofdlogica
+├── cards.js                # Kaartensysteem + seed-based shuffling
+├── geoUtils.js             # Geografische berekeningen
+├── storage.js              # LocalStorage management
+├── service-worker.js       # Offline PWA support
+├── manifest.json           # PWA manifest
+├── data/
+│   ├── cards.json          # Kaartdefinities (hider checklist + speelkaarten)
+│   ├── geo-data.json       # POI-locaties (colruyts, bibliotheken, etc.)
+│   ├── rules.json          # Vaste + optionele spelregels
+│   └── stadswijken-gent.geojson  # GeoJSON met Gentse wijken
+└── icons/                  # PWA app icons
 ```
 
 ### Features
-- ✅ **Geen server nodig**: Volledig client-side met JavaScript
-- ✅ **Mobile-first**: Geoptimaliseerd voor smartphones
-- ✅ **Geolocation API**: Gebruikt de ingebouwde GPS van je telefoon
-- ✅ **Seed-based randomization**: Beide spelers hebben dezelfde kaarten
-- ✅ **GitHub Pages ready**: Deploy zonder backend
-- ✅ **Offline vriendelijk**: Na eerste load werkt het grotendeels offline
+- ✅ **Geen server nodig** — volledig client-side
+- ✅ **Mobile-first** — geoptimaliseerd voor smartphones
+- ✅ **PWA** — installeerbaar, werkt offline na eerste load
+- ✅ **Live locatie** — blauw pulserende dot toont je huidige positie
+- ✅ **Seed-based randomization** — identieke kaartvolgorde voor beide teams
+- ✅ **Exacte uitsluitingszones** — wiskundig berekende polygonen (Voronoi, Sutherland-Hodgman)
+- ✅ **Undo** — laatste actie ongedaan maken
+- ✅ **Tutorial** — in-app uitleg via de 📖 knop
+
+### Kaarten aanpassen
+Bewerk `data/cards.json` om kaarten toe te voegen of aan te passen:
+```json
+{
+  "task": "Beschrijving van de task",
+  "question": "Vraag aan de tegenstander?",
+  "phase": 1,
+  "answerType": "r40"
+}
+```
 
 ### Browser vereisten
 - Moderne browser (Chrome, Safari, Firefox, Edge)
 - Geolocation API support
 - JavaScript enabled
-- HTTPS (vereist voor geolocation - GitHub Pages gebruikt automatisch HTTPS)
-
-## 📱 Gebruik
-
-### Locatie toestemming
-Bij eerste gebruik zal je browser vragen om toestemming voor locatie toegang. Dit is noodzakelijk voor het spel om te werken.
-
-### Seed delen
-Kopieer de 6-karakter code en deel deze met je medespelers. Iedereen die dezelfde code gebruikt krijgt dezelfde kaarten in dezelfde volgorde.
-
-### Nauwkeurigheid
-De GPS nauwkeurigheid wordt getoond bij elke locatie check. Voor beste resultaten:
-- Zorg voor goede GPS ontvangst (buiten, open lucht)
-- Wacht tot je telefoon een nauwkeurige fix heeft
-- Check opnieuw als de nauwkeurigheid >50m is
-
-## 🔧 Aanpassingen maken
-
-### Kaarten toevoegen
-Bewerk `cards.js` en voeg items toe aan de `GAME_CARDS` array:
-```javascript
-{
-    task: "🎯 Jouw task hier",
-    question: "Jouw vraag hier?"
-}
-```
-
-### Speelveld aanpassen
-Wijzig de `GAME_RADIUS` constante in `geoUtils.js`:
-```javascript
-const GAME_RADIUS = 3000; // in meters
-```
-
-### Nieuwe vragen toevoegen
-Voeg functies toe in `geoUtils.js` voor nieuwe geografische checks en update `performAllChecks()`.
-
-## 📄 Licentie
-
-Dit is een persoonlijk project voor vriendschappelijk gebruik. Veel plezier! 🎉
+- HTTPS (vereist voor geolocation — GitHub Pages gebruikt automatisch HTTPS)
 
 ## 🐛 Problemen?
 
-- **Locatie werkt niet**: Controleer browser permissies
+- **Locatie werkt niet**: Controleer browser-permissies voor locatietoegang
 - **Kaarten niet hetzelfde**: Zorg dat beide spelers exact dezelfde seed gebruiken
-- **Site niet bereikbaar**: Wacht een paar minuten na activeren GitHub Pages
+- **Site niet bereikbaar**: Wacht een paar minuten na het activeren van GitHub Pages
 
 ---
 
-Made with ❤️ for playing in Gent! Veel plezier!
+Made with ❤️ for playing in Gent! Veel plezier! 🎉

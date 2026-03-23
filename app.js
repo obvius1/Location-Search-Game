@@ -2744,82 +2744,73 @@ function createExclusionLayerFromData(exclusionData) {
         }
     }
     
-    // FurthestDistance exclusions (verste Colruyt/POI)
+    // FurthestDistance exclusions
+    // Vraag: "Welke locatie is zeker NIET de dichtste bij de fiets?"
+    // Logica: sluit de exacte Voronoi-cel van de geselecteerde POI uit
+    // (= de zone waar die POI het dichtst is). Berekend via Sutherland-Hodgman.
     if (exclusionData.type === 'furthestDistance') {
         const { poiType, selectedPOI } = exclusionData;
         const pois = getPOIsByType(poiType);
-        
-        console.log(`Creating exclusion zones: type=furthestDistance, poiType=${poiType}, selectedPOI=${selectedPOI.name}`);
-        
-        if (pois.length === 0) {
-            console.warn(`No POIs found for type: ${poiType}`);
-            return null;
-        }
-        
-        // Het gebied dat het DICHTST bij de geselecteerde POI ligt moet rood worden
-        // (want als deze POI het verste is, kan de hider daar niet zijn)
-        
-        const earthRadius = 6371000;
+        if (pois.length === 0) return null;
+
         const belfort = LOCATIONS.belfort;
         const gameRadius = GAME_RADIUS;
-        
-        // Bepaal bounds rond Belfort
-        const degPerMeterLat = 1 / 111320;
-        const degPerMeterLng = (lat) => 1 / (111320 * Math.cos((lat * Math.PI) / 180));
-        
-        const latDelta = gameRadius * degPerMeterLat;
-        const lngDelta = gameRadius * degPerMeterLng(belfort.lat);
-        const minLat = belfort.lat - latDelta;
-        const maxLat = belfort.lat + latDelta;
-        const minLng = belfort.lng - lngDelta;
-        const maxLng = belfort.lng + lngDelta;
-        
-        // Raster resolutie
-        const cellSizeM = 50;
-        const dLat = cellSizeM * degPerMeterLat;
-        const dLng = cellSizeM * degPerMeterLng(belfort.lat);
-        
-        const layers = [];
-        
-        for (let lat = minLat; lat < maxLat; lat += dLat) {
-            for (let lng = minLng; lng < maxLng; lng += dLng) {
-                const cLat = lat + dLat / 2;
-                const cLng = lng + dLng / 2;
-                
-                // Sla cellen buiten het speelveld over
-                const centerDistToBelfort = calculateDistance(cLat, cLng, belfort.lat, belfort.lng);
-                if (centerDistToBelfort > gameRadius) {
-                    continue;
-                }
-                
-                // Bereken afstand naar de geselecteerde POI
-                const distToSelected = calculateDistance(cLat, cLng, selectedPOI.lat, selectedPOI.lng);
-                
-                // Bereken afstand naar alle andere POIs
-                let isClosestToSelected = true;
-                for (let i = 0; i < pois.length; i++) {
-                    const otherPOI = pois[i];
-                    if (otherPOI.name === selectedPOI.name) continue;
-                    
-                    const distToOther = calculateDistance(cLat, cLng, otherPOI.lat, otherPOI.lng);
-                    if (distToOther <= distToSelected) {
-                        isClosestToSelected = false;
-                        break;
-                    }
-                }
-                
-                // Als dit punt het dichtst bij de geselecteerde POI ligt, kleur het rood
-                if (isClosestToSelected) {
-                    const bounds = [[lat, lng], [lat + dLat, lng + dLng]];
-                    layers.push(L.rectangle(bounds, exclusionStyle));
-                }
+        const cosLat = Math.cos(belfort.lat * Math.PI / 180);
+
+        const toXY = (lat, lng) => ({
+            x: (lng - belfort.lng) * 111320 * cosLat,
+            y: (lat - belfort.lat) * 111320
+        });
+        const fromXY = (xy) => [
+            belfort.lat + xy.y / 111320,
+            belfort.lng + xy.x / (111320 * cosLat)
+        ];
+
+        // Start met spelcirkel als polygoon (64 punten)
+        const N = 64;
+        let voronoiCell = [];
+        for (let i = 0; i < N; i++) {
+            const angle = (2 * Math.PI * i) / N;
+            voronoiCell.push({ x: gameRadius * Math.cos(angle), y: gameRadius * Math.sin(angle) });
+        }
+
+        const sel = toXY(selectedPOI.lat, selectedPOI.lng);
+
+        // Knip de polygoon: behoud alleen de helft dichter bij selectedPOI dan bij elke andere POI
+        for (const otherPOI of pois) {
+            if (otherPOI.name === selectedPOI.name) continue;
+            const oth = toXY(otherPOI.lat, otherPOI.lng);
+
+            // Dichter bij sel dan bij oth: (oth-sel)·P < (|oth|²-|sel|²)/2
+            const A = oth.x - sel.x;
+            const B = oth.y - sel.y;
+            const C = (oth.x * oth.x + oth.y * oth.y - sel.x * sel.x - sel.y * sel.y) / 2;
+
+            const inside = (p) => A * p.x + B * p.y < C;
+            const intersect = (p1, p2) => {
+                const dx = p2.x - p1.x, dy = p2.y - p1.y;
+                const denom = A * dx + B * dy;
+                if (Math.abs(denom) < 1e-10) return null;
+                const t = (C - A * p1.x - B * p1.y) / denom;
+                return { x: p1.x + t * dx, y: p1.y + t * dy };
+            };
+
+            const clipped = [];
+            for (let i = 0; i < voronoiCell.length; i++) {
+                const curr = voronoiCell[i];
+                const next = voronoiCell[(i + 1) % voronoiCell.length];
+                const cIn = inside(curr), nIn = inside(next);
+                if (cIn) clipped.push(curr);
+                if (cIn !== nIn) { const pt = intersect(curr, next); if (pt) clipped.push(pt); }
             }
+            voronoiCell = clipped;
+            if (voronoiCell.length === 0) break;
         }
-        
-        console.log(`Created ${layers.length} exclusion cells for furthestDistance (${selectedPOI.name})`);
-        if (layers.length > 0) {
-            return L.featureGroup(layers);
-        }
+
+        if (voronoiCell.length < 3) return null;
+
+        // Teken de Voronoi-cel direct als exclusion zone (geen raster, exacte polygoon)
+        return L.polygon([voronoiCell.map(p => fromXY(p))], exclusionStyle);
     }
     
     // Distance From Bike exclusions

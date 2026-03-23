@@ -1,17 +1,17 @@
 # 🤖 AI Context - Gent Location Game
 
-Dit bestand is speciaal voor AI-assistenten (zoals GitHub Copilot) om het project volledig te begrijpen.
+Dit bestand is speciaal voor AI-assistenten om het project volledig te begrijpen zonder de volledige codebase te moeten exploreren.
 
 ---
 
 ## 📋 Project Overzicht
 
-**Naam**: Gent Location Game (Jet Lag Game ripoff variant)  
-**Type**: Mobile-first Progressive Web App (PWA)  
-**Doel**: Een locatie-gebaseerd spel voor vrienden om gezamenlijk te spelen in Gent  
-**Stack**: Vanilla JavaScript, HTML/CSS, Leaflet Maps, LocalStorage  
-**Deployment**: GitHub Pages (statische site, geen backend)  
-**Status**: Functioneel met feature/qa-updates branch
+**Naam**: Gent Location Game (Jet Lag: The Knock-Off)
+**Type**: Mobile-first Progressive Web App (PWA)
+**Doel**: Locatiegebaseerd spel voor 2 teams in Gent — elk team verstopt een fiets, het andere team probeert die te vinden via kaarten/vragen
+**Stack**: Vanilla JavaScript, HTML/CSS, Leaflet Maps, LocalStorage
+**Deployment**: GitHub Pages (statische site, geen backend)
+**Laatst bijgewerkt**: 23 maart 2026
 
 ---
 
@@ -19,339 +19,316 @@ Dit bestand is speciaal voor AI-assistenten (zoals GitHub Copilot) om het projec
 
 ### Speelveld
 - **Locatie**: Gent (België)
-- **Radius**: 4km rond het Belfort van Gent
+- **Radius**: 3,5km rond de WEC (niet het Belfort — let op, README is verouderd)
 - **Regel**: Alleen locaties binnen deze zone zijn geldig
+
+### Rollen
+- **2 teams**, elk met een fiets die ze verstoppen
+- **Hider**: verstopt de fiets, vult checklist in (9 foto's/notities), beantwoordt vragen
+- **Seeker**: voert taken uit, stelt vragen aan de hider, probeert de fiets te lokaliseren via exclusion zones
+- **Doel**: als eerste de fiets van het andere team vinden
 
 ### Game Flow
 ```
-1. Seed genereren/delen → beide spelers krijgen dezelfde kaarten
-2. Hider checklist → 4 foto's nemen (voor/achter/links/rechts)
-3. Locatie bepalen → GPS of handmatig marker plaatsen
-4. Kaarten bekijken → per fase (1 → 2 → 3)
-5. Tasks uitvoeren → vragen stellen aan tegenstander
-6. Exclusion zones → kaarten gedeeltelijk uit-grijs-en op basis van antwoorden
+1. Beide spelers voeren DEZELFDE seed in → identieke kaartenvolgorde
+2. Hider verstopt fiets → vult 9-item checklist in (foto's, straatnaam, boom, etc.)
+3. Hider bevestigt GPS-locatie van de fiets in app
+4. Beide spelers zien dezelfde flop (12 kaarten: 4 per fase)
+5. Om de beurt: voer taak uit → stel vraag aan tegenstander via chat (WhatsApp/Messenger)
+6. App berekent antwoord automatisch op basis van GPS → exclusion zone verschijnt op kaart
+7. Hoe meer vragen → hoe kleiner het zoekgebied
 ```
 
-### Automatische Antwoorden (Geografische Vragen)
-Bij bepaalde vragen kan de game automatisch het juiste antwoord bepalen:
+### Geen centrale server
+- **Alles is lokaal** — de app berekent antwoorden op basis van GPS
+- Communicatie via WhatsApp/Messenger: antwoorden, bewijsfoto's, GPS-coördinaten
+- Als tegenstander een kaart speelt, moet je die ook markeren als "tegenstander speelde dit eerst"
 
-| Vraag | Type | Hoe het werkt |
-|-------|------|---------------|
-| Binnen/buiten R40? | `r40` | Point-in-polygon test met R40_POLYGON |
-| Noorden/zuiden Leie-Schelde? | `leie-schelde` | Point-to-line side test met LEIE_SCHELDE_LINE |
-| Dichter bij Weba of IKEA? | `proximity` | Berekent afstand tot beide POIs, kiest dichtstbijzijnde |
-| Oosten/westen Dampoort? | `dampoort` | Vergelijkt longitude met station Dampoort |
-| Oosten/westen Watersportbaan? | `watersportbaan` | Vergelijkt longitude met watersportbaan tip |
-| Zelfde/aangrenzende wijk? | `SameOrAdjacentNeighborhood` | Point-in-polygon test + buurwijk detectie |
+### Automatische Antwoorden
+Bij bepaalde answerTypes berekent de app automatisch het antwoord op basis van GPS:
+
+| answerType | Vraag | Logica |
+|---|---|---|
+| `r40` | Binnen/buiten R40 binnenring? | Point-in-polygon op R40_POLYGON |
+| `leie-schelde` | Noorden/zuiden van Leie-Schelde? | Cross product op lijn |
+| `proximity` | Dichter bij Weba of IKEA? | Vergelijk afstand tot beide POIs |
+| `dampoort` | Oosten/westen van Dampoort? | Vergelijk longitude |
+| `watersportbaan` | Oosten/westen van watersportbaantip? | Vergelijk longitude |
+| `bufferLine` | Binnen 800m van spoorlijn Oostende-Antwerpen? | Buffer zone check |
+| `distanceFromBike` | Is fiets binnen Xm van jouw positie? | Hider checkt seeker-coördinaten |
+| `FurthestDistance` | Welke [POI] is zeker NIET de dichtste? | Voronoi-cel van genoemde POI (exact polygon via Sutherland-Hodgman) |
+| `radiusProximity` | Is er een [bibliotheek/ziekenhuis/watertoren] binnen Xm? | Radius check op POI collections |
+| `SameOrAdjacentNeighborhood` | Huidige/aangrenzende wijk van het item? | Point-in-polygon + buurwijk detectie |
+| `eliminateNeighborhood` | 3 wijken gegeven, 1 elimineren | Wijk-polygoon uitsluiten |
+| `requiresAnswer: false` | Foto-hints (Links/Rechts/Voor/Achter/Beneden/Gebouw) | Hider stuurt foto via chat |
 
 ---
 
 ## 🏗️ Architectuur
 
-### Bestanden Structuur
+### Bestandsstructuur
 ```
 gent-location-game/
-├── index.html              # PWA entry point, map + controls
-├── styles.css              # Mobile-first CSS
-├── app.js                  # Hoofd logica (1694 lijnen)
-├── cards.js                # Kaarten + seed-based shuffling (297 lijnen)
-├── geoUtils.js             # Geografische berekeningen (302 lijnen)
-├── storage.js              # LocalStorage management
+├── index.html              # PWA entry point, kaart + controls
+├── styles.css              # Mobile-first CSS (~1500+ lijnen)
+├── app.js                  # Hoofdlogica (~3900+ lijnen)
+├── cards.js                # Kaarten + seed-based shuffling
+├── geoUtils.js             # Geografische berekeningen
+├── storage.js              # LocalStorage management + gameRules
 ├── service-worker.js       # Offline PWA support
 ├── manifest.json           # PWA manifest
-├── README.md               # User-facing documentatie
-├── AI-CONTEXT.md           # Dit bestand!
+├── polygon-helper.html     # Dev tool voor polygon coördinaten
+├── README.md               # Gebruikersdocumentatie
+├── AI-CONTEXT.md           # Dit bestand
 ├── data/
-│   ├── cards.json          # Hider checklist + speelkaarten (3 fases)
-│   ├── geo-data.json       # GeoJSON zones + POI locations
-│   └── stadswijken-gent.geojson  # GeoJSON met alle Gentse wijken (25 wijken)
+│   ├── cards.json          # Hider checklist (9 items) + speelkaarten (3 fases)
+│   ├── geo-data.json       # POI locations (colruyts, catlocations, libraries, hospitals, watertowers, etc.)
+│   ├── rules.json          # Vaste spelregels + optionele regels (met key voor gameRules systeem)
+│   └── stadswijken-gent.geojson  # GeoJSON met alle Gentse wijken
 └── icons/                  # PWA app icons
 ```
 
-### Core Modules
-
-#### **app.js** - Hoofdapplicatie
-- Map initialisatie (Leaflet)
-- Event listeners (buttons, location, controls)
-- Game state management (seedInput, gameData, cardIndex)
-- UI flow (setup → location → checklist → cards)
-- Exclusion zones visualisatie
-- Flop view (alle kaarten tegelijk)
-- Single card view (één kaart tegelijk)
-
-**Key functionen**:
-- `handleStartGame()` - Start spel met seed
-- `handleGetGPS()` - Haal locatie op via Geolocation API
-- `handleConfirmLocation()` - Bevestig locatie en voer geografische tests uit (inclusief wijk detectie)
-- `drawNeighborhoods()` - Teken alle 25 stadswijken op kaart met labels
-- `openNeighborhoodModal()` - Open modal voor wijk antwoord selectie
-- `confirmNeighborhoodAnswer()` - Verwerk wijk antwoord en update exclusions
-- `updateExclusionZones()` - Teken uitgesloten zones op kaart (inclusief wijken)
-- `createExclusionLayerFromData()` - Creëer exclusion layers voor wijken
-- `switchView()` - Wissel tussen single/flop/discarded view
-- `handleDiscardCard()` - Markeer kaart als opgelost (detecteert SameOrAdjacentNeighborhood)
-
-#### **cards.js** - Kaarten Systeem
-- **SeededRandom klasse**: Mulberry32 RNG met string-to-seed hashing
-- **Shuffle per fase**: Phase 1 → Phase 2 → Phase 3 worden apart geshufeld
-- **Deterministische ordering**: Dezelfde seed = dezelfde kaartenvolgorde
-
-**Key functionen**:
-- `generateSeed()` - Genereert 6-char random seed (ABCD1234 format)
-- `createDeck(seed)` - Maakt shuffled deck op basis van seed
-- `shuffleArray(array, rng)` - Fisher-Yates shuffle met seeded RNG
-- `loadCards()` - Laadt cards.json
-
-**Belangrijk**: De seed zorgt ervoor dat beide spelers exact dezelfde kaarten in dezelfde volgorde krijgen!
-
-#### **geoUtils.js** - Geografische Berekeningen
-- Laadt GeoJSON zones (R40, Leie-Schelde)
-- Laadt stadswijken (25 wijken van Gent)
-- Voert geografische tests uit
-- Detecteert aangrenzende wijken via polygon touch detection
-
-**Key functionen**:
-- `pointInPolygon(point, polygon)` - Ray casting algorithm
-- `pointOnLeftOfLine(point, lineStart, lineEnd)` - Cross product
-- `distanceTo(lat1, lng1, lat2, lng2)` - Haversine formule
-- `isWithinGameZone(lat, lng)` - Check 4km radius
-- `getAutoAnswer(lat, lng, questionType)` - Bepaalt automatisch antwoord
-- `getNeighborhoodAtLocation(lat, lng)` - Bepaalt wijk op basis van GPS
-- `getAdjacentNeighborhoods(neighborhoodName)` - Vindt buurwijken
-- `polygonsTouch(polygon1, polygon2)` - Check of wijken elkaar raken
-- `loadNeighborhoods()` - Laadt stadswijken-gent.geojson
-- `getAutoAnswer(lat, lng, questionType)` - Bepaalt automatisch antwoord
-
-#### **storage.js** - LocalStorage
-- `saveGameData(gameData)` - Slaat spel op in localStorage
-- `loadGameData()` - Laadt spel uit localStorage
-- `hasActiveGame()` - Check of er een actief spel is
-
-### Data Structuur
-
-#### **cards.json** Formaat
+### Belangrijke Globale Variabelen (app.js)
 ```javascript
+let cardManager = null;         // CardManager instantie
+let currentCardIndex = 0;       // Index voor single card view
+let exclusionLayers = [];       // Array van Leaflet layers op kaart
+let lastUndoAction = null;      // Snapshot voor undo van laatste kaartactie
+let liveMarker = null;          // Blauw bolletje (live GPS)
+let liveAccuracyCircle = null;  // Nauwkeurigheidscirkel
+let liveWatchId = null;         // watchPosition ID
+let liveTrackingEnabled = false;
+let currentLiveLat = null;      // Meest recente GPS lat (voor zone lock check)
+let currentLiveLng = null;
+let rulesData = [];             // Vaste spelregels (uit rules.json)
+let optionalRulesData = [];     // Optionele regels met key + text
+```
+
+---
+
+## 🃏 Kaartensysteem
+
+### CardManager (cards.js)
+```javascript
+class CardManager {
+    seed          // Gebruikte seed
+    deck[]        // Volledig shuffled deck (alle kaarten)
+    flop[]        // 12 zichtbare kaarten (4 per fase)
+    discarded[]   // Opgeloste kaarten
+    deckIndex     // Huidige positie in deck
+}
+```
+- **Flop**: altijd 12 kaarten zichtbaar (4 fase 1, 4 fase 2, 4 fase 3)
+- Als een kaart opgelost wordt → nieuwe kaart van dezelfde fase getrokken
+- **Seed**: zorgt voor identieke volgorde bij beide spelers
+- Kaart-ID: `${seed}_${index}` (gebruikt voor opslaan antwoorden)
+
+### cards.json structuur
+```json
 {
-  "hiderChecklist": [
-    "Taak 1",
-    "Taak 2"
-  ],
+  "hiderChecklist": ["item1", "item2", ...],  // 9 items
   "cards": [
     {
-      "task": "Beschrijving van de taak",
-      "question": "De vraag aan tegenstander",
-      "phase": 1,  // 1, 2, of 3
-      "answerType": "r40",  // of "leie-schelde", "proximity", "dampoort", etc.
-      "pois": ["weba", "ikea"],  // Optioneel, voor proximity questions
-      "requiresAnswer": true  // Optioneel
+      "task": "Beschrijving taak",
+      "question": "Vraag aan tegenstander",
+      "phase": 1,
+      "answerType": "r40",
+      "pois": [],
+      "radius": 750,        // Optioneel, voor radiusProximity/distanceFromBike
+      "poiType": "libraries", // Optioneel, voor radiusProximity/FurthestDistance
+      "requiresAnswer": false  // Optioneel, voor foto-kaarten
     }
   ]
 }
 ```
 
-#### **geo-data.json** Formaat
+### Fase indeling
+- **🟢 Fase 1 (Early Game)**: Brede geografische vragen (R40, Leie-Schelde, Dampoort, etc.)
+- **🟡 Fase 2 (Mid Game)**: Wijkvragen, radius-vragen, meer specifiek
+- **🔴 Fase 3 (Late Game)**: Foto-hints van de hider checklist, directe locatie-aanwijzingen
+
+---
+
+## 💾 Storage (storage.js)
+
+### gameData (localStorage key: `jetlag_game_data`)
 ```javascript
 {
-  "locations": {
-    "ikea": { "lat": 51.0123, "lng": 3.7456 },
-    "weba": { "lat": 51.0234, "lng": 3.7567 },
-    // ... meer POIs
-  },
-  "features": [
-    {
-      "type": "Feature",
-      "properties": { "name": "R40 Binnenring Gent" },
-      "geometry": {
-        "type": "Polygon",
-        "coordinates": [[[lng, lat], [lng, lat], ...]]
-      }
-    },
-    {
-      "type": "Feature",
-      "properties": { "name": "Leie-Scheldelijn" },
-      "geometry": {
-        "type": "LineString",
-        "coordinates": [[lng, lat], [lng, lat], ...]
-      }
-    }
+  seed: "ABC123",
+  location: { lat, lng, timestamp },
+  cardAnswers: [{ cardId, opponentAnswer, cardTask, cardIndex, timestamp }],
+  exclusionZones: [{ type, answer, ... }],  // voor complexe zones
+  gameStarted: true,
+  version: 1
+}
+```
+
+### cardManager state (apart opgeslagen)
+```javascript
+{ flop: [...], discarded: [...], deckIndex: 12 }
+```
+
+### gameRules (localStorage key: `gameRules`)
+```javascript
+{ zoneLockEnabled: true }  // uitbreidbaar met meer regels
+```
+
+### Functies
+- `loadGameData()` / `saveGameData(data)`
+- `saveSeed(seed)` → zet ook `gameStarted: true`
+- `saveOpponentAnswer(cardId, answer, task, index)` → pass `null` als answer om te verwijderen
+- `loadGameRules()` / `saveGameRules(rules)` / `getGameRule(key)` / `toggleGameRule(key)`
+
+---
+
+## 🗺️ Exclusion Zones
+
+### Hoe het werkt
+Na elk antwoord wordt een rode zone op de kaart getekend waar de fiets NIET kan zijn.
+
+### updateExclusionZones() flow
+1. Verwijder alle bestaande Leaflet layers
+2. Laad `gameData.cardAnswers` → `createExclusionLayer(answer)` (string-gebaseerd)
+3. Laad `gameData.exclusionZones` → `createExclusionLayerFromData(data)` (object-gebaseerd)
+4. `inverseMask.bringToFront()`
+5. `updateZoneLockIndicator()`
+
+### FurthestDistance: exacte Voronoi-cel
+Gebruikt **Sutherland-Hodgman halvevlak-knippen** (geen raster!):
+- Start met spelcirkel (64 punten)
+- Knip met elk halvevlak: "dichter bij selectedPOI dan bij elke andere POI"
+- Resultaat = exacte Voronoi-cel polygon van de genoemde POI
+- Getekend als één strakke rode polygoon
+
+---
+
+## ⚙️ Optionele Spelregels
+
+### Systeem
+- Toegankelijk via "⚙️ Optionele Spelregels" knop (onder "📖 Hoe werkt het spel?" knop)
+- Regels kunnen ALLEEN aangepast worden **voor** de start van het spel
+- Na start: modal toont geel waarschuwingsbanner, toggles zijn disabled
+- Opgeslagen in localStorage onder `gameRules`
+
+### Huidige regels
+| Key | Label | Default | Beschrijving |
+|---|---|---|---|
+| `zoneLockEnabled` | Zone vergrendeling | AAN | Taken kunnen niet uitgevoerd worden in al-uitgesloten zones |
+
+### Zone Lock Indicator
+- Persistent bolletje op de kaart (naast de live tracking knop)
+- 🟢 "Zone OK" = speler staat in actieve zone
+- 🔴 "Zone geblokkeerd" = speler staat in uitgesloten zone
+- Klikken toont tooltip met uitleg
+- Kaart SLUITEN blijft altijd mogelijk (geen harde blokkering)
+
+### rules.json structuur
+```json
+{
+  "rules": ["Vaste spelregel 1", "Vaste spelregel 2", ...],
+  "optionalRules": [
+    { "key": "zoneLockEnabled", "text": "Tekst die in spelregels modal verschijnt" }
   ]
 }
 ```
 
 ---
 
-## 🔑 Belangrijke Concepten
+## ↩️ Undo Systeem
 
-### 1. Seed-Based Randomization
-- **Doel**: Zorgen dat beide spelers exact dezelfde kaarten krijgen
-- **Hoe**: String-seed wordt omgezet naar getal via hashing, dan Mulberry32 RNG
-- **Voorbeeld**:
-  - Speler A: seed "ABCD12" → deck [kaart 5, 3, 8, 1, ...]
-  - Speler B: seed "ABCD12" → deck [kaart 5, 3, 8, 1, ...] (identiek!)
-  - Speler C: seed "XYZDEF" → deck [kaart 2, 7, 4, 9, ...] (anders)
+### Wanneer
+- Na elk antwoord geven (handleOpponentAnswer, handleDistanceFromBikeAnswer, handleFurthestDistanceAnswer, handleEliminateNeighborhoodAnswer)
+- Na elke handmatige discard (handleDiscardCard, handleDirectDiscard, discardCardFromFlop)
 
-### 2. Exclusion Zones (Grijze Gebieden)
-- Als opponent "Binnen R40" zegt en ze zijn buiten → heel kaart grijst uit
-- Als opponent "IKEA dichter" zegt en ze zijn dichter bij Weba → halve kaart grijst uit
-- Meerdere antwoorden = meerdere exclusion zones tekenen
-
-### 3. Point-in-Polygon (R40)
-- Gebruikt ray casting algorithm
-- Test of speler binnen R40 ring is
-- Belangrijk voor automatische antwoorden
-
-
-### 6. Stadswijken Feature (Nieuw!)
-- 25 wijken van Gent geladen vanuit GeoJSON
-- Wijken getekend op kaart met subtiele styling + labels
-- Automatische detectie van huidige wijk via GPS
-- Dropdown om wijk te selecteren (als speler verplaatst is)
-- Buurwijken worden automatisch gedetecteerd via polygon touch
-- "Ja/Nee" antwoord bepaalt welke wijken worden uitgesloten:
-  - **"Ja"**: Alle wijken BEHALVE geselecteerde + buren worden rood
-  - **"Nee"**: Geselecteerde wijk + buren worden rood
-- Modal UI voor wijk antwoord selectie
-### 4. Line Side Detection (Leie-Schelde)
-- Gebruikt cross product (determinant)
-- Test welke kant van lijn speler is
-- Bepaalt noorden/zuiden
-
-### 5. PWA Features
-- Installeerbaar als native app (iOS/Android)
-- Service Worker voor offline support
-- Manifest.json voor meta-info
-- Icons voor verschillende devices
-
----
-
-## 📱 UI Flow
-
-```
-START
-  ↓
-[Setup Section] → Genereer/voer seed in
-  ↓ Start Game
-[Location Section] → GPS ophalen of handmatig plaatsen
-  ↓ Confirm Location
-[Checklist Section] → 4 foto's nemen (hider)
-  ↓ Alles voltooid
-[Cards Section] ← Speel kaarten!
-  ├─ Single View: één kaart tegelijk
-  ├─ Flop View: alle kaarten tegelijk
-  └─ Discarded View: statistieken
-```
-
----
-
-## 💾 Game State in LocalStorage
-
+### Hoe
 ```javascript
-{
-  "gent-location-game": {
-    "seed": "ABCD12",
-    "deck": [{ card object }, { card object }, ...],
-    "discardedCards": [2, 5, 8],  // indices
-    "location": { "lat": 51.1234, "lng": 3.7890, "accuracy": 15 },
-    "exclusionZones": [
-      { "type": "r40-outside", "answer": "buiten" },
-      { "type": "ikea-closer", "answer": "weba" }
-    ],
-    "checklistCompleted": [true, false, true, true]
-  }
+lastUndoAction = {
+    cardTask: string,
+    cardManagerState: { flop, discarded, deckIndex },  // deep clone
+    cardAnswersSnapshot: [...],  // deep clone
+    exclusionZonesSnapshot: [...]  // deep clone
 }
 ```
 
----
-
-## 🗺️ Kaart Features (Leaflet)
-
-- **Base layer**: OpenStreetMap
-- **Game zone**: Groene cirkel (4km radius)
-- **R40 polygon**: Getekend als grijze polygon
-- **Leie-Schelde line**: Getekend als lijn
-- **POI markers**: Blauwe markers voor Weba, IKEA, Dampoort, Watersportbaan
-- **Current location**: Groene marker met accuracy circle
-- **Exclusion zones**: Grijze polygonen/zones (afhankelijk van antwoorden)
+### UI
+- Knop `↩️ "[kaartnaam]" terugzetten` verschijnt in de **Opgeloste Kaarten** view
+- Alleen zichtbaar als `lastUndoAction !== null`
+- Overschreven bij elke nieuwe actie (altijd alleen laatste actie)
+- Na undo: volledig herstel van CardManager + storage + kaart/map update
 
 ---
 
-## 🚀 Deploy & PWA
+## 📍 Live Locatie Tracking
 
-- **Platform**: GitHub Pages
-- **URL**: https://JOUW-USERNAME.github.io/gent-location-game/
-- **HTTPS**: Automatisch (vereist voor Geolocation API)
-- **Installatie**: "Add to Home Screen" op mobiel of "Install" in Chrome menu
-
----
-
-## ⚠️ Beperkingen & Notes
-
-1. **Offline**: Werkt offline ALS het eerst online geladen is (service worker cacht assets)
-2. **GPS Accuracy**: Hangt af van device en ontvangst (ideaal <15m)
-3. **Geolocation permission**: Browser vraagt om toestemming, HTTPS vereist
-4. **Mobile-only**: Ontworpen voor mobiel, niet optimaal op desktop
-5. **Seed collision**: Theoretisch mogelijk (6 char alphanumeric = ~2 miljard combinaties) maar zeer onwaarschijnlijk
-6. **No real-time**: Geen live updates tussen spelers, alles is lokaal
+- Start automatisch bij app-load (niet pas na checklist)
+- **Blauw pulserende cirkel** = huidige positie (liveMarker)
+- **Lichtblauwe cirkel** = GPS-nauwkeurigheidsradius (liveAccuracyCircle)
+- Toggle knop "🔵 Live" / "⚫ Live uit" (linksboven op kaart)
+- `currentLiveLat` / `currentLiveLng` worden bijgehouden voor zone lock check
+- `enableHighAccuracy: false` voor batterijbesparing
 
 ---
 
-## 🔄 Workflow voor Development
+## 📖 Demo/Tutorial Modal
 
-### Kaarten toevoegen/wijzigen
-- Edit `data/cards.json`
-- Voeg object toe met `task`, `question`, `phase`, `answerType`
-- Optioneel: `pois` array voor proximity questions
-
-### Geografische data updaten
-- Edit `data/geo-data.json`
-- GeoJSON format (lng, lat)
-- Update R40 polygon of Leie-Schelde line
-- Update POI locations
-
-### UI wijzigingen
-- Edit `index.html` (structure)
-- Edit `styles.css` (styling)
-- Update event listeners in `app.js` indien nodig
-
-### Logica wijzigingen
-- `cards.js`: Seed/shuffle logica
-- `geoUtils.js`: Geografische berekeningen
-- `app.js`: Game flow & UI logic
-- `storage.js`: Data persistence
+- Triggered via **"📖 Hoe werkt het spel?"** knop (altijd toegankelijk, ook tijdens spel)
+- Sluit het spel **niet** af — volledig non-destructief
+- 7 stappen met navigatie (dots + Vorige/Volgende knoppen)
+- Inhoud: welkom, geen server uitleg, spelverloop, kaarten & fases, locatie delen, exclusion zones, tips
+- Knop op laatste stap: "Sluiten" (was vroeger "Start een echt spel" — NIET terugzetten)
 
 ---
 
-## 🎯 Huidige Branch Info
+## 🎮 UI Structuur
 
-- **Main branch**: Production ready
-- **Feature branch**: feature/qa-updates (latest changes)
-- Recent commits zijn gericht op QA en updates
+### Secties (index.html)
+1. `#setup-section` — seed invoer
+2. `#location-section` — GPS bevestiging
+3. `#checklist-section` — 9-item hider checklist
+4. `#cards-section` — kaarten (3 views)
+   - `#single-card-view` — één kaart met antwoordknoppen
+   - `#flop-view` — 12 kaarten in grid per fase
+   - `#discarded-view` — opgeloste kaarten + undo knop
+
+### Knoppen volgorde (in controls)
+1. 📋 Bekijk Spelregels
+2. ⚙️ Optionele Spelregels
+3. 📖 Hoe werkt het spel? (demo)
+
+### Modals
+- `#rules-modal` — spelregels (vaste + actieve optionele)
+- `#game-rules-modal` — optionele spelregels toggles
+- `#demo-modal` — tutorial stap-voor-stap
+- `#neighborhood-modal` — wijk selectie voor SameOrAdjacentNeighborhood
 
 ---
 
-## 🔮 Mogelijke Toekomstige Features
+## 📱 Responsiveness
 
-- [ ] Real-time multiplayer (WebSockets)
-- [ ] Leaderboards
-- [ ] Custom card sets
-- [ ] Difficulty levels
-- [ ] Achievements/badges
-- [ ] Sound effects
-- [ ] Animated transitions
-- [ ] Multi-language support
+| Breakpoint | Layout |
+|---|---|
+| < 1100px (mobiel) | Controls schuiven omhoog vanuit onderkant (bottom sheet) |
+| ≥ 1100px (desktop) | Controls als rechterzijbalk (35%), kaart links (65%) |
+
+---
+
+## ⚠️ Bekende Quirks & Aandachtspunten
+
+1. **Radius**: Het is 3,5km rond de WEC
+2. **FurthestDistance vraagstelling**: "Welke [POI] is zeker NIET de dichtste?" (Voronoi-cel exclusion) — NIET "welke is het verste?" (dat geeft wiskundig een veel grotere exclusion via Sutherland-Hodgman)
+3. **Zone lock**: Kaart SLUITEN is altijd mogelijk ondanks zone lock — alleen de tooltip/indicator verschijnt
+4. **Undo**: Alleen de allerlaatste actie kan ongedaan gemaakt worden
+5. **gameStarted flag**: Wordt gezet zodra `saveSeed()` aangeroepen wordt — optionele spelregels zijn daarna vergrendeld
+6. **distanceFromBike**: Wordt beantwoord door de HIDER (die de seeker-coördinaten ingeeft en de afstand berekent) — niet automatisch
+7. **DEMOMODE als seed**: Was vroeger een trigger, nu vervangen door de demo-knop — DEMOMODE als seed werkt niet meer als speciale modus
+8. **Geen live multiplayer**: Alles lokaal, communicatie via WhatsApp/Messenger
+
+---
+
+## 🔮 Mogelijke Toekomstige Features (besproken maar niet geïmplementeerd)
+
+- [ ] Rand-van-speelveld vraag: "Is fiets minder dan Xm van de rand?" — X = `radius * 0.146` afgerond op mooie stappen (≤250m: stap 50, 250-1000m: stap 100, >1000m: stap 500)
+- [ ] Meerdere optionele spelregels (systeem is al uitbreidbaar)
+- [ ] Andere steden (Brugge, Antwerpen, Brussel) — spelcirkel en POIs aanpassen
+- [ ] Real-time multiplayer
 - [ ] Dark mode
-
----
-
-## 📝 Debugging Tips
-
-- **Console logs**: Veel logging in loadZones(), loadCards(), handleGetGPS(), etc.
-- **LocalStorage viewer**: F12 → Application → LocalStorage → zie game data
-- **Map debugging**: Zoom out om zones te zien, markers moeten zichtbaar zijn
-- **Geolocation issues**: Check HTTPS + permission + GPS signal
-- **Seed issues**: Controleer SeededRandom hash functie en shuffle order per phase
-
----
-
-**Laatst geupdate**: 2 Februari 2026  
-**Project status**: Actief in development (QA branch)
