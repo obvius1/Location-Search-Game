@@ -47,7 +47,7 @@
       "pois": ["watersportbaan"]
     },
     {
-      "task": "Binnen de 35 minuten, bezoek 3 verschillende bakkerijen (/supermarkten) en koop en eet op elke locatie een koffiekoek/taart/broodje/patisserie",
+      "task": "Binnen de 20 minuten, bezoek 3 verschillende bakkerijen (/supermarkten) en koop en eet op elke locatie een koffiekoek/taart/broodje/patisserie",
       "question": "Binnen 800m van het de spoorlijn Oostende-Antwerpen?",
       "phase": 1,
       "answerType": "bufferLine",

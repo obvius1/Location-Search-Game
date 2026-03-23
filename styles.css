@@ -955,6 +955,25 @@ body {
     gap: 20px;
 }
 
+.btn-undo {
+    width: 100%;
+    background: #fff7ed;
+    color: #9a3412;
+    border: 1.5px solid #fed7aa;
+    border-radius: 8px;
+    padding: 10px 16px;
+    font-size: 13px;
+    font-weight: 600;
+    text-align: left;
+    margin-bottom: 8px;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.btn-undo:hover {
+    background: #ffedd5;
+}
+
 .flop-stats {
     display: flex;
     justify-content: space-around;

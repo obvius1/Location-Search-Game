@@ -26,6 +26,7 @@ let liveWatchId = null; // ID van watchPosition voor opruimen
 let liveTrackingEnabled = false; // Of live tracking aan staat
 let currentLiveLat = null; // Meest recente live GPS latitude
 let currentLiveLng = null; // Meest recente live GPS longitude
+let lastUndoAction = null; // Snapshot van vorige kaart-actie voor undo
 
 // DOM elements
 const controlsContainer = document.getElementById('controls-container');
@@ -1728,11 +1729,13 @@ function generateAnswerButtons(cardIndex, question) {
  */
 function handleOpponentAnswer(cardIndex, answer) {
     const card = cardManager.getCard(cardIndex);
-    
+
     if (!card || !card.id) {
         console.error('Kaart heeft geen ID:', card);
         return;
     }
+
+    saveUndoState(cardIndex);
     
     // Check of dit een SameOrAdjacentNeighborhood vraag is
     if (card.answerType === 'SameOrAdjacentNeighborhood') {
@@ -1805,6 +1808,8 @@ function handleRadiusProximityAnswer(cardIndex, answer) {
 function handleDistanceFromBikeAnswer(cardIndex, answer) {
     const card = cardManager.getCard(cardIndex);
     if (!card || !card.radius) return;
+
+    saveUndoState(cardIndex);
     
     // Haal de ingevoerde coördinaten op
     const input = document.getElementById('opponent-location-input');
@@ -1883,6 +1888,8 @@ function handleDistanceFromBikeAnswer(cardIndex, answer) {
 function handleFurthestDistanceAnswer(cardIndex, selectedPOI) {
     const card = cardManager.getCard(cardIndex);
     if (!card) return;
+
+    saveUndoState(cardIndex);
     
     const poiType = card.poiType || 'colruyts';
     const pois = getPOIsByType(poiType);
@@ -1935,6 +1942,8 @@ function handleFurthestDistanceAnswer(cardIndex, selectedPOI) {
 function handleEliminateNeighborhoodAnswer(cardIndex, selectedNeighborhood) {
     const card = cardManager.getCard(cardIndex);
     if (!card) return;
+
+    saveUndoState(cardIndex);
     
     // Vind de geselecteerde wijk data
     const neighborhoodData = CITY_NEIGHBORHOODS.find(n => n.name === selectedNeighborhood);
@@ -2967,15 +2976,17 @@ function switchView(view) {
  */
 function renderFlopView() {
     if (!cardManager) return;
-    
+
     const flop = cardManager.getFlop();
     const remaining = cardManager.getRemainingCards();
     const discarded = cardManager.discarded.length;
-    
+
     // Update stats
     document.getElementById('flop-count').textContent = flop.length;
     document.getElementById('remaining-count').textContent = remaining;
     document.getElementById('discarded-count').textContent = discarded;
+
+    updateUndoButton();
     
     // Render kaarten per fase
     for (let phase = 1; phase <= 3; phase++) {
@@ -3841,6 +3852,72 @@ function viewCardDetail(index) {
 /**
  * Discard een kaart direct zonder antwoord (voor kaarten die geen antwoord vereisen)
  */
+/**
+ * Sla een snapshot op van de huidige staat vóór een kaart wordt weggelegd (voor undo)
+ */
+function saveUndoState(cardIndex) {
+    const card = cardManager.getCard(cardIndex);
+    if (!card) return;
+
+    const gameData = loadGameData();
+    lastUndoAction = {
+        cardTask: card.task,
+        cardManagerState: JSON.parse(JSON.stringify(cardManager.getState())),
+        cardAnswersSnapshot: JSON.parse(JSON.stringify(gameData.cardAnswers || [])),
+        exclusionZonesSnapshot: JSON.parse(JSON.stringify(gameData.exclusionZones || [])),
+    };
+    updateUndoButton();
+}
+
+/**
+ * Maak de laatste kaart-actie ongedaan
+ */
+function handleUndoLastCard() {
+    if (!lastUndoAction || !cardManager) return;
+
+    if (!confirm(`Laatste actie ongedaan maken?\n"${lastUndoAction.cardTask}" wordt teruggezet in de flop.`)) return;
+
+    // Herstel CardManager staat
+    const state = lastUndoAction.cardManagerState;
+    cardManager.flop = state.flop;
+    cardManager.discarded = state.discarded;
+    cardManager.deckIndex = state.deckIndex;
+
+    // Herstel storage
+    const gameData = loadGameData();
+    gameData.cardAnswers = lastUndoAction.cardAnswersSnapshot;
+    gameData.exclusionZones = lastUndoAction.exclusionZonesSnapshot;
+    saveGameData(gameData);
+    saveCardManagerState();
+
+    // Wis undo staat
+    lastUndoAction = null;
+
+    // Update UI
+    updateExclusionZones();
+    renderFlopView();
+    renderDiscardedView();
+    if (currentCardIndex >= cardManager.getFlop().length) {
+        currentCardIndex = Math.max(0, cardManager.getFlop().length - 1);
+    }
+    updateCardDisplay();
+    updateUndoButton();
+}
+
+/**
+ * Toon/verberg de undo-knop op basis van beschikbare undo-staat
+ */
+function updateUndoButton() {
+    const btn = document.getElementById('undo-last-card-btn');
+    if (!btn) return;
+    if (lastUndoAction) {
+        btn.classList.remove('hidden');
+        btn.textContent = `↩️ "${lastUndoAction.cardTask}" terugzetten`;
+    } else {
+        btn.classList.add('hidden');
+    }
+}
+
 function handleDirectDiscard(cardIndex) {
     if (!cardManager) return;
 
@@ -3848,6 +3925,7 @@ function handleDirectDiscard(cardIndex) {
     const card = cardManager.getCard(cardIndex);
     if (!card) return;
 
+    saveUndoState(cardIndex);
     // Bewaar geen antwoord, gewoon discarden
     cardManager.discardCard(cardIndex);
     saveCardManagerState();
@@ -3871,13 +3949,14 @@ function discardCardFromFlop(index) {
     if (!card) return;
     
     if (confirm(`Kaart "${card.task}" markeren als opgelost?\nEen nieuwe kaart wordt getrokken.`)) {
+        saveUndoState(index);
         // Bewaar het antwoord voor deze discarded kaart (voordat we discard)
         const answer = card && card.id ? getOpponentAnswer(card.id) : null;
         const currentDiscardedCount = cardManager.discarded.length;
         if (answer) {
             saveDiscardedAnswer(currentDiscardedCount, answer, card.task, index);
         }
-        
+
         cardManager.discardCard(index);
         
         // Save state
@@ -3903,13 +3982,14 @@ function handleDiscardCard() {
     if (!card) return;
 
     if (confirm(`Kaart "${card.task}" markeren als opgelost?\nEen nieuwe kaart wordt getrokken.`)) {
+        saveUndoState(currentCardIndex);
         // Bewaar het antwoord voor deze discarded kaart (voordat we discard)
         const answer = card && card.id ? getOpponentAnswer(card.id) : null;
         const currentDiscardedCount = cardManager.discarded.length;
         if (answer) {
             saveDiscardedAnswer(currentDiscardedCount, answer, card.task, currentCardIndex);
         }
-        
+
         cardManager.discardCard(currentCardIndex);
         
         // Save state

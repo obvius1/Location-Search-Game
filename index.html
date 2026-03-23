@@ -112,7 +112,6 @@
                         <span>📦 <span id="remaining-count">0</span> kaarten in deck</span>
                         <span id="discarded-stats" class="clickable">✓ <span id="discarded-count">0</span> opgelost</span>
                     </div>
-                    
                     <div class="flop-phase-section">
                         <h3 class="phase-header phase-1-header">🟢 Early Game</h3>
                         <div id="flop-phase-1" class="flop-grid"></div>
@@ -134,6 +133,7 @@
                     <div class="flop-stats">
                         <button id="back-to-flop-btn" class="btn btn-secondary">← Terug naar flop</button>
                     </div>
+                    <button id="undo-last-card-btn" class="btn btn-undo hidden" onclick="handleUndoLastCard()"></button>
                     
                     <div class="flop-phase-section">
                         <h3 class="phase-header">✓ Opgeloste Kaarten</h3>
