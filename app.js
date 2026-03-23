@@ -662,7 +662,7 @@ function addMapLegend() {
                 <div><span class="legend-line" style="background: #1e40af;"></span> Leie-Schelde Lijn</div>
                 <div><span class="legend-line" style="background: #dc2626;"></span> Spoorlijn Oostende-Antwerpen</div>
                 <div><span class="legend-line" style="background: #9ca3af;"></span> Stadswijken</div>
-                <div><span class="legend-marker" style="background: #dc2626;"></span> Belfort (centrum)</div>
+                <div><span class="legend-marker" style="background: #dc2626;"></span> WEC (centrum)</div>
                 <div class="legend-item-with-checkbox">
                     <span class="legend-marker" style="background: #22c55e;"></span> Je locatie
                     <label class="legend-checkbox">
