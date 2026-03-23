@@ -2206,9 +2206,23 @@ function closeGameRulesModal() {
  */
 function updateGameRulesUI() {
     const rules = loadGameRules();
+    const gameData = loadGameData();
+    const locked = gameData.gameStarted;
+
+    // Toon/verberg de vergrendeld-melding
+    const lockedMsg = document.getElementById('game-rules-locked-msg');
+    if (lockedMsg) lockedMsg.classList.toggle('hidden', !locked);
+
     Object.keys(rules).forEach(key => {
         const toggle = document.getElementById(`rule-toggle-${key}`);
-        if (toggle) toggle.checked = rules[key];
+        if (!toggle) return;
+        toggle.checked = rules[key];
+        toggle.disabled = locked;
+    });
+
+    // Dimm de rule items visueel als het spel bezig is
+    document.querySelectorAll('.game-rule-item').forEach(item => {
+        item.classList.toggle('game-rule-locked', locked);
     });
 }
 
@@ -2216,6 +2230,8 @@ function updateGameRulesUI() {
  * Toggle een spelregel vanuit de UI en update de indicator
  */
 function handleToggleGameRule(key) {
+    const gameData = loadGameData();
+    if (gameData.gameStarted) return; // Geblokkeerd tijdens een actief spel
     toggleGameRule(key);
     updateZoneLockIndicator();
     // Herrender spelregels lijst als die modal open is
