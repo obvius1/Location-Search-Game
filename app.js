@@ -1231,8 +1231,18 @@ function displayQuestions(checks) {
         { label: 'Dampoort', value: checks.dampoort.answer },
         { label: 'Watersportbaan', value: checks.watersportbaan.answer },
         { label: 'Spoorlijn Oostende-Antwerpen', value: checks.railwayBuffer.answer },
-        { label: 'Verste Colruyt', value: checks.furthestColruyt.answer ? `${checks.furthestColruyt.name} (${checks.furthestColruyt.distance}m)` : 'Nee' },
-        { label: 'Verste Kattenopvang/Asiel', value: checks.furthestCatlocation.answer ? `${checks.furthestCatlocation.name} (${checks.furthestCatlocation.distance}m)` : 'Nee' }
+        {
+            label: 'Colruyt (verste eerst)',
+            value: checks.furthestColruyt.sorted && checks.furthestColruyt.sorted.length > 0
+                ? checks.furthestColruyt.sorted.map(p => `${p.name} (${p.distance}m)`).join(', ')
+                : 'Nee'
+        },
+        {
+            label: 'Kattenopvang/Asiel (verste eerst)',
+            value: checks.furthestCatlocation.sorted && checks.furthestCatlocation.sorted.length > 0
+                ? checks.furthestCatlocation.sorted.map(p => `${p.name} (${p.distance}m)`).join(', ')
+                : 'Nee'
+        }
     ];
     
     questionsResult.innerHTML = questions.map(q => `

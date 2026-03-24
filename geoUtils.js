@@ -334,30 +334,24 @@ function checkRailwayBuffer(lat, lng) {
  */
 function checkFurthestColruyt(lat, lng) {
     const colruyts = getPOIsByType('colruyts');
-    
+
     if (colruyts.length === 0) {
-        return {
-            answer: null,
-            name: null,
-            distance: null
-        };
+        return { answer: null, name: null, distance: null, sorted: [] };
     }
-    
-    // Bereken afstand naar elke Colruyt
-    const distances = colruyts.map(colruyt => ({
+
+    // Bereken afstand naar elke Colruyt, sorteer verste eerst
+    const sorted = colruyts.map(colruyt => ({
         name: colruyt.name,
-        distance: calculateDistance(lat, lng, colruyt.lat, colruyt.lng)
-    }));
-    
-    // Vind de verste Colruyt
-    const furthest = distances.reduce((max, current) => 
-        current.distance > max.distance ? current : max
-    );
-    
+        distance: Math.round(calculateDistance(lat, lng, colruyt.lat, colruyt.lng))
+    })).sort((a, b) => b.distance - a.distance);
+
+    // Verste = eerste, dichtste = laatste (niet tonen)
+    const furthest = sorted[0];
     return {
         answer: furthest.name,
         name: furthest.name,
-        distance: Math.round(furthest.distance)
+        distance: furthest.distance,
+        sorted: sorted.slice(0, -1) // alle behalve de dichtste
     };
 }
 
@@ -366,30 +360,24 @@ function checkFurthestColruyt(lat, lng) {
  */
 function checkFurthestCatlocation(lat, lng) {
     const catlocations = getPOIsByType('catlocations');
-    
+
     if (catlocations.length === 0) {
-        return {
-            answer: null,
-            name: null,
-            distance: null
-        };
+        return { answer: null, name: null, distance: null, sorted: [] };
     }
-    
-    // Bereken afstand naar elke kattenopvang
-    const distances = catlocations.map(catlocation => ({
+
+    // Bereken afstand naar elke kattenopvang, sorteer verste eerst
+    const sorted = catlocations.map(catlocation => ({
         name: catlocation.name,
-        distance: calculateDistance(lat, lng, catlocation.lat, catlocation.lng)
-    }));
-    
-    // Vind de verste kattenopvang
-    const furthest = distances.reduce((max, current) => 
-        current.distance > max.distance ? current : max
-    );
-    
+        distance: Math.round(calculateDistance(lat, lng, catlocation.lat, catlocation.lng))
+    })).sort((a, b) => b.distance - a.distance);
+
+    // Verste = eerste, dichtste = laatste (niet tonen)
+    const furthest = sorted[0];
     return {
         answer: furthest.name,
         name: furthest.name,
-        distance: Math.round(furthest.distance)
+        distance: furthest.distance,
+        sorted: sorted.slice(0, -1) // alle behalve de dichtste
     };
 }
 
