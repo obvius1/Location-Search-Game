@@ -17,6 +17,10 @@
     {
       "key": "zoneLockEnabled",
       "text": "Taken mogen niet uitgevoerd worden in al-uitgesloten zones op de kaart."
+    },
+    {
+      "key": "zoneLockEnabled",
+      "text": "Foto's moeten genomen worden buiten de uitgesloten zone, maar mag wel zaken bevatten die binnen de zone liggen."
     }
   ]
 }
