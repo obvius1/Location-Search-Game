@@ -2,6 +2,7 @@
 
 // Constanten voor Gent
 const GAME_RADIUS = 3500; // Straal van het speelveld in meters (zones en teksten passen zich hieraan aan)
+const EARTH_RADIUS = 6371000; // Straal van de aarde in meters
 
 // Belangrijke locaties in Gent - wordt geladen vanuit geo-data.json
 let LOCATIONS = {};
@@ -152,7 +153,6 @@ async function loadNeighborhoods() {
  * Berekent de afstand tussen twee punten in meters (Haversine formule)
  */
 function calculateDistance(lat1, lng1, lat2, lng2) {
-    const R = 6371000; // Aarde radius in meters
     const dLat = toRadians(lat2 - lat1);
     const dLng = toRadians(lng2 - lng1);
     
@@ -161,7 +161,7 @@ function calculateDistance(lat1, lng1, lat2, lng2) {
               Math.sin(dLng / 2) * Math.sin(dLng / 2);
     
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c;
+    return EARTH_RADIUS * c;
 }
 
 function toRadians(degrees) {
@@ -624,43 +624,16 @@ function hasNearbyPOI(lat, lng, poiType, radius) {
  */
 function getCirclePoints(lat, lng, radius, angleStep = 5) {
     const points = [];
-    const earthRadius = 6371000; // meters
 
     for (let angle = 0; angle <= 360; angle += angleStep) {
         const rad = (angle * Math.PI) / 180;
-        const latOffset = (radius / earthRadius) * (180 / Math.PI) * Math.cos(rad);
+        const latOffset = (radius / EARTH_RADIUS) * (180 / Math.PI) * Math.cos(rad);
         const lngOffset =
-            ((radius / earthRadius) * (180 / Math.PI) * Math.sin(rad)) /
+            ((radius / EARTH_RADIUS) * (180 / Math.PI) * Math.sin(rad)) /
             Math.cos((lat * Math.PI) / 180);
 
         points.push([lat + latOffset, lng + lngOffset]);
     }
 
     return points;
-}
-
-/**
- * Genereer punten op een cirkel rond meerdere POIs (voor exclusion zones)
- * @param {Array} pois - Array van POI objecten
- * @param {number} radius - Radius in meters
- * @param {number} angleStep - Hoekstap in graden (default 5)
- * @returns {Array} Array van arrays [lat, lng] punten die een cirkel vormen
- */
-function getPointsByRadiusFromPOIs(pois, radius, angleStep = 5) {
-    const allPoints = [];
-    const earthRadius = 6371000; // meters
-    
-    pois.forEach(poi => {
-        for (let angle = 0; angle <= 360; angle += angleStep) {
-            const rad = (angle * Math.PI) / 180;
-            const latOffset = (radius / earthRadius) * (180 / Math.PI) * Math.cos(rad);
-            const lngOffset = 
-                ((radius / earthRadius) * (180 / Math.PI) * Math.sin(rad)) /
-                Math.cos((poi.lat * Math.PI) / 180);
-            
-            allPoints.push([poi.lat + latOffset, poi.lng + lngOffset]);
-        }
-    });
-    
-    return allPoints;
 }

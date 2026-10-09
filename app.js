@@ -320,20 +320,8 @@ function initializeMap() {
         [50, 2]
     ];
     
-    // Genereer punten voor de cirkel (inner ring - REVERSED voor gat)
-    const circlePoints = [];
-    const numPoints = 64;
-    const earthRadius = 6371000; // meters
-    
-    for (let i = 0; i < numPoints; i++) {
-        const angle = (i * 2 * Math.PI / numPoints);
-        
-        // Bereken offset in graden
-        const latOffset = (GAME_RADIUS / earthRadius) * (180 / Math.PI) * Math.cos(angle);
-        const lngOffset = (GAME_RADIUS / earthRadius) * (180 / Math.PI) * Math.sin(angle) / Math.cos(LOCATIONS.center.lat * Math.PI / 180);
-        
-        circlePoints.unshift([LOCATIONS.center.lat + latOffset, LOCATIONS.center.lng + lngOffset]);
-    }
+    // Genereer punten voor de cirkel (inner ring = gat in het masker, 64 punten)
+    const circlePoints = getCirclePoints(LOCATIONS.center.lat, LOCATIONS.center.lng, GAME_RADIUS, 360 / 64);
     
     // Maak polygon met gat (outer counterclockwise, inner clockwise)
     inverseMask = L.polygon([outerRing, circlePoints], {
@@ -2748,20 +2736,8 @@ function createExclusionLayerFromData(exclusionData) {
                 west: 3.55
             };
             
-            // Bereken cirkel punten
-            const numPoints = 64;
-            const circlePoints = [];
-            const earthRadius = 6371000; // meters
-            
-            for (let i = 0; i < numPoints; i++) {
-                const angle = (i / numPoints) * 2 * Math.PI;
-                const latOffset = (radius / earthRadius) * (180 / Math.PI);
-                const lngOffset = (radius / (earthRadius * Math.cos(seekerLocation.lat * Math.PI / 180))) * (180 / Math.PI);
-                
-                const pointLat = seekerLocation.lat + latOffset * Math.cos(angle);
-                const pointLng = seekerLocation.lng + lngOffset * Math.sin(angle);
-                circlePoints.push([pointLat, pointLng]);
-            }
+            // Bereken cirkel punten (64 punten)
+            const circlePoints = getCirclePoints(seekerLocation.lat, seekerLocation.lng, radius, 360 / 64);
             
             // Outer box met cirkel gat
             const outerBox = [
@@ -2987,48 +2963,129 @@ function renderDiscardedView() {
 }
 
 /**
+ * Vervang de exclusion zone van een kaart door een nieuwe
+ * (verwijdert eerst de bestaande zone van hetzelfde type voor dezelfde cardIndex)
+ */
+function replaceExclusionZone(gameData, zone) {
+    gameData.exclusionZones = (gameData.exclusionZones || []).filter(ez =>
+        !(ez.type === zone.type && ez.cardIndex === zone.cardIndex)
+    );
+    gameData.exclusionZones.push(zone);
+}
+
+/**
+ * Vul de edit modal met de taak en vraag van een kaart en maak de antwoordknoppen leeg
+ * @returns {HTMLElement} De container voor de antwoordknoppen
+ */
+function prepareEditModal(card) {
+    document.getElementById('edit-card-task').textContent = card.task;
+    document.getElementById('edit-card-question').textContent = card.question;
+
+    const buttonsContainer = document.getElementById('edit-answer-buttons');
+    buttonsContainer.innerHTML = '';
+    return buttonsContainer;
+}
+
+/**
+ * Toon de edit modal met een dropdown + bevestig knop (voor POI- en wijkkeuzes)
+ * onConfirm(value) past de spelgegevens aan; geeft false terug om af te breken
+ */
+function showEditSelectModal(discardedIndex, card, originalCardIndex, config) {
+    const { options, selectId, placeholder, buttonText, emptyAlert, noOptionsText, onConfirm } = config;
+    const buttonsContainer = prepareEditModal(card);
+
+    if (options.length > 0) {
+        const select = document.createElement('select');
+        select.className = 'poi-select';
+        select.id = selectId;
+
+        // Default optie
+        const defaultOption = document.createElement('option');
+        defaultOption.value = '';
+        defaultOption.textContent = placeholder;
+        select.appendChild(defaultOption);
+
+        // Voeg alle opties toe en selecteer de huidige waarde indien beschikbaar
+        const currentAnswer = getDiscardedAnswer(discardedIndex);
+        options.forEach(name => {
+            const option = document.createElement('option');
+            option.value = name;
+            option.textContent = name;
+            if (currentAnswer === name) {
+                option.selected = true;
+            }
+            select.appendChild(option);
+        });
+
+        buttonsContainer.appendChild(select);
+
+        // Bevestig knop
+        const btn = document.createElement('button');
+        btn.className = 'btn-answer';
+        btn.textContent = buttonText;
+        btn.onclick = () => {
+            const value = select.value;
+            if (!value) {
+                alert(emptyAlert);
+                return;
+            }
+
+            if (onConfirm(value) === false) return;
+
+            // Update discarded answer
+            saveDiscardedAnswer(discardedIndex, value, card.task, originalCardIndex);
+
+            // Update visualisatie
+            updateExclusionZones();
+            closeEditModal();
+            renderDiscardedView();
+            renderFlopView();
+        };
+        buttonsContainer.appendChild(btn);
+    } else {
+        buttonsContainer.innerHTML = `<p>${noOptionsText}</p>`;
+    }
+
+    // Toon modal
+    document.getElementById('edit-answer-modal').classList.remove('hidden');
+}
+
+/**
  * Bewerk het antwoord van een opgeloste kaart
  */
 function editDiscardedAnswer(discardedIndex) {
     if (!cardManager) return;
-    
+
     const card = cardManager.discarded[discardedIndex];
     if (!card) return;
-    
+
     // Check of dit een SameOrAdjacentNeighborhood vraag is
     if (card.answerType === 'SameOrAdjacentNeighborhood') {
         // Voor neighborhood vragen, gebruik de speciale modal
         editNeighborhoodDiscardedAnswer(discardedIndex);
         return;
     }
-    
+
     // Check of dit een FurthestDistance vraag is
     if (card.answerType === 'FurthestDistance') {
         // Voor FurthestDistance vragen, gebruik een speciale modal met dropdown
         editFurthestDistanceDiscardedAnswer(discardedIndex);
         return;
     }
-    
+
     // Check of dit een eliminateNeighborhood vraag is
     if (card.answerType === 'eliminateNeighborhood') {
         // Voor eliminateNeighborhood vragen, gebruik een speciale modal met dropdown
         editEliminateNeighborhoodDiscardedAnswer(discardedIndex);
         return;
     }
-    
+
     // Toon modal met kaart en antwoordknoppen
-    const modal = document.getElementById('edit-answer-modal');
-    const taskEl = document.getElementById('edit-card-task');
-    const questionEl = document.getElementById('edit-card-question');
-    const buttonsContainer = document.getElementById('edit-answer-buttons');
-    
-    taskEl.textContent = card.task;
-    questionEl.textContent = card.question;
-    
+    const buttonsContainer = prepareEditModal(card);
+
     // Genereer antwoordknoppen op basis van vraag
-    buttonsContainer.innerHTML = '';
     const buttons = getAnswerButtonsForQuestion(card.question);
-    
+
     buttons.forEach(answer => {
         const btn = document.createElement('button');
         btn.className = 'btn-answer';
@@ -3037,27 +3094,20 @@ function editDiscardedAnswer(discardedIndex) {
             // Haal de originele cardIndex op
             const discardedData = getDiscardedAnswerData(discardedIndex);
             const originalCardIndex = discardedData?.originalCardIndex;
-            
+
             saveDiscardedAnswer(discardedIndex, answer, card.task, originalCardIndex);
-            
+
             // Laad gameData ÉÉN KEER voor alle updates
             const gameData = loadGameData();
-            
-            // Update voor radiusProximity kaarten: update exclusionZones entry
+
+            // Update voor radiusProximity kaarten: vervang exclusionZones entry
             if (card.answerType === 'radiusProximity') {
-                gameData.exclusionZones = gameData.exclusionZones || [];
-                
-                // Verwijder bestaande zone voor deze kaart
-                gameData.exclusionZones = gameData.exclusionZones.filter(ez => 
-                    !(ez.type === 'radiusProximity' && ez.cardIndex === originalCardIndex)
-                );
-                
                 // Map tekst naar waarde
                 const answerMap = { 'Ja': 'yes', 'Nee': 'no' };
                 const answerValue = answerMap[answer] || 'no';
-                
-                // Voeg nieuwe zone toe met huidige kaartparams
-                gameData.exclusionZones.push({
+
+                // Nieuwe zone met huidige kaartparams
+                replaceExclusionZone(gameData, {
                     type: 'radiusProximity',
                     answer: answerValue,
                     poiType: card.poiType,
@@ -3065,19 +3115,19 @@ function editDiscardedAnswer(discardedIndex) {
                     cardIndex: originalCardIndex
                 });
             }
-            
+
             // Voor kaarten die NIET exclusionOnly zijn: update opponent answer
             const exclusionOnlyTypes = ['radiusProximity', 'eliminateNeighborhood', 'SameOrAdjacentNeighborhood'];
-            
+
             if (!exclusionOnlyTypes.includes(card.answerType)) {
                 // Zorg ervoor dat cardAnswers array bestaat
                 if (!gameData.cardAnswers) {
                     gameData.cardAnswers = [];
                 }
-                
+
                 // Update de opponent answer (in dezelfde gameData!)
                 let updated = false;
-                
+
                 // Methode 1: Via card.id (meest betrouwbaar)
                 if (card.id) {
                     const answerEntry = gameData.cardAnswers.find(a => a.cardId === card.id);
@@ -3086,7 +3136,7 @@ function editDiscardedAnswer(discardedIndex) {
                         updated = true;
                     }
                 }
-                
+
                 // Methode 2: Via originele cardIndex
                 if (!updated && originalCardIndex !== null && originalCardIndex !== undefined) {
                     const answerEntry = gameData.cardAnswers.find(a => a.cardIndex === originalCardIndex);
@@ -3095,7 +3145,7 @@ function editDiscardedAnswer(discardedIndex) {
                         updated = true;
                     }
                 }
-                
+
                 // Methode 3: Via cardTask
                 if (!updated) {
                     const answerEntry = gameData.cardAnswers.find(a => a.cardTask === card.task);
@@ -3104,7 +3154,7 @@ function editDiscardedAnswer(discardedIndex) {
                         updated = true;
                     }
                 }
-                
+
                 // Als geen entry gevonden: maak nieuwe entry aan
                 if (!updated) {
                     console.log('Creating new cardAnswer entry for card:', card.task);
@@ -3114,17 +3164,12 @@ function editDiscardedAnswer(discardedIndex) {
                         cardIndex: originalCardIndex,
                         opponentAnswer: answer
                     });
-                    updated = true;
-                }
-                
-                if (!updated) {
-                    console.warn('Could not update opponent answer for card:', card.task);
                 }
             }
-            
+
             // Sla gameData ÉÉN KEER op
             saveGameData(gameData);
-            
+
             updateExclusionZones(); // Update kaart zones
             closeEditModal();
             renderDiscardedView(); // Refresh discarded view
@@ -3132,9 +3177,9 @@ function editDiscardedAnswer(discardedIndex) {
         };
         buttonsContainer.appendChild(btn);
     });
-    
+
     // Toon modal
-    modal.classList.remove('hidden');
+    document.getElementById('edit-answer-modal').classList.remove('hidden');
 }
 
 /**
@@ -3142,14 +3187,14 @@ function editDiscardedAnswer(discardedIndex) {
  */
 function editNeighborhoodDiscardedAnswer(discardedIndex) {
     if (!cardManager) return;
-    
+
     const card = cardManager.discarded[discardedIndex];
     if (!card) return;
-    
+
     // Haal de originele cardIndex op
     const discardedData = getDiscardedAnswerData(discardedIndex);
     let originalCardIndex = discardedData?.originalCardIndex;
-    
+
     // Als originalCardIndex niet bestaat, zoek dan de exclusion zone voor deze kaart
     // en gebruik die cardIndex (voor backwards compatibility)
     if (originalCardIndex === undefined || originalCardIndex === null) {
@@ -3161,111 +3206,67 @@ function editNeighborhoodDiscardedAnswer(discardedIndex) {
             originalCardIndex = existingZone.cardIndex;
         }
     }
-    
+
     // Open neighborhood modal met speciale handler voor discarded cards
     const modal = document.getElementById('neighborhood-answer-modal');
     const neighborhoodSelect = document.getElementById('neighborhood-select');
     const answerSelect = document.getElementById('neighborhood-answer');
-    const currentNeighborhoodDisplay = document.getElementById('current-neighborhood-display');
     const neighborhoodInfo = document.getElementById('neighborhood-info');
     const confirmBtn = document.getElementById('confirm-neighborhood-btn');
-    
-    // Haal huidige locatie op
-    const gameData = loadGameData();
-    const currentLocation = gameData.location;
-    
-    // Bepaal huidige wijk
-    let currentNeighborhood = null;
-    if (currentLocation) {
-        currentNeighborhood = getNeighborhoodAtLocation(currentLocation.lat, currentLocation.lng);
-    }
-    
-    if (currentNeighborhood) {
-        currentNeighborhoodDisplay.textContent = currentNeighborhood.name;
-    } else if (!currentLocation) {
-        currentNeighborhoodDisplay.textContent = 'Geen locatie ingesteld - Selecteer hieronder';
-    } else {
-        currentNeighborhoodDisplay.textContent = 'Onbekend (niet in een wijk)';
-    }
-    
-    // Vul de dropdown met alle wijken
-    neighborhoodSelect.innerHTML = '<option value="">-- Kies een wijk --</option>';
-    CITY_NEIGHBORHOODS.forEach((neighborhood, index) => {
-        const option = document.createElement('option');
-        option.value = neighborhood.name;
-        option.textContent = neighborhood.name;
-        
-        if (currentNeighborhood && neighborhood.name === currentNeighborhood.name) {
-            option.selected = true;
-        } else if (!currentLocation && index === 0) {
-            option.selected = true;
-        }
-        
-        neighborhoodSelect.appendChild(option);
-    });
-    
+
+    fillNeighborhoodSelect();
+
     // Reset velden
     answerSelect.value = '';
     neighborhoodInfo.classList.add('hidden');
-    
+
     // Sla discarded index op voor later gebruik
     modal.dataset.discardedIndex = discardedIndex;
     modal.dataset.editMode = 'true';
     delete modal.dataset.cardIndex;
-    
+
     // Verwijder oude event listener en voeg nieuwe toe
     const newConfirmBtn = confirmBtn.cloneNode(true);
     confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
-    
+
     newConfirmBtn.addEventListener('click', () => {
         const selectedNeighborhood = neighborhoodSelect.value;
         const answer = answerSelect.value;
-        
+
         if (!selectedNeighborhood || !answer) {
             alert('Selecteer zowel een wijk als een antwoord!');
             return;
         }
-        
+
         // Vind buurwijken
         const adjacentNeighborhoods = getAdjacentNeighborhoods(selectedNeighborhood);
         const allowedNeighborhoods = [selectedNeighborhood, ...adjacentNeighborhoods];
-        
-        // Update exclusion zones
+
+        // Vervang de neighborhood exclusion voor deze kaart
         const gameData = loadGameData();
-        if (!gameData.exclusionZones) {
-            gameData.exclusionZones = [];
-        }
-        
-        // Verwijder ALLE oude neighborhood exclusions voor deze kaart (indien aanwezig)
-        // Filter op type EN cardIndex om ervoor te zorgen dat alle neighborhood zones worden verwijderd
-        gameData.exclusionZones = gameData.exclusionZones.filter(ez => 
-            !(ez.type === 'neighborhood' && ez.cardIndex === originalCardIndex)
-        );
-        
-        // Voeg nieuwe toe
-        gameData.exclusionZones.push({
+        replaceExclusionZone(gameData, {
             type: 'neighborhood',
             answer: answer,
             selectedNeighborhood: selectedNeighborhood,
             allowedNeighborhoods: allowedNeighborhoods,
             cardIndex: originalCardIndex
         });
-        
+
         saveGameData(gameData);
-        
+
         // Update discarded answer
         saveDiscardedAnswer(discardedIndex, answer === 'yes' ? 'Ja' : 'Nee', card.task, originalCardIndex);
-        
+
         // Update visualisatie
         updateExclusionZones();
         closeNeighborhoodModal();
         renderDiscardedView();
-        
+
         // Reset modal state
         delete modal.dataset.discardedIndex;
         delete modal.dataset.editMode;
     });
-    
+
     // Toon modal
     modal.classList.remove('hidden');
 }
@@ -3275,95 +3276,44 @@ function editNeighborhoodDiscardedAnswer(discardedIndex) {
  */
 function editFurthestDistanceDiscardedAnswer(discardedIndex) {
     if (!cardManager) return;
-    
+
     const card = cardManager.discarded[discardedIndex];
     if (!card) return;
-    
+
     // Haal de originele cardIndex op
     const discardedData = getDiscardedAnswerData(discardedIndex);
     const originalCardIndex = discardedData?.originalCardIndex;
-    
-    // Toon modal met kaart en POI dropdown
-    const modal = document.getElementById('edit-answer-modal');
-    const taskEl = document.getElementById('edit-card-task');
-    const questionEl = document.getElementById('edit-card-question');
-    const buttonsContainer = document.getElementById('edit-answer-buttons');
-    
-    taskEl.textContent = card.task;
-    questionEl.textContent = card.question;
-    
+
     // Haal POIs op
     const poiType = card.poiType || 'colruyts';
     const pois = getPOIsByType(poiType);
-    
-    // Genereer dropdown + bevestig knop
-    buttonsContainer.innerHTML = '';
-    
-    if (pois.length > 0) {
-        const select = document.createElement('select');
-        select.className = 'poi-select';
-        select.id = `edit-poi-select-${discardedIndex}`;
-        
-        // Default optie
-        const defaultOption = document.createElement('option');
-        defaultOption.value = '';
-        defaultOption.textContent = `Selecteer ${poiType}...`;
-        select.appendChild(defaultOption);
-        
-        // Voeg alle POIs toe
-        pois.forEach(poi => {
-            const option = document.createElement('option');
-            option.value = poi.name;
-            option.textContent = poi.name;
-            
-            // Selecteer de huidige waarde indien beschikbaar
-            const currentAnswer = getDiscardedAnswer(discardedIndex);
-            if (currentAnswer === poi.name) {
-                option.selected = true;
-            }
-            
-            select.appendChild(option);
-        });
-        
-        buttonsContainer.appendChild(select);
-        
-        // Bevestig knop
-        const btn = document.createElement('button');
-        btn.className = 'btn-answer';
-        btn.textContent = 'Bevestig';
-        btn.onclick = () => {
-            const selectedPOI = select.value;
-            if (!selectedPOI) {
-                alert(`Selecteer eerst een ${poiType}`);
-                return;
-            }
-            
+
+    showEditSelectModal(discardedIndex, card, originalCardIndex, {
+        options: pois.map(poi => poi.name),
+        selectId: `edit-poi-select-${discardedIndex}`,
+        placeholder: `Selecteer ${poiType}...`,
+        buttonText: 'Bevestig',
+        emptyAlert: `Selecteer eerst een ${poiType}`,
+        noOptionsText: 'Geen POIs beschikbaar',
+        onConfirm: (selectedPOI) => {
             const selectedPOIData = pois.find(p => p.name === selectedPOI);
             if (!selectedPOIData) {
                 console.error('POI niet gevonden:', selectedPOI);
-                return;
+                return false;
             }
-            
+
             // Laad gameData ÉÉN KEER
             const gameData = loadGameData();
-            if (!gameData.exclusionZones) {
-                gameData.exclusionZones = [];
-            }
-            
-            // Verwijder oude furthestDistance exclusion voor deze kaart
-            gameData.exclusionZones = gameData.exclusionZones.filter(ez => 
-                !(ez.type === 'furthestDistance' && ez.cardIndex === originalCardIndex)
-            );
-            
-            // Voeg nieuwe zone toe
-            gameData.exclusionZones.push({
+
+            // Vervang de furthestDistance exclusion voor deze kaart
+            replaceExclusionZone(gameData, {
                 type: 'furthestDistance',
                 answer: selectedPOI,
                 poiType: poiType,
                 selectedPOI: selectedPOIData,
                 cardIndex: originalCardIndex
             });
-            
+
             // Update de opponent answer (in dezelfde gameData!)
             if (card.id) {
                 const answerEntry = gameData.cardAnswers.find(a => a.cardId === card.id);
@@ -3376,26 +3326,11 @@ function editFurthestDistanceDiscardedAnswer(discardedIndex) {
                     }
                 }
             }
-            
+
             // Sla gameData ÉÉN KEER op
             saveGameData(gameData);
-            
-            // Update discarded answer
-            saveDiscardedAnswer(discardedIndex, selectedPOI, card.task, originalCardIndex);
-            
-            // Update visualisatie
-            updateExclusionZones();
-            closeEditModal();
-            renderDiscardedView();
-            renderFlopView();
-        };
-        buttonsContainer.appendChild(btn);
-    } else {
-        buttonsContainer.innerHTML = '<p>Geen POIs beschikbaar</p>';
-    }
-    
-    // Toon modal
-    modal.classList.remove('hidden');
+        }
+    });
 }
 
 /**
@@ -3403,109 +3338,41 @@ function editFurthestDistanceDiscardedAnswer(discardedIndex) {
  */
 function editEliminateNeighborhoodDiscardedAnswer(discardedIndex) {
     if (!cardManager) return;
-    
+
     const card = cardManager.discarded[discardedIndex];
     if (!card) return;
-    
+
     // Haal de originele cardIndex op
     const discardedData = getDiscardedAnswerData(discardedIndex);
     const originalCardIndex = discardedData?.originalCardIndex;
-    
-    // Toon modal met kaart en wijk dropdown
-    const modal = document.getElementById('edit-answer-modal');
-    const taskEl = document.getElementById('edit-card-task');
-    const questionEl = document.getElementById('edit-card-question');
-    const buttonsContainer = document.getElementById('edit-answer-buttons');
-    
-    taskEl.textContent = card.task;
-    questionEl.textContent = card.question;
-    
-    // Genereer dropdown + bevestig knop
-    buttonsContainer.innerHTML = '';
-    
-    if (CITY_NEIGHBORHOODS && CITY_NEIGHBORHOODS.length > 0) {
-        const select = document.createElement('select');
-        select.className = 'poi-select';
-        select.id = `edit-neighborhood-select-${discardedIndex}`;
-        
-        // Default optie
-        const defaultOption = document.createElement('option');
-        defaultOption.value = '';
-        defaultOption.textContent = 'Selecteer te elimineren wijk...';
-        select.appendChild(defaultOption);
-        
-        // Voeg alle wijken toe
-        CITY_NEIGHBORHOODS.forEach(neighborhood => {
-            const option = document.createElement('option');
-            option.value = neighborhood.name;
-            option.textContent = neighborhood.name;
-            
-            // Selecteer de huidige waarde indien beschikbaar
-            const currentAnswer = getDiscardedAnswer(discardedIndex);
-            if (currentAnswer === neighborhood.name) {
-                option.selected = true;
-            }
-            
-            select.appendChild(option);
-        });
-        
-        buttonsContainer.appendChild(select);
-        
-        // Bevestig knop
-        const btn = document.createElement('button');
-        btn.className = 'btn-answer';
-        btn.textContent = 'Elimineer Wijk';
-        btn.onclick = () => {
-            const selectedNeighborhood = select.value;
-            if (!selectedNeighborhood) {
-                alert('Selecteer eerst een wijk om te elimineren');
-                return;
-            }
-            
+
+    showEditSelectModal(discardedIndex, card, originalCardIndex, {
+        options: (CITY_NEIGHBORHOODS || []).map(neighborhood => neighborhood.name),
+        selectId: `edit-neighborhood-select-${discardedIndex}`,
+        placeholder: 'Selecteer te elimineren wijk...',
+        buttonText: 'Elimineer Wijk',
+        emptyAlert: 'Selecteer eerst een wijk om te elimineren',
+        noOptionsText: 'Geen wijken beschikbaar',
+        onConfirm: (selectedNeighborhood) => {
             const neighborhoodData = CITY_NEIGHBORHOODS.find(n => n.name === selectedNeighborhood);
             if (!neighborhoodData) {
                 console.error('Wijk niet gevonden:', selectedNeighborhood);
-                return;
+                return false;
             }
-            
-            // Update exclusion zones
+
+            // Vervang de eliminateNeighborhood exclusion voor deze kaart
             const gameData = loadGameData();
-            if (!gameData.exclusionZones) {
-                gameData.exclusionZones = [];
-            }
-            
-            // Verwijder oude eliminateNeighborhood exclusion voor deze kaart
-            gameData.exclusionZones = gameData.exclusionZones.filter(ez => 
-                !(ez.type === 'eliminateNeighborhood' && ez.cardIndex === originalCardIndex)
-            );
-            
-            // Voeg nieuwe zone toe
-            gameData.exclusionZones.push({
+            replaceExclusionZone(gameData, {
                 type: 'eliminateNeighborhood',
                 answer: selectedNeighborhood,
                 neighborhoodData: neighborhoodData,
                 cardIndex: originalCardIndex
             });
-            
+
             // Sla gameData ÉÉN KEER op
             saveGameData(gameData);
-            
-            // Update discarded answer
-            saveDiscardedAnswer(discardedIndex, selectedNeighborhood, card.task, originalCardIndex);
-            
-            // Update visualisatie
-            updateExclusionZones();
-            closeEditModal();
-            renderDiscardedView();
-            renderFlopView();
-        };
-        buttonsContainer.appendChild(btn);
-    } else {
-        buttonsContainer.innerHTML = '<p>Geen wijken beschikbaar</p>';
-    }
-    
-    // Toon modal
-    modal.classList.remove('hidden');
+        }
+    });
 }
 
 /**
@@ -3517,13 +3384,12 @@ function closeEditModal() {
 }
 
 /**
- * Opent de neighborhood answer modal voor SameOrAdjacentNeighborhood vragen
+ * Toon de wijk van de opgeslagen locatie en vul de wijk-dropdown
+ * (selecteert de huidige wijk, of de eerste wijk als er geen locatie is)
  */
-function openNeighborhoodModal(cardIndex) {
-    const modal = document.getElementById('neighborhood-answer-modal');
+function fillNeighborhoodSelect() {
     const neighborhoodSelect = document.getElementById('neighborhood-select');
     const currentNeighborhoodDisplay = document.getElementById('current-neighborhood-display');
-    const neighborhoodInfo = document.getElementById('neighborhood-info');
     
     // Haal huidige locatie op
     const gameData = loadGameData();
@@ -3559,6 +3425,16 @@ function openNeighborhoodModal(cardIndex) {
         
         neighborhoodSelect.appendChild(option);
     });
+}
+
+/**
+ * Opent de neighborhood answer modal voor SameOrAdjacentNeighborhood vragen
+ */
+function openNeighborhoodModal(cardIndex) {
+    const modal = document.getElementById('neighborhood-answer-modal');
+    const neighborhoodInfo = document.getElementById('neighborhood-info');
+
+    fillNeighborhoodSelect();
     
     // Reset andere velden
     document.getElementById('neighborhood-answer').value = '';
@@ -3591,46 +3467,11 @@ function closeNeighborhoodModal() {
  */
 function openNeighborhoodModalWithAnswer(cardIndex, answer) {
     const modal = document.getElementById('neighborhood-answer-modal');
-    const neighborhoodSelect = document.getElementById('neighborhood-select');
     const answerSelect = document.getElementById('neighborhood-answer');
-    const currentNeighborhoodDisplay = document.getElementById('current-neighborhood-display');
     const neighborhoodInfo = document.getElementById('neighborhood-info');
-    
-    // Haal huidige locatie op
-    const gameData = loadGameData();
-    const currentLocation = gameData.location;
-    
-    // Bepaal huidige wijk (indien locatie beschikbaar)
-    let currentNeighborhood = null;
-    if (currentLocation) {
-        currentNeighborhood = getNeighborhoodAtLocation(currentLocation.lat, currentLocation.lng);
-    }
-    
-    if (currentNeighborhood) {
-        currentNeighborhoodDisplay.textContent = currentNeighborhood.name;
-    } else if (!currentLocation) {
-        currentNeighborhoodDisplay.textContent = 'Geen locatie ingesteld - Selecteer hieronder';
-    } else {
-        currentNeighborhoodDisplay.textContent = 'Onbekend (niet in een wijk)';
-    }
-    
-    // Vul de dropdown met alle wijken
-    neighborhoodSelect.innerHTML = '<option value="">-- Kies een wijk --</option>';
-    CITY_NEIGHBORHOODS.forEach((neighborhood, index) => {
-        const option = document.createElement('option');
-        option.value = neighborhood.name;
-        option.textContent = neighborhood.name;
-        
-        // Selecteer huidige wijk, of eerste wijk als geen locatie
-        if (currentNeighborhood && neighborhood.name === currentNeighborhood.name) {
-            option.selected = true;
-        } else if (!currentLocation && index === 0) {
-            option.selected = true;
-        }
-        
-        neighborhoodSelect.appendChild(option);
-    });
-    
+
+    fillNeighborhoodSelect();
+
     // Zet het antwoord (Ja of Nee) vooraf in
     const answerValue = answer === 'Ja' ? 'yes' : 'no';
     answerSelect.value = answerValue;
