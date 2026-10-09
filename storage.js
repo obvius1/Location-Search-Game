@@ -50,7 +50,6 @@ function loadGameData() {
 function saveGameData(data) {
     try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-        console.log('Game data saved:', data);
         return true;
     } catch (error) {
         console.error('Error saving game data:', error);
@@ -344,7 +343,6 @@ function resetGameData() {
     }
     keysToRemove.forEach(key => localStorage.removeItem(key));
     
-    console.log('Game data reset (inclusief card manager state, antwoorden, checklist en discarded answers)');
     return true;
 }
 

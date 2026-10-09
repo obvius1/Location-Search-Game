@@ -34,7 +34,6 @@ async function loadZones() {
         // Laad locations
         if (data.locations) {
             LOCATIONS = data.locations;
-            console.log(`Locations geladen: ${Object.keys(LOCATIONS).length} POIs`);
         }
         
         // Converteer GeoJSON coordinaten naar ons formaat
@@ -47,7 +46,6 @@ async function loadZones() {
                 lng: coord[0],
                 lat: coord[1]
             }));
-            console.log(`R40 polygon geladen: ${R40_POLYGON.length} punten`);
         }
         
         // Laad Leie-Schelde LineString
@@ -57,13 +55,11 @@ async function loadZones() {
                 lng: coord[0],
                 lat: coord[1]
             }));
-            console.log(`Leie-Schelde lijn geladen: ${LEIE_SCHELDE_LINE.length} punten`);
         }
         
         // Laad POI Collections (bijv. libraries)
         if (data.poi_collections) {
             POI_COLLECTIONS = data.poi_collections;
-            console.log(`POI Collections geladen:`, Object.keys(POI_COLLECTIONS));
         }
         
         return data;
@@ -91,7 +87,6 @@ async function loadRailwayData() {
                     lng: coord[0],
                     lat: coord[1]
                 }));
-                console.log(`Spoorlijn Oostende-Antwerpen geladen: ${RAILWAY_LINE.length} punten`);
             }
         }
         
@@ -105,7 +100,6 @@ async function loadRailwayData() {
                     lng: coord[0],
                     lat: coord[1]
                 }));
-                console.log(`Spoorlijn buffer zone geladen: ${RAILWAY_BUFFER.length} punten`);
             }
         }
         
@@ -140,7 +134,6 @@ async function loadNeighborhoods() {
             geojson: feature  // Bewaar origineel voor Leaflet
         }));
         
-        console.log(`Stadswijken geladen: ${CITY_NEIGHBORHOODS.length} wijken`);
         return CITY_NEIGHBORHOODS;
     } catch (error) {
         console.error('Fout bij laden stadswijken:', error);

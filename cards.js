@@ -17,7 +17,6 @@ async function loadCards() {
         }
         const data = await response.json();
         GAME_CARDS = data;
-        console.log(`Kaarten geladen: ${GAME_CARDS.cards.length} kaarten, ${GAME_CARDS.hiderChecklist?.length || 0} checklist items`);
         return data;
     } catch (error) {
         console.error('Fout bij laden kaarten:', error);

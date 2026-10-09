@@ -114,8 +114,6 @@ window.addEventListener('beforeunload', () => {
 
 // Initialize
 document.addEventListener('DOMContentLoaded', async () => {
-    console.log('Gent Location Game geladen!');
-    
     // Laad zone data, wijken en kaarten
     await loadZones();
     await loadNeighborhoods();
@@ -144,8 +142,6 @@ function loadSavedGameData() {
     
     // Check of er een actief spel is
     if (hasActiveGame()) {
-        console.log('Actief spel gevonden:', gameData);
-        
         // Herstel seed
         if (gameData.seed) {
             seedInput.value = gameData.seed;
@@ -156,7 +152,6 @@ function loadSavedGameData() {
         // Herstel locatie
         if (gameData.location) {
             const loc = gameData.location;
-            console.log('Locatie hersteld:', loc);
             
             // Plaats marker op opgeslagen locatie
             if (!currentLocationMarker) {
@@ -475,8 +470,6 @@ function drawNeighborhoods() {
         
         neighborhoodLayers.push(label);
     });
-    
-    console.log(`${CITY_NEIGHBORHOODS.length} wijken getekend op kaart`);
 }
 
 /**
@@ -879,7 +872,6 @@ function handleStartGame() {
     const isNewSeed = !gameData.seed || gameData.seed !== seed;
     
     if (isNewSeed) {
-        console.log('Nieuwe seed gedetecteerd - reset card manager state');
         // Wis oude card manager state en antwoorden voor nieuw spel
         localStorage.removeItem('cardManagerState');
         localStorage.removeItem('opponentAnswers');
@@ -893,7 +885,6 @@ function handleStartGame() {
         const savedState = loadCardManagerState();
         if (savedState && savedState.flop) {
             cardManager.restoreFlop(savedState.flop, savedState.discarded, savedState.deckIndex);
-            console.log('Card manager state hersteld voor bestaande seed');
         }
     }
     
@@ -916,8 +907,6 @@ function handleStartGame() {
     
     // Update POI markers op basis van flop
     updatePOIMarkers();
-    
-    console.log(`Spel gestart met seed: ${seed}, ${cardManager.getFlop().length} kaarten in flop`);
 }
 
 /**
@@ -934,7 +923,6 @@ async function handleGetGPS() {
     
     try {
         const location = await getCurrentLocation();
-        console.log('GPS locatie ontvangen:', location);
         
         // Update of voeg DRAGGABLE marker toe op kaart
         if (currentLocationMarker) {
@@ -1027,7 +1015,6 @@ function handleConfirmLocation() {
     
     // Haal de huidige marker positie op
     const position = currentLocationMarker.getLatLng();
-    console.log('Locatie bevestigd:', position);
     
     // Maak marker niet meer draggable
     currentLocationMarker.dragging.disable();
@@ -1251,21 +1238,14 @@ function displayQuestions(checks) {
 function loadHiderChecklist() {
     // Check of checklist al voltooid is (knop is geklikt)
     if (isChecklistCompleted()) {
-        console.log('Checklist already completed, skipping...');
         handleCompleteChecklist();
         return;
     }
-    
-    console.log('Loading hider checklist...');
-    console.log('GAME_CARDS:', GAME_CARDS);
-    console.log('GAME_CARDS.hiderChecklist:', GAME_CARDS.hiderChecklist);
-    console.log('GAME_CARDS.cards:', GAME_CARDS.cards);
     
     checklistSection.classList.remove('hidden');
     
     // Haal checklist items op uit GAME_CARDS data
     const checklist = GAME_CARDS.hiderChecklist || [];
-    console.log('Checklist items:', checklist);
     
     // Als er geen checklist is, toon een foutmelding
     if (checklist.length === 0) {
@@ -1279,7 +1259,6 @@ function loadHiderChecklist() {
     const savedState = loadChecklistState();
     if (savedState && savedState.length === checklist.length) {
         checklistCompleted = savedState;
-        console.log('Restored checklist state:', checklistCompleted);
     } else {
         checklistCompleted = new Array(checklist.length).fill(false);
     }
@@ -2601,8 +2580,6 @@ function createExclusionLayerFromData(exclusionData) {
         const { answer, poiType, radius } = exclusionData;
         const pois = getPOIsByType(poiType);
         
-        console.log(`Creating exclusion zones: type=radiusProximity, answer=${answer}, poiType=${poiType}, radius=${radius}, pois=${pois.length}`);
-        
         if (pois.length === 0) {
             console.warn(`No POIs found for type: ${poiType}`);
             return null;
@@ -2621,7 +2598,6 @@ function createExclusionLayerFromData(exclusionData) {
             // zodat overlappende cirkels niet dubbel rood worden.
             const excluded = polygonClipping.intersection(gameArea, polygonClipping.union(...circles));
 
-            console.log(`Created exclusion polygon for radiusProximity (no): ${excluded.length} part(s)`);
             if (excluded.length === 0) {
                 return null;
             }
@@ -2633,7 +2609,6 @@ function createExclusionLayerFromData(exclusionData) {
             // zodat overlappende cirkels NIET rood worden en de randen echte rondes zijn.
             const excluded = polygonClipping.difference(gameArea, ...circles);
 
-            console.log(`Created exclusion polygon for radiusProximity (yes): ${excluded.length} part(s)`);
             if (excluded.length === 0) {
                 return null;
             }
@@ -2714,8 +2689,6 @@ function createExclusionLayerFromData(exclusionData) {
     // Distance From Bike exclusions
     if (exclusionData.type === 'distanceFromBike') {
         const { answer, seekerLocation, radius } = exclusionData;
-        
-        console.log(`Creating exclusion zones: type=distanceFromBike, answer=${answer}, radius=${radius}`);
         
         if (!seekerLocation || !seekerLocation.lat || !seekerLocation.lng) {
             console.warn('No seeker location provided for distanceFromBike');
