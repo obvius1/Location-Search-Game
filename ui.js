@@ -485,7 +485,7 @@ function renderMore() {
         <section class="block"><h2 class="head">Jouw fiets</h2>
             ${showBike && bike
                 ? `<dl class="kv"><dt>Wijk</dt><dd>${esc(wijk ? wijk.name : 'onbekend')}</dd><dt>Coördinaten</dt><dd class="mono">${fmtCoord(bike)}</dd>
-                    <dt>Straatnaam</dt><dd>${esc(notes.straat || '')}</dd><dt>Eenrichting</dt><dd>${esc(notes.eenrichting || '')}</dd><dt>Boom binnen 5 m</dt><dd>${esc(notes.boom || '')}</dd></dl>`
+                    <dt>Straatnaam</dt><dd>${esc(notes.straat || '')}</dd><dt>Eenrichting</dt><dd>${esc(notes.eenrichting || '')}</dd><dt>Boom (min. 2 m hoog) binnen 5 m</dt><dd>${esc(notes.boom || '')}</dd></dl>`
                 : '<p class="why">Verborgen, zodat niemand de plek op je scherm ziet.</p>'}
             <button class="btn ${showBike ? '' : 'btn-quiet'}" id="toggle-bike">${showBike ? 'Fiets verbergen' : 'Toon mijn fiets'}</button></section>
         <section class="block"><h2 class="head">Spelregels</h2><ol class="rules">${RULES_LIST.map(r => `<li>${esc(r)}</li>`).join('')}</ol></section>
@@ -525,7 +525,7 @@ function renderWizard() {
         <section class="block"><h2 class="head">Notities</h2>
             <div class="field"><label for="wiz-straat">Straatnaam (volledige officiële naam)</label><input class="input" id="wiz-straat" value="${esc(w.notes.straat)}"><span class="why" id="wiz-straat-n">${w.notes.straat.length} tekens</span></div>
             <div class="field"><span class="label">Eenrichtingsstraat?</span><div class="seg" data-note="eenrichting">${['Ja', 'Nee'].map(v => `<button aria-pressed="${w.notes.eenrichting === v}">${v}</button>`).join('')}</div></div>
-            <div class="field"><span class="label">Boom (min. 2 m) binnen 5 m?</span><div class="seg" data-note="boom">${['Ja', 'Nee'].map(v => `<button aria-pressed="${w.notes.boom === v}">${v}</button>`).join('')}</div></div>
+            <div class="field"><span class="label">Boom (min. 2 m hoog) binnen 5 m?</span><div class="seg" data-note="boom">${['Ja', 'Nee'].map(v => `<button aria-pressed="${w.notes.boom === v}">${v}</button>`).join('')}</div></div>
         </section>
         <button class="btn btn-main" id="wiz-start" ${ready ? '' : 'disabled'}>${ready ? 'Start het spel' : missing}</button>
         <button class="btn btn-quiet" id="wiz-back">Terug</button>
