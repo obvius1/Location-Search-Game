@@ -26,7 +26,7 @@
       "pois": []
     },
     {
-      "task": "Maak zelf een \"tafel\" (4 poten en een horizontaal vlak) uit zaken die je op straat vindt",
+      "task": "Maak zelf een \"tafel\" (4 poten en een horizontaal vlak) uit dingen die je op straat vindt",
       "question": "Dichter bij Weba of IKEA?",
       "phase": 1,
       "answerType": "proximity",
@@ -40,15 +40,15 @@
       "pois": ["dampoort"]
     },
     {
-      "task": "Film een vogel continu voor 4 minuten, de vogel mag het beeld niet verlaten",
+      "task": "Film een vogel continu voor 2 minuten, de vogel mag het beeld niet verlaten",
       "question": "Oosten of westen van de tip van de watersportbaan?",
       "phase": 1,
       "answerType": "watersportbaan",
       "pois": ["watersportbaan"]
     },
     {
-      "task": "Binnen de 20 minuten, bezoek 3 verschillende bakkerijen (/supermarkten) en koop en eet op elke locatie een koffiekoek/taart/broodje/patisserie",
-      "question": "Binnen 800m van het de spoorlijn Oostende-Antwerpen?",
+      "task": "Bezoek binnen de 20 minuten 3 verschillende bakkerijen (of supermarkten) en koop en eet op elke plek een koffiekoek, taart, broodje of patisserie",
+      "question": "Binnen 800m van de spoorlijn Oostende-Antwerpen?",
       "phase": 1,
       "answerType": "bufferLine",
       "pois": []
@@ -79,21 +79,21 @@
     },
     {
       "task": "Bezoek een museum of historisch huis dat minder dan 1000 reviews heeft op Google Maps (lijst van geldige museums in Gent, andere kunnen beargumenteerd worden)",
-      "question": "Kopieer een vraag die al gevraagd is door de andere speler(s)",
+      "question": "Kopieer een vraag die het andere team al gesteld heeft",
       "phase": 2,
       "answerType": "copyQuestion",
       "link": "https://degentsemusea.be/musea"
     },
     {
       "task": "Ruim afval op in 4 wijken, de laatste wijk is de wijk waar de vraag wordt over gesteld",
-      "question": "Is de huidige wijk of de wijk er naast de wijk waar het item staat",
+      "question": "Staat de fiets in deze wijk of in een wijk ernaast?",
       "phase": 2,
       "answerType": "SameOrAdjacentNeighborhood",
       "pois": []
     },
     {
       "task": "Zet een X met krijt in 3 wijken die je wilt elimineren",
-      "question": "3 wijken gegeven, 1 uit die lijst moet geëlimineerd worden",
+      "question": "Noem 3 wijken: de tegenstander schrapt er één waar de fiets niet staat",
       "phase": 2,
       "answerType": "eliminateNeighborhood",
       "pois": []
@@ -126,7 +126,7 @@
       "pois": []
     },
     {
-      "task": "Neem een foto van een origineel schilderij. Het mag geen copy of reprint zijn",
+      "task": "Neem een foto van een origineel schilderij. Het mag geen kopie of reproductie zijn",
       "question": "Is de fiets binnen 1km van jouw huidige positie?",
       "phase": 2,
       "answerType": "distanceFromBike",
@@ -142,56 +142,56 @@
       "pois": []
     },
     {
-      "task": "Vind iets dat vernoemd is naar Artevelde of waar hij op afgebeeld staat(arteveldestraat/plein/beeld/winkel/)",
-      "question": "Staat het in een eenrichtingsstraat?",
+      "task": "Vind iets dat vernoemd is naar Artevelde of waar hij op afgebeeld staat (straat, plein, beeld, winkel, ...)",
+      "question": "Staat de fiets in een eenrichtingsstraat?",
       "phase": 3,
       "requiresAnswer": false
     },
     {
       "task": "Fotografeer iets waar het logo van een Gentse voetbalploeg op staat",
-      "question": "Foto Links",
+      "question": "Foto naar links",
       "phase": 3,
       "requiresAnswer": false
     },
     {
       "task": "Foto gele fiets (minstens 50% van de fiets is geel)",
-      "question": "Foto Rechts",
+      "question": "Foto naar rechts",
       "phase": 3,
       "requiresAnswer": false
     },
     {
-      "task": "Neem 3 foto's met 1 verschillend zoogdier op (geen mensen)",
-      "question": "Foto Achter",
+      "task": "Neem 3 foto's, elk van een ander zoogdier (geen mensen)",
+      "question": "Foto naar achteren",
       "phase": 3,
       "requiresAnswer": false
     },
     {
       "task": "Herplant een plantje van een park naar een ander park",
-      "question": "Foto Voor",
+      "question": "Foto naar voren",
       "phase": 3,
       "requiresAnswer": false
     },
     {
       "task": "Fotografeer een gedicht op een muur/raam dat van op straat zichtbaar is",
-      "question": "Foto naar onder",
+      "question": "Foto naar beneden",
       "phase": 3,
       "requiresAnswer": false
     },
     {
       "task": "Fotografeer 4 deuren, elk met een andere dominante kleur. Maak per deur een aparte foto. (Geldige kleuren: geel, rood, blauw, oranje, groen, paars, zwart, wit)",
-      "question": "Foto dichtstbijzijnde gebouw",
+      "question": "Foto van het dichtstbijzijnde gebouw",
       "phase": 3,
       "requiresAnswer": false
     },
     {
-      "task": "Omhels een boom wijd genoeg dat de armen van geen enkele 1 persoon van de groep er rond kunnen",
-      "question": "Is er een boom (minstens 2m hoog) binnen de 5 meter",
+      "task": "Omhels een boom die zo dik is dat niemand van de groep er alleen de armen rond krijgt",
+      "question": "Staat er een boom (minstens 2m hoog) binnen de 5 meter?",
       "phase": 3,
       "requiresAnswer": false
     },
     {
       "task": "Foto met een gevel dat van 1875 of ervoor is (bouwjaar zichtbaar op foto)",
-      "question": "Lengte dichtstbijzijnde straatnaam (Volledige officiële naam, inclusief spaties en leestekens)",
+      "question": "Hoe lang is de dichtstbijzijnde straatnaam? (volledige officiële naam, met spaties en leestekens)",
       "phase": 3,
       "requiresAnswer": false
     }

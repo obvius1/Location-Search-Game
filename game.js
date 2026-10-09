@@ -7,7 +7,7 @@ const SHOW_BIKE_KEY = 'showBike';
 const PHOTO_QUESTIONS = [
     [/links/i, 'naar links', 'links'],
     [/rechts/i, 'naar rechts', 'rechts'],
-    [/voor/i, 'naar voren', 'voren'],
+    [/voor|voren/i, 'naar voren', 'voren'],
     [/achter/i, 'naar achteren', 'achteren'],
     [/onder|beneden/i, 'naar beneden', 'beneden'],
     [/gebouw/i, 'van het dichtstbijzijnde gebouw', 'gebouw']
@@ -26,7 +26,11 @@ const Game = {
         this.cm = new CardManager(data.seed);
         try {
             const saved = JSON.parse(localStorage.getItem(CARD_MANAGER_KEY));
-            if (saved && saved.flop) this.cm.restoreFlop(saved.flop, saved.discarded, saved.deckIndex);
+            if (saved && saved.flop) {
+                // Opgeslagen kaarten vervangen door die uit het deck (zelfde ID), zodat aangepaste teksten meteen gelden
+                const fresh = (list) => (list || []).map(c => this.cm.deck.find(d => d.id === c.id) || c);
+                this.cm.restoreFlop(fresh(saved.flop), fresh(saved.discarded), saved.deckIndex);
+            }
         } catch (error) {
             console.warn('Kaartstand kon niet geladen worden:', error);
         }

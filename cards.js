@@ -209,14 +209,14 @@ class CardManager {
      * Check of een kaart al in de flop zit
      */
     isCardInFlop(card) {
-        return this.flop.some(c => c.task === card.task && c.question === card.question);
+        return this.flop.some(c => c.id === card.id);
     }
     
     /**
      * Check of een kaart al gediscard is
      */
     isCardDiscarded(card) {
-        return this.discarded.some(c => c.task === card.task && c.question === card.question);
+        return this.discarded.some(c => c.id === card.id);
     }
     
     /**

@@ -399,7 +399,7 @@ function seekControls(card, current) {
     }
     if (card.answerType === 'SameOrAdjacentNeighborhood') {
         const adjacent = sh.wijk ? getAdjacentNeighborhoods(sh.wijk) : [];
-        extra = `<div class="field"><label for="seek-wijk">Wijk van jullie item</label>${wijkSelect('seek-wijk', sh.wijk)}
+        extra = `<div class="field"><label for="seek-wijk">Wijk waar jullie de taak afrondden</label>${wijkSelect('seek-wijk', sh.wijk)}
             ${adjacent.length ? `<p class="why">Buurwijken: ${adjacent.map(shortWijk).map(esc).join(', ')}</p>` : ''}</div>`;
     }
     if (card.answerType === 'eliminateNeighborhood') {
@@ -739,7 +739,7 @@ function answerFromSheet(label) {
         answer.position = pos;
     }
     if (target.answerType === 'SameOrAdjacentNeighborhood') {
-        if (!sh.wijk) { sh.error = 'Kies eerst de wijk van jullie item.'; renderOverlay(); return; }
+        if (!sh.wijk) { sh.error = 'Kies eerst de wijk waar jullie de taak afrondden.'; renderOverlay(); return; }
         answer.wijk = sh.wijk;
     }
     if (target.answerType === 'eliminateNeighborhood') answer.three = [...sh.three];
