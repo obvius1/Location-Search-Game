@@ -150,6 +150,8 @@ h1, h2, h3 { font-family: var(--f-head); font-stretch: 75%; font-weight: 800; li
 .toast { position: absolute; left: 0; right: 0; top: 0; z-index: 1400; background: var(--accent); color: var(--on-accent); padding: 8px 8px 8px 16px; display: flex; align-items: center; gap: 8px; border-bottom: 2px solid var(--ink); font-size: 15px; }
 .toast .toast-text { flex: 1; min-width: 0; border: 0; background: none; color: inherit; text-align: left; padding: 6px 0; font-weight: 700; }
 .toast #undo { flex: none; border: 1.5px solid var(--on-accent); border-radius: 6px; background: none; color: var(--on-accent); font-weight: 700; padding: 8px 10px; }
+.toast-timer { position: absolute; left: 0; bottom: 0; height: 4px; width: 100%; background: var(--ink); transform-origin: left; animation-name: toast-timer; animation-timing-function: linear; animation-fill-mode: both; }
+@keyframes toast-timer { from { transform: scaleX(1); } to { transform: scaleX(0); } }
 
 /* ===== Kaart-overlay ===== */
 .map-tl { position: absolute; top: 8px; left: 8px; right: 60px; display: flex; flex-direction: column; align-items: flex-start; gap: 6px; z-index: 1000; pointer-events: none; }

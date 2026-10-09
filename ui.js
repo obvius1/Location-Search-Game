@@ -606,12 +606,13 @@ function renderOverlay() {
     const oldSheet = $('.sheet');
     const scroll = oldSheet && sheetKey === lastSheetKey ? oldSheet.scrollTop : 0;
     const sheetEnter = sheetKey !== lastSheetKey ? ' enter' : '';
-    const toastEnter = ui.toast !== lastToast ? ' enter' : '';
-    lastSheetKey = sheetKey; lastToast = ui.toast;
+    const toastEnter = ui.toast && ui.toastStart !== lastToast ? ' enter' : '';
+    lastSheetKey = sheetKey; lastToast = ui.toast ? ui.toastStart : null;
 
     let html = '';
     if (ui.toast) {
-        html += `<div class="toast${toastEnter}" role="status"><button class="toast-text" id="toast-close" aria-label="Melding sluiten">${esc(ui.toast)}</button>${ui.undoable ? '<button id="undo">Ongedaan maken</button>' : ''}</div>`;
+        html += `<div class="toast${toastEnter}" role="status"><button class="toast-text" id="toast-close" aria-label="Melding sluiten">${esc(ui.toast)}</button>${ui.undoable ? '<button id="undo">Ongedaan maken</button>' : ''}
+            <i class="toast-timer" style="animation-duration:${TOAST_MS}ms;animation-delay:-${Date.now() - ui.toastStart}ms" aria-hidden="true"></i></div>`;
     }
     if (ui.screen === 'wizard' && ui.wizard.step === 2) {
         html += wizardLocationSheet().replace('class="sheet"', `class="sheet${sheetEnter}"`);
@@ -625,12 +626,14 @@ function renderOverlay() {
     updateCheckOutput();
 }
 
+const TOAST_MS = 4500;
 let toastTimer = null;
 function showToast(text, undoable) {
     ui.toast = text;
     ui.undoable = undoable;
+    ui.toastStart = Date.now();
     clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => { ui.toast = null; ui.undoable = false; renderOverlay(); }, 4500);
+    toastTimer = setTimeout(() => { ui.toast = null; ui.undoable = false; renderOverlay(); }, TOAST_MS);
 }
 
 function afterSolve(text, drawn) {
