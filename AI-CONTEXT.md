@@ -93,7 +93,7 @@ gent-location-game/
 let cardManager = null;         // CardManager instantie
 let currentCardIndex = 0;       // Index voor single card view
 let exclusionLayers = [];       // Array van Leaflet layers op kaart
-let lastUndoAction = null;      // Snapshot voor undo van laatste kaartactie
+let lastUndoAction = null;      // Laatste kaartactie (kaart-ID + flop-staat) voor undo
 let liveMarker = null;          // Blauw bolletje (live GPS)
 let liveAccuracyCircle = null;  // Nauwkeurigheidscirkel
 let liveWatchId = null;         // watchPosition ID
@@ -237,16 +237,15 @@ Gebruikt **Sutherland-Hodgman halvevlak-knippen** (geen raster!):
 ## ↩️ Undo Systeem
 
 ### Wanneer
-- Na elk antwoord geven (handleOpponentAnswer, handleDistanceFromBikeAnswer, handleFurthestDistanceAnswer, handleEliminateNeighborhoodAnswer)
+- Na elk antwoord geven (handleOpponentAnswer, handleRadiusProximityAnswer, handleDistanceFromBikeAnswer, handleFurthestDistanceAnswer, handleEliminateNeighborhoodAnswer)
 - Na elke handmatige discard (handleDiscardCard, handleDirectDiscard, discardCardFromFlop)
 
 ### Hoe
 ```javascript
 lastUndoAction = {
+    cardId: string,     // vaste kaart-ID van de weggelegde kaart
     cardTask: string,
-    cardManagerState: { flop, discarded, deckIndex },  // deep clone
-    cardAnswersSnapshot: [...],  // deep clone
-    exclusionZonesSnapshot: [...]  // deep clone
+    cardManagerState: { flop, discarded, deckIndex }  // deep clone
 }
 ```
 
@@ -254,7 +253,7 @@ lastUndoAction = {
 - Knop `↩️ "[kaartnaam]" terugzetten` verschijnt in de **Opgeloste Kaarten** view
 - Alleen zichtbaar als `lastUndoAction !== null`
 - Overschreven bij elke nieuwe actie (altijd alleen laatste actie)
-- Na undo: volledig herstel van CardManager + storage + kaart/map update
+- Na undo: CardManager hersteld; enkel de cardAnswers/exclusionZones van die kaart (cardId) worden verwijderd, zodat latere wijzigingen aan andere kaarten behouden blijven
 
 ---
 

@@ -1437,9 +1437,16 @@ function updateCardDisplay() {
     const flop = cardManager.getFlop();
     if (flop.length === 0) {
         currentCardElement.innerHTML = '<p>Geen kaarten meer beschikbaar!</p>';
+        currentCardNumber.textContent = 0;
+        totalCards.textContent = 0;
         return;
     }
-    
+
+    // Herstel de kaartopbouw als die vervangen werd door "Geen kaarten meer" (bv. na undo van de laatste kaart)
+    if (!currentCardElement.querySelector('.card-task')) {
+        currentCardElement.innerHTML = '<div class="card-task"></div><div class="card-question"></div>';
+    }
+
     // Zorg dat index binnen bereik blijft
     if (currentCardIndex >= flop.length) {
         currentCardIndex = flop.length - 1;
@@ -1752,7 +1759,9 @@ function handleOpponentAnswer(cardIndex, answer) {
 function handleRadiusProximityAnswer(cardIndex, answer) {
     const card = cardManager.getCard(cardIndex);
     if (!card || !card.poiType || !card.radius) return;
-    
+
+    saveUndoState(cardIndex);
+
     const answerMap = { 'Ja': 'yes', 'Nee': 'no' };
     const answerValue = answerMap[answer];
     
@@ -3543,18 +3552,16 @@ function viewCardDetail(index) {
  * Discard een kaart direct zonder antwoord (voor kaarten die geen antwoord vereisen)
  */
 /**
- * Sla een snapshot op van de huidige staat vóór een kaart wordt weggelegd (voor undo)
+ * Onthoud welke kaart wordt weggelegd en de flop-staat ervoor (voor undo)
  */
 function saveUndoState(cardIndex) {
     const card = cardManager.getCard(cardIndex);
     if (!card) return;
 
-    const gameData = loadGameData();
     lastUndoAction = {
+        cardId: card.id,
         cardTask: card.task,
-        cardManagerState: JSON.parse(JSON.stringify(cardManager.getState())),
-        cardAnswersSnapshot: JSON.parse(JSON.stringify(gameData.cardAnswers || [])),
-        exclusionZonesSnapshot: JSON.parse(JSON.stringify(gameData.exclusionZones || [])),
+        cardManagerState: JSON.parse(JSON.stringify(cardManager.getState()))
     };
     updateUndoButton();
 }
@@ -3573,10 +3580,12 @@ function handleUndoLastCard() {
     cardManager.discarded = state.discarded;
     cardManager.deckIndex = state.deckIndex;
 
-    // Herstel storage
+    // Verwijder enkel het antwoord en de zone van deze kaart
+    // (wijzigingen aan andere kaarten sindsdien blijven behouden)
+    const { cardId } = lastUndoAction;
     const gameData = loadGameData();
-    gameData.cardAnswers = lastUndoAction.cardAnswersSnapshot;
-    gameData.exclusionZones = lastUndoAction.exclusionZonesSnapshot;
+    gameData.cardAnswers = (gameData.cardAnswers || []).filter(a => a.cardId !== cardId);
+    gameData.exclusionZones = (gameData.exclusionZones || []).filter(ez => ez.cardId !== cardId);
     saveGameData(gameData);
     saveCardManagerState();
 
