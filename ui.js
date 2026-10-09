@@ -314,7 +314,7 @@ function cardSheet() {
             <button class="nav-btn" data-nav="${list[pos - 1] || ''}" ${pos === 0 ? 'disabled' : ''} aria-label="Vorige kaart">‹</button>
             <button class="nav-btn" data-nav="${list[pos + 1] || ''}" ${pos === list.length - 1 ? 'disabled' : ''} aria-label="Volgende kaart">›</button></div>` : '';
     const head = `<div class="sheet-head"><span class="phase"><i class="line-mark lm${card.phase}"></i>${PHASES[card.phase]}</span>${nav}<button class="close" data-close aria-label="Sluiten">×</button></div>
-        <h2 class="task">${esc(card.task)}</h2>
+        ${sh.mode ? '' : `<h2 class="task">${esc(card.task)}</h2>`}
         <div class="ask"><div class="k">Vraag</div><div class="v">${esc(card.question)}</div></div>
         ${card.link ? `<a class="link" href="${esc(card.link)}" target="_blank" rel="noopener">Meer info</a>` : ''}`;
     const back = s ? '' : '<button class="link" data-mode="">← Andere keuze</button>';
@@ -325,7 +325,7 @@ function cardSheet() {
         const pos = livePosition();
         const ruleNote = zoneRuleOn() && pos && isPointExcluded(pos.lat, pos.lng)
             ? '<div class="note bad"><strong>Je staat in een uitgesloten zone.</strong> Volgens de optionele regel doe je deze taak hier niet.</div>' : '';
-        return head + mapLink + ruleNote + `<div class="field"><span class="label">Wie deed de taak eerst?</span>
+        return head + mapLink + ruleNote + `<div class="field sheet-foot"><span class="label">Wie deed de taak eerst?</span>
             <div class="pair"><button class="btn btn-main" data-mode="us">Wij</button><button class="btn" data-mode="them">De tegenstander</button></div></div>`;
     }
 
@@ -348,7 +348,7 @@ function cardSheet() {
             return head + chosen + mapLink + error + seekControls(copied, current) + reselect;
         }
         return head + chosen + mapLink + `<div class="field"><span class="label">Jouw antwoord over je fiets</span>${hideBlock(copied)}</div>` +
-            (s ? '<p class="why">Deze kaart is opgelost door de tegenstander.</p>' : `<button class="btn btn-main" data-them-done>Geantwoord, kaart uit de flop</button>${reselect}`);
+            (s ? '<p class="why">Deze kaart is opgelost door de tegenstander.</p>' : `${reselect}<div class="sheet-foot"><button class="btn btn-main" data-them-done>Geantwoord, kaart uit de flop</button></div>`);
     }
 
     if (sh.mode === 'us') {
@@ -356,7 +356,7 @@ function cardSheet() {
         return head + mapLink + error + seekControls(card, current) + back;
     }
     return head + mapLink + `<div class="field"><span class="label">Jouw antwoord over je fiets</span>${hideBlock(card)}</div>
-        ${s ? '<p class="why">Deze kaart is opgelost door de tegenstander.</p>' : `<button class="btn btn-main" data-them-done>Geantwoord, kaart uit de flop</button>${back}`}`;
+        ${s ? '<p class="why">Deze kaart is opgelost door de tegenstander.</p>' : `${back}<div class="sheet-foot"><button class="btn btn-main" data-them-done>Geantwoord, kaart uit de flop</button></div>`}`;
 }
 
 /** Antwoordknoppen als jullie eerst waren */
