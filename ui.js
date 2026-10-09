@@ -298,11 +298,22 @@ function closeSheet() {
     render();
 }
 
+/** Volgorde om door te bladeren: de flop zoals in de lijst, of de opgeloste kaarten */
+function sheetNavList(cardId) {
+    if (Game.solvedOf(cardId)) return [...Game.solved()].reverse().map(s => s.cardId);
+    return [1, 2, 3].flatMap(phase => Game.flop().filter(c => c.phase === phase).map(c => c.id));
+}
+
 function cardSheet() {
     const sh = ui.sheet;
     const card = Game.card(sh.cardId);
     const s = Game.solvedOf(card.id);
-    const head = `<div class="sheet-head"><span class="phase"><i class="line-mark lm${card.phase}"></i>${PHASES[card.phase]}</span><button class="close" data-close aria-label="Sluiten">×</button></div>
+    const list = sheetNavList(card.id);
+    const pos = list.indexOf(card.id);
+    const nav = list.length > 1 && pos !== -1 ? `<div class="sheet-nav">
+            <button class="nav-btn" data-nav="${list[pos - 1] || ''}" ${pos === 0 ? 'disabled' : ''} aria-label="Vorige kaart">‹</button>
+            <button class="nav-btn" data-nav="${list[pos + 1] || ''}" ${pos === list.length - 1 ? 'disabled' : ''} aria-label="Volgende kaart">›</button></div>` : '';
+    const head = `<div class="sheet-head"><span class="phase"><i class="line-mark lm${card.phase}"></i>${PHASES[card.phase]}</span>${nav}<button class="close" data-close aria-label="Sluiten">×</button></div>
         <h2 class="task">${esc(card.task)}</h2>
         <div class="ask"><div class="k">Vraag</div><div class="v">${esc(card.question)}</div></div>
         ${card.link ? `<a class="link" href="${esc(card.link)}" target="_blank" rel="noopener">Meer info</a>` : ''}`;
@@ -693,6 +704,7 @@ document.addEventListener('click', (event) => {
 
     // Kaarten
     if (t.dataset.card) { openCard(t.dataset.card); render(); fitAboveSheet(); return; }
+    if (t.dataset.nav) { openCard(t.dataset.nav); render(); $('.sheet').scrollTop = 0; fitAboveSheet(); return; }
     if (t.dataset.mode !== undefined) { ui.sheet.mode = t.dataset.mode || null; ui.sheet.copyId = null; ui.sheet.error = null; showSheetContext(); renderOverlay(); fitAboveSheet(); return; }
     if (t.dataset.copyPick) { ui.sheet.copyId = t.dataset.copyPick; showSheetContext(); renderOverlay(); fitAboveSheet(); return; }
     if (t.id === 'copy-reselect') { ui.sheet.copyId = null; showSheetContext(); renderOverlay(); fitAboveSheet(); return; }

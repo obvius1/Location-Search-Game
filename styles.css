@@ -139,6 +139,10 @@ h1, h2, h3 { font-family: var(--f-head); font-stretch: 75%; font-weight: 800; li
 .sheet-head { display: flex; align-items: center; gap: 10px; font-size: 14px; color: var(--muted); }
 .phase { display: inline-flex; align-items: center; gap: 6px; font-weight: 700; color: var(--ink); }
 .close { margin-left: auto; border: 1.5px solid var(--line); background: none; width: 42px; height: 42px; border-radius: 6px; font-size: 22px; line-height: 1; flex: none; }
+.sheet-nav { margin-left: auto; display: flex; align-items: center; gap: 6px; }
+.sheet-nav + .close { margin-left: 4px; }
+.nav-btn { border: 1.5px solid var(--line); background: none; color: var(--ink); width: 42px; height: 42px; border-radius: 6px; font-size: 24px; line-height: 1; flex: none; }
+.nav-btn:disabled { opacity: .35; }
 .task { font-size: 26px; }
 .ask { border-left: 5px solid var(--ink); padding: 4px 0 4px 12px; }
 .ask .k { font-size: 14px; color: var(--muted); }
