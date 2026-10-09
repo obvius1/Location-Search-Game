@@ -157,7 +157,7 @@ class CardManager {
   seed: "ABC123",
   location: { lat, lng, timestamp },
   cardAnswers: [{ cardId, opponentAnswer, cardTask, cardIndex, timestamp }],
-  exclusionZones: [{ type, answer, ... }],  // voor complexe zones
+  exclusionZones: [{ type, answer, cardId, ... }],  // voor complexe zones; gekoppeld aan de vaste kaart-ID (NIET aan de plek in de flop: een nieuwe kaart krijgt dezelfde plek)
   gameStarted: true,
   version: 1
 }

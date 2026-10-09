@@ -263,24 +263,6 @@ function updateOpponentAnswerByTask(cardTask, newAnswer) {
 }
 
 /**
- * Update opponent answer op basis van originele cardIndex
- */
-function updateOpponentAnswerByIndex(originalCardIndex, newAnswer) {
-    const data = loadGameData();
-    
-    // Zoek de opponent answer met deze cardIndex
-    const answerEntry = data.cardAnswers.find(a => a.cardIndex === originalCardIndex);
-    
-    if (answerEntry) {
-        answerEntry.opponentAnswer = newAnswer;
-        saveGameData(data);
-        return true;
-    }
-    
-    return false;
-}
-
-/**
  * Check of locatie is ingesteld
  */
 function hasLocation() {
