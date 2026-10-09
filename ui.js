@@ -316,6 +316,19 @@ function sheetNavList(cardId) {
 }
 
 function cardSheet() {
+    const html = cardSheetMain();
+    const cardId = ui.sheet.cardId;
+    if (!Game.solvedOf(cardId)) return html;
+    // Opgeloste kaart: terugzetten als er per ongeluk iets verkeerd gekozen werd
+    const copier = Game.copiedBy(cardId);
+    return html + `<section class="block reopen"><h2 class="head" style="font-size:17px">Verkeerd gekozen?</h2>
+        ${copier
+            ? `<p class="why">Deze vraag werd gekopieerd met “${esc(copier.question)}”. Zet eerst die kaart terug in de flop.</p>`
+            : `<p class="why">Zet de kaart terug in de flop. Het antwoord en de zone verdwijnen, en de kaart die in de plaats kwam gaat terug naar het deck.</p>
+               <button class="btn btn-quiet" data-reopen="${cardId}">Terug in de flop</button>`}</section>`;
+}
+
+function cardSheetMain() {
     const sh = ui.sheet;
     const card = Game.card(sh.cardId);
     const s = Game.solvedOf(card.id);
@@ -721,6 +734,10 @@ document.addEventListener('click', (event) => {
     if (t.dataset.copyPick) { ui.sheet.copyId = t.dataset.copyPick; showSheetContext(); renderOverlay(); fitAboveSheet(); return; }
     if (t.id === 'copy-reselect') { ui.sheet.copyId = null; showSheetContext(); renderOverlay(); fitAboveSheet(); return; }
     if (t.dataset.answer !== undefined) { answerFromSheet(t.dataset.answer); return; }
+    if (t.dataset.reopen) {
+        if (Game.unsolve(t.dataset.reopen)) afterSolve('Kaart terug in de flop', null);
+        return;
+    }
     if (t.matches('[data-them-done]')) {
         const sh = ui.sheet, card = Game.card(sh.cardId);
         const drawn = Game.solve(card, 'them', card.answerType === 'copyQuestion' ? { copy: { cardId: sh.copyId } } : {});

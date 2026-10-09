@@ -94,6 +94,7 @@ Laadvolgorde in index.html: leaflet, polygon-clipping, version, storage, geoUtil
 - `flop()`, `card(id)`, `deckLeft(phase)`, `solved()`, `solvedOf(id)`
 - `answerOptions(card)`, `asksQuestion(card)`, `applyZone(data, card, answer, ownerId)`
 - `solve(card, by, answer)`: `by` = `'us'` of `'them'`. Eerste keer: kaart naar `discarded`, nieuwe kaart op dezelfde plek, geeft de nieuwe kaart terug. Opnieuw oplossen = antwoord wijzigen (zone wordt vervangen, geen nieuwe kaart).
+- `unsolve(cardId)`: zet een opgeloste kaart terug in de flop (antwoord en zone weg). Neemt de plek in van de laatst getrokken kaart van die fase, die terug naar het deck gaat. Kan niet zolang een museumkaart die vraag kopieerde (`copiedBy`).
 - `undo()`: zet een volledige momentopname terug (gameData + kaartstand) van vóór de laatste `solve`.
 - `hideAnswer(card)`: wat je antwoordt over je eigen fiets (`kind`: big, valid, distance, wijk, elim, text)
 - `showBike()` / `setShowBike(v)`: eigen fiets tonen, standaard verborgen, onthouden in localStorage (`showBike`)
@@ -151,7 +152,7 @@ Zones hangen aan de vaste kaart-ID (`${seed}_${index}`), nooit aan de plek in de
 ## Bekende aandachtspunten
 1. Het middelpunt is de WEC. Gebruik nergens nog "Belfort".
 2. FurthestDistance: "zeker NIET de dichtste" (Voronoi-cel), niet "de verste".
-3. Undo kan enkel de laatste actie terugdraaien, via de toast. Een fout antwoord kan je ook later aanpassen door de opgeloste kaart te openen.
+3. Undo kan enkel de laatste actie terugdraaien, via de toast. Later: een opgeloste kaart openen en het antwoord aanpassen, of "Terug in de flop" (ook als Wij/De tegenstander verkeerd gekozen werd).
 4. De ingebouwde browser van de editor onderdrukt `confirm()`; daarom alles in de pagina.
 6. iPhone-app op het beginscherm: houd `apple-mobile-web-app-status-bar-style` op `default`. Met `black-translucent` maakt iOS 26 de app een statusbalk te kort (zwarte balk onderaan, WebKit-bug 301108); dat is niet met CSS op te lossen.
 5. Bij elke release `APP_VERSION` in version.js verhogen: dat is de versie onder Meer én de cachenaam van de service worker. Nieuwe JS-bestanden ook toevoegen aan `urlsToCache` in service-worker.js.

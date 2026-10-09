@@ -192,6 +192,41 @@ const Game = {
         return drawn;
     },
 
+    /** Een opgeloste kaart die gekopieerd werd, kan niet terug zolang de kopie bestaat */
+    copiedBy(cardId) {
+        const s = this.solved().find(x => x.answer && x.answer.copy && x.answer.copy.cardId === cardId);
+        return s ? this.card(s.cardId) : null;
+    },
+
+    /**
+     * Zet een opgeloste kaart terug in de flop (bv. per ongeluk "Wij" gekozen).
+     * Antwoord en zone verdwijnen. De laatst getrokken kaart van die fase gaat terug naar het deck.
+     */
+    unsolve(cardId) {
+        const card = this.card(cardId);
+        if (!card || !this.solvedOf(cardId) || this.copiedBy(cardId)) return false;
+        const data = loadGameData();
+        this.lastAction = { data: JSON.parse(JSON.stringify(data)), cards: JSON.parse(JSON.stringify(this.cm.getState())) };
+
+        data.solved = data.solved.filter(s => s.cardId !== cardId);
+        data.cardAnswers = (data.cardAnswers || []).filter(a => a.cardId !== cardId);
+        data.exclusionZones = (data.exclusionZones || []).filter(z => z.cardId !== cardId);
+        saveGameData(data);
+
+        const deckIndex = (c) => this.cm.deck.findIndex(d => d.id === c.id);
+        this.cm.discarded = this.cm.discarded.filter(c => c.id !== cardId);
+        const samePhase = this.cm.flop.filter(c => c.phase === card.phase);
+        if (samePhase.length >= 4) {
+            // De kaart die het laatst getrokken werd, maakt plaats en gaat terug in het deck
+            const latest = samePhase.reduce((a, b) => deckIndex(b) > deckIndex(a) ? b : a);
+            this.cm.flop[this.cm.flop.indexOf(latest)] = card;
+        } else {
+            this.cm.flop.push(card);
+        }
+        this.saveCards();
+        return true;
+    },
+
     undo() {
         if (!this.lastAction) return false;
         saveGameData(this.lastAction.data);
