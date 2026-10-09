@@ -186,7 +186,7 @@ function loadSavedGameData() {
                 // Bereken afstand
                 const distanceToCenter = calculateDistance(
                     loc.lat, loc.lng,
-                    LOCATIONS.belfort.lat, LOCATIONS.belfort.lng
+                    LOCATIONS.center.lat, LOCATIONS.center.lng
                 );
                 
                 // Verberg locatie sectie en plaats onderaan
@@ -209,7 +209,7 @@ function loadSavedGameData() {
                 locationResult.innerHTML = `
                     <div class="location-detail-item">
                         <span class="detail-icon">🎯</span>
-                        <span class="detail-label">Afstand tot center:</span>
+                        <span class="detail-label">Afstand tot WEC:</span>
                         <span class="detail-value">${Math.round(distanceToCenter)}m</span>
                     </div>
                     <div class="location-detail-item">
@@ -236,7 +236,7 @@ function loadSavedGameData() {
                 // Update marker popup
                 currentLocationMarker.bindPopup(`
                     <b>✅ Jouw Locatie</b><br>
-                    ${Math.round(distanceToCenter)}m van Belfort<br>
+                    ${Math.round(distanceToCenter)}m van de WEC<br>
                     ${loc.lat.toFixed(6)}, ${loc.lng.toFixed(6)}
                 `);
                 
@@ -273,8 +273,8 @@ function initializeControls() {
  * Initialiseert de Leaflet kaart met speelveld
  */
 function initializeMap() {
-    // Initialiseer kaart gecentreerd op Belfort Gent
-    map = L.map('map').setView([LOCATIONS.belfort.lat, LOCATIONS.belfort.lng], 13);
+    // Initialiseer kaart gecentreerd op de WEC
+    map = L.map('map').setView([LOCATIONS.center.lat, LOCATIONS.center.lng], 13);
     
     // Maak een custom pane voor exclusion zones met lage z-index
     map.createPane('exclusionPane');
@@ -286,8 +286,8 @@ function initializeMap() {
         maxZoom: 19
     }).addTo(map);
     
-    // Markeer het Belfort (centrum)
-    L.marker([LOCATIONS.belfort.lat, LOCATIONS.belfort.lng], {
+    // Markeer de WEC (centrum)
+    L.marker([LOCATIONS.center.lat, LOCATIONS.center.lng], {
         icon: L.icon({
             iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
             shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
@@ -296,16 +296,16 @@ function initializeMap() {
             popupAnchor: [1, -34],
             shadowSize: [41, 41]
         })
-    }).addTo(map).bindPopup('<b>Belfort van Gent</b><br>Centrum van het speelveld');
+    }).addTo(map).bindPopup('<b>WEC</b><br>Centrum van het speelveld');
     
     // Teken de speelzone grens (dunne lijn)
-    gameZoneCircle = L.circle([LOCATIONS.belfort.lat, LOCATIONS.belfort.lng], {
+    gameZoneCircle = L.circle([LOCATIONS.center.lat, LOCATIONS.center.lng], {
         color: '#2563eb',
         fillColor: 'transparent',
         fillOpacity: 0,
         radius: GAME_RADIUS,
         weight: 2
-    }).addTo(map).bindPopup('<b>Speelveld</b><br>3km rondom het Belfort');
+    }).addTo(map).bindPopup('<b>Speelveld</b><br>3,5km rondom de WEC');
     
     // Maak inverse mask - alles buiten de zone wordt grijs
     // Grote outer rectangle (ruim buiten Gent)
@@ -326,9 +326,9 @@ function initializeMap() {
         
         // Bereken offset in graden
         const latOffset = (GAME_RADIUS / earthRadius) * (180 / Math.PI) * Math.cos(angle);
-        const lngOffset = (GAME_RADIUS / earthRadius) * (180 / Math.PI) * Math.sin(angle) / Math.cos(LOCATIONS.belfort.lat * Math.PI / 180);
+        const lngOffset = (GAME_RADIUS / earthRadius) * (180 / Math.PI) * Math.sin(angle) / Math.cos(LOCATIONS.center.lat * Math.PI / 180);
         
-        circlePoints.unshift([LOCATIONS.belfort.lat + latOffset, LOCATIONS.belfort.lng + lngOffset]);
+        circlePoints.unshift([LOCATIONS.center.lat + latOffset, LOCATIONS.center.lng + lngOffset]);
     }
     
     // Maak polygon met gat (outer counterclockwise, inner clockwise)
@@ -1054,10 +1054,10 @@ function handleConfirmLocation() {
         // Sla locatie op in storage
         saveLocation(position.lat, position.lng);
         
-        // Bereken afstand tot Belfort
+        // Bereken afstand tot de WEC
         const distanceToCenter = calculateDistance(
             position.lat, position.lng,
-            LOCATIONS.belfort.lat, LOCATIONS.belfort.lng
+            LOCATIONS.center.lat, LOCATIONS.center.lng
         );
         
         // Minimaliseer locatie sectie en verplaats naar beneden
@@ -1093,7 +1093,7 @@ function handleConfirmLocation() {
         locationResult.innerHTML = `
             <div class="location-detail-item">
                 <span class="detail-icon">🎯</span>
-                <span class="detail-label">Afstand tot Belfort:</span>
+                <span class="detail-label">Afstand tot WEC:</span>
                 <span class="detail-value">${Math.round(distanceToCenter)}m</span>
             </div>
             ${neighborhoodHtml}
@@ -1123,7 +1123,7 @@ function handleConfirmLocation() {
         // Update marker popup
         currentLocationMarker.bindPopup(`
             <b>✅ Jouw Locatie</b><br>
-            ${Math.round(distanceToCenter)}m van Belfort<br>
+            ${Math.round(distanceToCenter)}m van de WEC<br>
             ${position.lat.toFixed(6)}, ${position.lng.toFixed(6)}
         `);
         
@@ -2649,7 +2649,7 @@ function createExclusionLayerFromData(exclusionData) {
             // Voor hospitals: maak grote rode polygon met gaten voor de cirkels
             if (poiType === 'hospitals' || poiType === 'watertowers') {
                 const earthRadius = 6371000;
-                const belfort = LOCATIONS.belfort;
+                const center = LOCATIONS.center;
                 const gameRadius = GAME_RADIUS;
                 
                 // Maak een grote rechthoek rond het speelveld
@@ -2657,14 +2657,14 @@ function createExclusionLayerFromData(exclusionData) {
                 const degPerMeterLng = (lat) => 1 / (111320 * Math.cos((lat * Math.PI) / 180));
                 
                 const latDelta = gameRadius * degPerMeterLat;
-                const lngDelta = gameRadius * degPerMeterLng(belfort.lat);
+                const lngDelta = gameRadius * degPerMeterLng(center.lat);
                 
                 const outerBounds = [
-                    [belfort.lat + latDelta, belfort.lng - lngDelta],
-                    [belfort.lat + latDelta, belfort.lng + lngDelta],
-                    [belfort.lat - latDelta, belfort.lng + lngDelta],
-                    [belfort.lat - latDelta, belfort.lng - lngDelta],
-                    [belfort.lat + latDelta, belfort.lng - lngDelta]
+                    [center.lat + latDelta, center.lng - lngDelta],
+                    [center.lat + latDelta, center.lng + lngDelta],
+                    [center.lat - latDelta, center.lng + lngDelta],
+                    [center.lat - latDelta, center.lng - lngDelta],
+                    [center.lat + latDelta, center.lng - lngDelta]
                 ];
                 
                 // Maak gaten (holes) voor elke hospital cirkel
@@ -2695,26 +2695,26 @@ function createExclusionLayerFromData(exclusionData) {
             // (radius rond eender welke POI) krijgen een rood vak.
 
             const earthRadius = 6371000;
-            const belfort = LOCATIONS.belfort;
+            const center = LOCATIONS.center;
             const gameRadius = GAME_RADIUS; // beperk tot speelveld
 
-            // Bepaal bounds rond Belfort
+            // Bepaal bounds rond het centrum
             const degPerMeterLat = 1 / 111320; // ~ meters per graad breedte
             const degPerMeterLng = (lat) => 1 / (111320 * Math.cos((lat * Math.PI) / 180));
 
             const latDelta = gameRadius * degPerMeterLat;
-            const lngDelta = gameRadius * degPerMeterLng(belfort.lat);
-            const minLat = belfort.lat - latDelta;
-            const maxLat = belfort.lat + latDelta;
-            const minLng = belfort.lng - lngDelta;
-            const maxLng = belfort.lng + lngDelta;
+            const lngDelta = gameRadius * degPerMeterLng(center.lat);
+            const minLat = center.lat - latDelta;
+            const maxLat = center.lat + latDelta;
+            const minLng = center.lng - lngDelta;
+            const maxLng = center.lng + lngDelta;
 
             // Raster resolutie (meters). Lager = fijner, maar zwaarder.
             const cellSizeM = 60; // 150m balans tussen performance en kwaliteit
 
             // Stapgroottes in graden voor huidige breedtegraad
             const dLat = cellSizeM * degPerMeterLat;
-            const dLng = cellSizeM * degPerMeterLng(belfort.lat);
+            const dLng = cellSizeM * degPerMeterLng(center.lat);
 
             const layers = [];
 
@@ -2725,8 +2725,8 @@ function createExclusionLayerFromData(exclusionData) {
                     const cLng = lng + dLng / 2;
 
                     // Sla cellen buiten het SPEELVELD (GAME_RADIUS) over
-                    const centerDistToBelfort = calculateDistance(cLat, cLng, belfort.lat, belfort.lng);
-                    if (centerDistToBelfort > gameRadius) {
+                    const distToCenter = calculateDistance(cLat, cLng, center.lat, center.lng);
+                    if (distToCenter > gameRadius) {
                         continue;
                     }
 
@@ -2763,17 +2763,17 @@ function createExclusionLayerFromData(exclusionData) {
         const pois = getPOIsByType(poiType);
         if (pois.length === 0) return null;
 
-        const belfort = LOCATIONS.belfort;
+        const center = LOCATIONS.center;
         const gameRadius = GAME_RADIUS;
-        const cosLat = Math.cos(belfort.lat * Math.PI / 180);
+        const cosLat = Math.cos(center.lat * Math.PI / 180);
 
         const toXY = (lat, lng) => ({
-            x: (lng - belfort.lng) * 111320 * cosLat,
-            y: (lat - belfort.lat) * 111320
+            x: (lng - center.lng) * 111320 * cosLat,
+            y: (lat - center.lat) * 111320
         });
         const fromXY = (xy) => [
-            belfort.lat + xy.y / 111320,
-            belfort.lng + xy.x / (111320 * cosLat)
+            center.lat + xy.y / 111320,
+            center.lng + xy.x / (111320 * cosLat)
         ];
 
         // Start met spelcirkel als polygoon (64 punten)

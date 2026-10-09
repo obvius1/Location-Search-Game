@@ -1,4 +1,4 @@
-const CACHE_NAME = 'jet-lag-game-v1';
+const CACHE_NAME = 'jet-lag-game-v2';
 const urlsToCache = [
   './',
   './index.html',

@@ -11,7 +11,7 @@ Dit bestand is speciaal voor AI-assistenten om het project volledig te begrijpen
 **Doel**: Locatiegebaseerd spel voor 2 teams in Gent — elk team verstopt een fiets, het andere team probeert die te vinden via kaarten/vragen
 **Stack**: Vanilla JavaScript, HTML/CSS, Leaflet Maps, LocalStorage
 **Deployment**: GitHub Pages (statische site, geen backend)
-**Laatst bijgewerkt**: 23 maart 2026
+**Laatst bijgewerkt**: 9 oktober 2026
 
 ---
 
@@ -19,7 +19,7 @@ Dit bestand is speciaal voor AI-assistenten om het project volledig te begrijpen
 
 ### Speelveld
 - **Locatie**: Gent (België)
-- **Radius**: 3,5km rond de WEC (niet het Belfort — let op, README is verouderd)
+- **Radius**: 3,5km rond de WEC (`GAME_RADIUS` in geoUtils.js, centrum = `LOCATIONS.center` in geo-data.json)
 - **Regel**: Alleen locaties binnen deze zone zijn geldig
 
 ### Rollen
@@ -314,7 +314,7 @@ lastUndoAction = {
 
 ## ⚠️ Bekende Quirks & Aandachtspunten
 
-1. **Radius**: Het is 3,5km rond de WEC
+1. **Radius**: Het is 3,5km rond de WEC. Vroeger was het Belfort het centrum; de sleutel heette toen `belfort`, nu `center`. Gebruik nergens nog "Belfort" in code of UI-teksten
 2. **FurthestDistance vraagstelling**: "Welke [POI] is zeker NIET de dichtste?" (Voronoi-cel exclusion) — NIET "welke is het verste?" (dat geeft wiskundig een veel grotere exclusion via Sutherland-Hodgman)
 3. **Zone lock**: Kaart SLUITEN is altijd mogelijk ondanks zone lock — alleen de tooltip/indicator verschijnt
 4. **Undo**: Alleen de allerlaatste actie kan ongedaan gemaakt worden

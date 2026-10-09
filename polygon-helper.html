@@ -166,18 +166,18 @@
     
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        const BELFORT_GENT = { lat: 51.0538, lng: 3.7251 };
+        const GAME_CENTER = { lat: 51.0493, lng: 3.72578 };
         
         // Initialiseer kaart
-        const map = L.map('map').setView([BELFORT_GENT.lat, BELFORT_GENT.lng], 13);
+        const map = L.map('map').setView([GAME_CENTER.lat, GAME_CENTER.lng], 13);
         
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '© OpenStreetMap contributors',
             maxZoom: 19
         }).addTo(map);
         
-        // Belfort marker
-        L.marker([BELFORT_GENT.lat, BELFORT_GENT.lng], {
+        // WEC marker (centrum)
+        L.marker([GAME_CENTER.lat, GAME_CENTER.lng], {
             icon: L.icon({
                 iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
                 shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
@@ -185,13 +185,13 @@
                 iconAnchor: [12, 41],
                 shadowSize: [41, 41]
             })
-        }).addTo(map).bindPopup('Belfort van Gent');
+        }).addTo(map).bindPopup('WEC (centrum)');
         
-        // 3km cirkel als referentie
-        L.circle([BELFORT_GENT.lat, BELFORT_GENT.lng], {
+        // 3,5km cirkel als referentie
+        L.circle([GAME_CENTER.lat, GAME_CENTER.lng], {
             color: '#94a3b8',
             fillColor: 'transparent',
-            radius: 3000,
+            radius: 3500,
             weight: 1,
             dashArray: '5, 5'
         }).addTo(map);

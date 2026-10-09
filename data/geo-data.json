@@ -1,7 +1,7 @@
 {
   "type": "FeatureCollection",
   "locations": {
-    "belfort": {
+    "center": {
       "lat": 51.0493,
       "lng": 3.72578,
       "name": "WEC"
