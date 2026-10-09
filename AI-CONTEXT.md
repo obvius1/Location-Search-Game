@@ -69,6 +69,7 @@ Alles is lokaal. De teams communiceren via WhatsApp/Messenger (antwoorden, foto'
 gent-location-game/
 ├── index.html          # Schil: kopbalk, #stage (kaart, overlay, paneel), tabs
 ├── styles.css          # Alle stijlen (tokens licht/donker, gsm eerst, >=900px paneel rechts)
+├── version.js          # APP_VERSION: getoond onder Meer, ook de cachenaam (verhogen bij elke release)
 ├── storage.js          # localStorage: gameData + gameRules
 ├── geoUtils.js         # Geodata laden, afstanden, wijken, automatische antwoorden (performAllChecks)
 ├── cards.js            # Kaarten laden, seed-shuffle, CardManager (flop)
@@ -85,7 +86,7 @@ gent-location-game/
     └── stadswijken-gent.geojson
 ```
 
-Laadvolgorde in index.html: leaflet, polygon-clipping, storage, geoUtils, cards, map, game, ui.
+Laadvolgorde in index.html: leaflet, polygon-clipping, version, storage, geoUtils, cards, map, game, ui.
 `map.js` roept `UI.refreshMapStatus()` aan als zones of de live positie veranderen.
 
 ### game.js (`Game`)
@@ -152,7 +153,7 @@ Zones hangen aan de vaste kaart-ID (`${seed}_${index}`), nooit aan de plek in de
 2. FurthestDistance: "zeker NIET de dichtste" (Voronoi-cel), niet "de verste".
 3. Undo kan enkel de laatste actie terugdraaien, via de toast. Een fout antwoord kan je ook later aanpassen door de opgeloste kaart te openen.
 4. De ingebouwde browser van de editor onderdrukt `confirm()`; daarom alles in de pagina.
-5. Nieuwe JS-bestanden toevoegen aan `urlsToCache` in service-worker.js en `CACHE_NAME` verhogen.
+5. Bij elke release `APP_VERSION` in version.js verhogen: dat is de versie onder Meer én de cachenaam van de service worker. Nieuwe JS-bestanden ook toevoegen aan `urlsToCache` in service-worker.js.
 
 ## Later (besproken, nog niet gebouwd)
 - "Hoe werkt het spel"-rondleiding

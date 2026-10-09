@@ -204,6 +204,7 @@ h1, h2, h3 { font-family: var(--f-head); font-stretch: 75%; font-weight: 800; li
 .steps i.on { background: var(--ink); }
 .step-title { font-size: 34px; }
 .code-in { font-family: var(--f-mono); font-size: 32px; letter-spacing: .2em; text-transform: uppercase; text-align: center; }
+.app-version { text-align: center; font-family: var(--f-mono); font-size: 13px; color: var(--muted); padding: 8px 0 4px; }
 .status-line { padding: 10px 12px; border-left: 5px solid var(--line); background: var(--tint); }
 .status-line.ok { border-left-color: var(--ok); }
 .status-line.bad { border-left-color: var(--zone); }

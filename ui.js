@@ -529,6 +529,7 @@ function renderMore() {
             ${ui.confirmReset ? `<p><strong>Dit wist alle antwoorden, zones en je fietslocatie op dit toestel.</strong></p>
                 <div class="pair"><button class="btn btn-danger" id="reset-yes">Nieuw spel</button><button class="btn" id="reset-no">Annuleer</button></div>`
                 : '<button class="btn btn-quiet" id="reset">Nieuw spel starten</button>'}</section>
+        <p class="app-version">Jet Lag Gent · versie ${APP_VERSION}</p>
     </div>`;
 }
 

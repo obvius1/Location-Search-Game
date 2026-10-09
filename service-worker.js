@@ -1,7 +1,9 @@
-const CACHE_NAME = 'jet-lag-game-v7';
+importScripts('./version.js');
+const CACHE_NAME = 'jet-lag-game-v' + APP_VERSION;
 const urlsToCache = [
   './',
   './index.html',
+  './version.js',
   './styles.css',
   './map.js',
   './game.js',
