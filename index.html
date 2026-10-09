@@ -42,15 +42,16 @@
     <div id="controls-container" class="hidden">
         <div class="controls-handle" id="controls-handle">
             <div class="handle-bar"></div>
-            <div class="handle-title">Controls</div>
+            <div class="handle-title" id="handle-title">Spel starten</div>
+            <button class="handle-expand" id="controls-expand" aria-label="Paneel vergroten">▲</button>
         </div>
         <div class="controls-content" id="controls-content">
             <!-- Game Setup Section -->
             <section id="setup-section" class="card">
                 <h2>🎲 Spel Starten</h2>
                 <div class="input-group">
-                    <label for="seed-input">Spel Code (seed):</label>
-                    <input type="text" id="seed-input" placeholder="Voer code in of genereer...">
+                    <label for="seed-input">Spelcode:</label>
+                    <input type="text" id="seed-input" placeholder="Voer een code in of genereer er een">
                     <button id="generate-seed-btn" class="btn btn-secondary">Genereer Code</button>
                 </div>
                 <button id="start-game-btn" class="btn btn-primary">Start Spel</button>
@@ -176,12 +177,12 @@
             </section>
 
             <!-- Game Info -->
-            <section class="card info-section">
+            <section id="game-info-section" class="card info-section hidden">
                 <h3>ℹ️ Spelinfo</h3>
                 <p><strong>Speelveld:</strong> <span class="game-radius-km">3,5</span>km rondom de WEC</p>
                 <p><strong>Seed:</strong> <span id="current-seed">-</span></p>
                 <button id="copy-seed-btn" class="btn btn-secondary btn-small hidden">📋 Kopieer Code</button>
-                <button id="reset-game-btn" class="btn btn-danger btn-small hidden" style="margin-top: 8px;">�️ Verwijder Spel</button>
+                <button id="reset-game-btn" class="btn btn-danger btn-small hidden" style="margin-top: 8px;">🗑️ Verwijder Spel</button>
             </section>
 
             <!-- Rules Section -->

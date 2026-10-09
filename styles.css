@@ -50,9 +50,13 @@ body {
     background: white;
     border-radius: 20px 20px 0 0;
     box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
-    max-height: 70vh;
+    max-height: 50vh;
     display: flex;
     flex-direction: column;
+}
+
+#controls-container.expanded {
+    max-height: 88vh;
 }
 
 #controls-container.minimized {
@@ -71,6 +75,22 @@ body {
     flex-direction: column;
     align-items: center;
     gap: 4px;
+    position: relative;
+}
+
+.handle-expand {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 36px;
+    height: 36px;
+    border: none;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    font-size: 14px;
+    cursor: pointer;
 }
 
 .handle-bar {
@@ -88,7 +108,8 @@ body {
 .controls-content {
     overflow-y: auto;
     padding: 16px;
-    max-height: calc(70vh - 60px);
+    flex: 1;
+    min-height: 0;
 }
 
 #controls-container.minimized .controls-content {
@@ -736,16 +757,15 @@ body {
     text-align: center;
     font-weight: 600;
     color: var(--text-secondary);
-    margin-bottom: 16px;
+    margin-bottom: 8px;
 }
 
 .game-card {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
-    padding: 24px;
+    padding: 16px;
     border-radius: 12px;
-    min-height: 200px;
-    margin-bottom: 16px;
+    margin-bottom: 12px;
     box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
     position: relative;
 }
@@ -780,43 +800,44 @@ body {
 }
 
 .card-task {
-    font-size: 18px;
+    font-size: 17px;
     font-weight: 600;
-    margin-bottom: 16px;
-    padding-bottom: 16px;
+    line-height: 1.4;
+    margin-bottom: 10px;
+    padding-bottom: 10px;
     padding-right: 80px; /* Ruimte voor phase badge */
     border-bottom: 2px solid rgba(255, 255, 255, 0.3);
 }
 
 .card-question {
-    font-size: 16px;
-    line-height: 1.6;
-    margin-bottom: 16px;
+    font-size: 15px;
+    line-height: 1.5;
 }
 
 /* Card Answer Section */
 .card-answer-section {
-    margin-top: 20px;
-    padding-top: 16px;
+    margin-top: 12px;
+    padding-top: 12px;
     border-top: 2px solid rgba(255, 255, 255, 0.3);
 }
 
 .answer-label {
     font-size: 14px;
     font-weight: 600;
-    margin-bottom: 12px;
+    margin-bottom: 8px;
     opacity: 0.9;
 }
 
 .answer-input {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 10px;
 }
 
+/* Korte antwoorden (Ja/Nee, Binnen/Buiten, …) naast elkaar */
 .answer-buttons {
-    display: flex;
-    flex-direction: column;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
     gap: 8px;
 }
 
@@ -911,12 +932,29 @@ body {
 }
 
 .card-actions {
-    display: flex;
-    gap: 12px;
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 8px;
 }
 
 .card-actions .btn {
     margin-bottom: 0;
+    width: auto;
+    padding: 10px 12px;
+    font-size: 14px;
+    line-height: 1.3;
+}
+
+#prev-card-btn,
+#next-card-btn {
+    white-space: nowrap;
+}
+
+/* Op gsm staat "Kaarten" al in de titel van het paneel */
+@media (max-width: 1099px) {
+    #cards-section > h2 {
+        display: none;
+    }
 }
 
 /* View Toggle */
@@ -1032,7 +1070,7 @@ body {
 .flop-grid {
     display: grid;
     grid-template-columns: 1fr;
-    gap: 12px;
+    gap: 8px;
 }
 
 @media (min-width: 640px) {
@@ -1056,7 +1094,8 @@ body {
 .flop-card {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
-    padding: 16px;
+    padding: 10px 12px;
+    border-left: 6px solid transparent;
     border-radius: 8px;
     cursor: pointer;
     transition: all 0.2s;
@@ -1069,18 +1108,28 @@ body {
     box-shadow: 0 8px 12px rgba(0, 0, 0, 0.2);
 }
 
+.flop-card.phase-1 { border-left-color: #84cc16; }
+.flop-card.phase-2 { border-left-color: #eab308; }
+.flop-card.phase-3 { border-left-color: #ef4444; }
+
 .flop-card .card-task {
     font-size: 14px;
     font-weight: 600;
-    margin-bottom: 8px;
-    padding-bottom: 8px;
+    line-height: 1.4;
+    margin-bottom: 4px;
+    padding-bottom: 4px;
+    padding-right: 0;
     border-bottom: 1px solid rgba(255, 255, 255, 0.3);
 }
 
 .flop-card .card-question {
     font-size: 12px;
     opacity: 0.9;
-    margin-bottom: 12px;
+}
+
+.flop-card .answer-indicator {
+    margin-top: 8px;
+    margin-bottom: 0;
 }
 
 .answer-indicator {
@@ -1600,9 +1649,8 @@ body {
 .distance-from-bike-input {
     display: flex;
     flex-direction: column;
-    gap: 12px;
-    margin: 16px 0;
-    padding: 16px;
+    gap: 6px;
+    padding: 12px;
     background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%);
     border-radius: 8px;
     border: 2px solid #0ea5e9;
@@ -1610,8 +1658,25 @@ body {
 
 .distance-from-bike-input label {
     font-weight: 600;
+    font-size: 14px;
     color: #0c4a6e;
-    margin-bottom: 4px;
+}
+
+.coords-row {
+    display: flex;
+    gap: 8px;
+}
+
+.coords-row .coords-input {
+    flex: 1;
+    min-width: 0;
+    margin-bottom: 0;
+}
+
+.distance-from-bike-input .btn-preview {
+    width: auto;
+    margin-bottom: 0;
+    padding: 10px 14px;
 }
 
 .distance-from-bike-input .coords-input {

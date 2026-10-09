@@ -31,6 +31,7 @@ let lastUndoAction = null; // Snapshot van vorige kaart-actie voor undo
 // DOM elements
 const controlsContainer = document.getElementById('controls-container');
 const controlsHandle = document.getElementById('controls-handle');
+const controlsContent = document.getElementById('controls-content');
 const setupSection = document.getElementById('setup-section');
 const locationSection = document.getElementById('location-section');
 const checklistSection = document.getElementById('checklist-section');
@@ -173,7 +174,7 @@ function loadSavedGameData() {
             }
             
             // Zoom naar locatie
-            map.setView([loc.lat, loc.lng], 15);
+            setViewInVisibleMap([loc.lat, loc.lng], 15);
             
             // Simuleer bevestigde locatie
             const result = performAllChecks(loc.lat, loc.lng);
@@ -243,6 +244,10 @@ function loadSavedGameData() {
                     // Toon vragen en kaarten als checklist al voltooid is
                     displayQuestions(result.checks);
                     cardsSection.classList.remove('hidden');
+
+                    // Toon zone lock indicator (zoals na het voltooien van de checklist)
+                    document.getElementById('zone-lock-wrapper').classList.remove('hidden');
+                    updateZoneLockIndicator();
                 }
             }
         }
@@ -260,8 +265,79 @@ function initializeControls() {
     if (controlsHandle) {
         controlsHandle.addEventListener('click', () => {
             controlsContainer.classList.toggle('minimized');
+            updateExpandButton();
         });
     }
+
+    // Paneel vergroten/verkleinen (half ↔ bijna volledig scherm)
+    document.getElementById('controls-expand').addEventListener('click', (event) => {
+        event.stopPropagation();
+        if (controlsContainer.classList.contains('minimized')) {
+            controlsContainer.classList.remove('minimized');
+            controlsContainer.classList.add('expanded');
+        } else {
+            controlsContainer.classList.toggle('expanded');
+        }
+        updateExpandButton();
+    });
+
+    // Titel van het paneel volgt de zichtbare sectie
+    const observer = new MutationObserver(updateControlsTitle);
+    controlsContent.querySelectorAll(':scope > section').forEach(section => {
+        observer.observe(section, { attributes: true, attributeFilter: ['class'] });
+    });
+    updateControlsTitle();
+}
+
+/**
+ * Pijltje op de vergrootknop: ▲ = vergroten, ▼ = terug naar half
+ */
+function updateExpandButton() {
+    const expandBtn = document.getElementById('controls-expand');
+    const isExpanded = controlsContainer.classList.contains('expanded') && !controlsContainer.classList.contains('minimized');
+    expandBtn.textContent = isExpanded ? '▼' : '▲';
+    expandBtn.setAttribute('aria-label', isExpanded ? 'Paneel verkleinen' : 'Paneel vergroten');
+}
+
+/**
+ * Zet de titel van het controlepaneel op basis van de huidige stap in het spel
+ */
+function updateControlsTitle() {
+    const title = document.getElementById('handle-title');
+    if (!title) return;
+
+    const isVisible = (section) => !section.classList.contains('hidden');
+    let text = 'Spel starten';
+
+    if (isVisible(setupSection)) {
+        text = 'Spel starten';
+    } else if (isVisible(checklistSection)) {
+        const done = checklistCompleted.filter(Boolean).length;
+        text = `Checklist · ${done}/${checklistCompleted.length}`;
+    } else if (isVisible(locationSection) && !loadGameData().location) {
+        text = 'Locatie instellen';
+    } else if (isVisible(cardsSection) && cardManager) {
+        text = `Kaarten · ${cardManager.discarded.length} opgelost`;
+    }
+
+    title.textContent = text;
+}
+
+/**
+ * Hoogte (px) van het deel van de kaart dat achter het controlepaneel zit
+ * (op desktop staat het paneel naast de kaart: 0)
+ */
+function getHiddenMapHeight() {
+    if (window.innerWidth >= 1100 || controlsContainer.classList.contains('hidden')) return 0;
+    return Math.max(0, window.innerHeight - controlsContainer.getBoundingClientRect().top);
+}
+
+/**
+ * Centreer de kaart op een punt in het zichtbare deel boven het controlepaneel
+ */
+function setViewInVisibleMap(latlng, zoom) {
+    map.setView(latlng, zoom, { animate: false });
+    map.panBy([0, getHiddenMapHeight() / 2], { animate: false });
 }
 
 /**
@@ -895,6 +971,7 @@ function handleStartGame() {
     currentSeedDisplay.textContent = seed;
     copySeedBtn.classList.remove('hidden');
     resetGameBtn.classList.remove('hidden');
+    document.getElementById('game-info-section').classList.remove('hidden');
     
     // Toon game secties
     setupSection.classList.add('hidden');
@@ -954,8 +1031,8 @@ async function handleGetGPS() {
             weight: 1
         }).addTo(map);
         
-        // Centreer kaart op locatie
-        map.setView([location.lat, location.lng], 17);
+        // Centreer kaart op locatie (boven het controlepaneel, zodat de marker zichtbaar is)
+        setViewInVisibleMap([location.lat, location.lng], 17);
         
         // Bind popup aan marker
         currentLocationMarker.bindPopup(`
@@ -1298,8 +1375,13 @@ function toggleChecklistItem(index) {
  * Update checklist complete button state
  */
 function updateChecklistButton() {
-    const allCompleted = checklistCompleted.every(completed => completed);
+    const done = checklistCompleted.filter(Boolean).length;
+    const allCompleted = done === checklistCompleted.length;
     completeChecklistBtn.disabled = !allCompleted;
+    completeChecklistBtn.textContent = allCompleted
+        ? '✓ Alles Voltooid - Start Spel'
+        : `${done}/${checklistCompleted.length} voltooid`;
+    updateControlsTitle();
 }
 
 /**
@@ -1433,6 +1515,8 @@ function handleCompleteChecklist() {
  */
 function updateCardDisplay() {
     if (!cardManager) return;
+
+    updateControlsTitle();
     
     const flop = cardManager.getFlop();
     if (flop.length === 0) {
@@ -1512,8 +1596,7 @@ function updateCardDisplay() {
         // Kaart vereist geen antwoord - toon gewoon opgelost knop
         answerSection.innerHTML = `
             <div class="answer-input">
-                <div class="answer-label">💡 Voltooi de task en markeer als opgelost</div>
-                <button class="btn btn-success" onclick="handleDirectDiscard(${currentCardIndex})">✓ Opgelost</button>
+                <button class="btn btn-success" onclick="handleDirectDiscard(${currentCardIndex})">✓ Taak voltooid</button>
             </div>
         `;
     } else if (opponentAnswer) {
@@ -1531,33 +1614,32 @@ function updateCardDisplay() {
             // Speciale UI voor distanceFromBike kaarten
             answerSection.innerHTML = `
                 <div class="answer-input">
-                    <div class="answer-label">💡 Vraag aan de seeker: "Ben ik binnen ${card.radius}m van de fiets?"</div>
                     <div class="distance-from-bike-input">
-                        <label for="opponent-location-input">Mijn coördinaten (lat, lng):</label>
-                        <input 
-                            type="text" 
-                            id="opponent-location-input" 
-                            placeholder="51.0543, 3.7234"
-                            class="coords-input"
-                        >
-                        <button onclick="previewDistanceCircle(${currentCardIndex})" class="btn btn-secondary">🔍 Preview Cirkel</button>
+                        <label for="opponent-location-input">Coördinaten van de seeker (lat, lng):</label>
+                        <div class="coords-row">
+                            <input
+                                type="text"
+                                id="opponent-location-input"
+                                placeholder="51.0543, 3.7234"
+                                class="coords-input"
+                            >
+                            <button onclick="previewDistanceCircle(${currentCardIndex})" class="btn btn-secondary btn-preview" title="Toon cirkel op kaart">🔍</button>
+                        </div>
                     </div>
-                    <div class="answer-label" style="margin-top: 16px;">Antwoord:</div>
+                    <div class="answer-label">Binnen ${card.radius}m van de fiets?</div>
                     <div class="answer-buttons" id="answer-buttons-${currentCardIndex}">
                         <!-- Buttons worden dynamisch gegenereerd -->
                     </div>
-                    <p class="answer-hint">→ Na het invoeren wordt de kaart automatisch opgelost</p>
                 </div>
             `;
         } else {
             // Normale antwoord sectie
             answerSection.innerHTML = `
                 <div class="answer-input">
-                    <div class="answer-label">💡 Voltooi de task, stel de vraag aan je tegenstander en voer het antwoord in:</div>
+                    <div class="answer-label">Antwoord van de tegenstander:</div>
                     <div class="answer-buttons" id="answer-buttons-${currentCardIndex}">
                         <!-- Buttons worden dynamisch gegenereerd op basis van vraag type -->
                     </div>
-                    <p class="answer-hint">→ Na het invoeren wordt de kaart automatisch opgelost</p>
                 </div>
             `;
         }
@@ -1579,7 +1661,7 @@ function updateCardDisplay() {
         discardCardBtn.style.display = 'none';
     } else {
         discardCardBtn.style.display = 'block';
-        discardCardBtn.textContent = '🗑️ Tegenstander speelde dit eerst';
+        discardCardBtn.textContent = '🗑️ Tegenstander was eerst';
     }
     
     // Update POI markers voor huidige kaart
@@ -2017,29 +2099,29 @@ function updateExclusionZones() {
     
     // Laad alle antwoorden
     const gameData = loadGameData();
-    
+    const zoneLayers = [];
+
     // Laad cardAnswers (oude methode)
-    if (gameData.cardAnswers && gameData.cardAnswers.length > 0) {
-        gameData.cardAnswers.forEach(answerData => {
-            const layer = createExclusionLayer(answerData.opponentAnswer);
-            if (layer) {
-                layer.addTo(map);
-                exclusionLayers.push(layer);
-            }
-        });
-    }
-    
+    (gameData.cardAnswers || []).forEach(answerData => {
+        const layer = createExclusionLayer(answerData.opponentAnswer);
+        if (layer) zoneLayers.push(layer);
+    });
+
     // Laad exclusionZones (nieuwe methode, inclusief neighborhoods)
-    if (gameData.exclusionZones && gameData.exclusionZones.length > 0) {
-        gameData.exclusionZones.forEach(exclusionData => {
-            const layer = createExclusionLayerFromData(exclusionData);
-            if (layer) {
-                layer.addTo(map);
-                exclusionLayers.push(layer);
-            }
-        });
-    }
-    
+    (gameData.exclusionZones || []).forEach(exclusionData => {
+        const layer = createExclusionLayerFromData(exclusionData);
+        if (layer) zoneLayers.push(layer);
+    });
+
+    // Teken alle uitsluitingen als één rode vlak binnen het speelveld
+    // (lukt dat niet, dan worden de zones apart getekend zodat er nooit een zone ontbreekt)
+    const mergedLayer = mergeExclusionLayers(zoneLayers);
+    const layersToShow = mergedLayer ? [mergedLayer] : zoneLayers;
+    layersToShow.forEach(layer => {
+        layer.addTo(map);
+        exclusionLayers.push(layer);
+    });
+
     // Breng inverseMask naar voren zodat het over de exclusion zones ligt
     if (inverseMask) {
         inverseMask.bringToFront();
@@ -2047,6 +2129,65 @@ function updateExclusionZones() {
 
     // Update zone lock indicator na elke zone-wijziging
     updateZoneLockIndicator();
+}
+
+// Stijl van de samengevoegde uitgesloten zone
+const EXCLUSION_AREA_STYLE = {
+    color: '#ef4444',
+    fillColor: '#ef4444',
+    fillOpacity: 0.35,
+    weight: 2,
+    dashArray: '5, 5',
+    interactive: false,
+    pane: 'exclusionPane'
+};
+
+/**
+ * Zet een exclusion layer om naar polygonen voor polygon-clipping
+ * (per polygoon een lijst ringen van [lat, lng]; de eerste ring is de buitenrand)
+ * @returns {Array|null} null als de laag een onbekend type heeft
+ */
+function layerToPolygons(layer) {
+    if (layer instanceof L.LayerGroup) {
+        const parts = layer.getLayers().map(layerToPolygons);
+        return parts.includes(null) ? null : parts.flat();
+    }
+    if (layer instanceof L.Circle) {
+        const center = layer.getLatLng();
+        return [[getCirclePoints(center.lat, center.lng, layer.getRadius())]];
+    }
+    if (layer instanceof L.Polygon) {
+        const latlngs = layer.getLatLngs();
+        const polygons = Array.isArray(latlngs[0][0]) ? latlngs : [latlngs];
+        return polygons.map(rings => rings.map(ring => ring.map(point => [point.lat, point.lng])));
+    }
+    return null;
+}
+
+/**
+ * Voeg alle exclusion layers samen tot één laag, afgeknipt aan het speelveld
+ * (overlappende zones worden zo niet dubbel rood en niets steekt buiten het speelveld)
+ * @returns {L.Layer|null} null als samenvoegen niet lukt
+ */
+function mergeExclusionLayers(layers) {
+    if (layers.length === 0) return null;
+
+    try {
+        const parts = layers.map(layerToPolygons);
+        if (parts.includes(null)) return null;
+
+        const polygons = parts.flat().filter(rings => rings.length > 0 && rings[0].length >= 3);
+        if (polygons.length === 0) return null;
+
+        const center = LOCATIONS.center;
+        const gameArea = [getCirclePoints(center.lat, center.lng, GAME_RADIUS, 1)];
+        const excluded = polygonClipping.intersection(gameArea, polygonClipping.union(...polygons));
+
+        return excluded.length > 0 ? L.polygon(excluded, EXCLUSION_AREA_STYLE) : L.featureGroup([]);
+    } catch (error) {
+        console.warn('Samenvoegen van uitgesloten zones mislukt, zones worden apart getekend:', error);
+        return null;
+    }
 }
 
 /**
@@ -2857,38 +2998,22 @@ function renderFlopView() {
             // Vind de globale index in de flop
             const globalIndex = flop.findIndex(c => c === card);
             const hasAnswer = card && card.id ? getOpponentAnswer(card.id) : null;
-            const requiresAnswer = card.requiresAnswer !== false; // Default true
-            
+
             const cardEl = document.createElement('div');
-            cardEl.className = 'flop-card';
+            cardEl.className = `flop-card phase-${phase}`;
             cardEl.style.cursor = 'pointer';
-            
+
             // Maak hele kaart clickable om te openen
             cardEl.onclick = () => {
                 viewCardDetail(globalIndex);
             };
-            
-            // Toon verschillende UI afhankelijk van of er een antwoord is
-            if (hasAnswer) {
-                cardEl.innerHTML = `
-                    <div class="card-task">${card.task}</div>
-                    <div class="card-question">${card.question || ''}</div>
-                    <div class="answer-indicator">✅ Antwoord: ${hasAnswer}</div>
-                `;
-            } else if (!requiresAnswer) {
-                // Kaart vereist geen antwoord
-                cardEl.innerHTML = `
-                    <div class="card-task">${card.task}</div>
-                    <div class="card-question">${card.question || ''}</div>
-                    <div class="answer-indicator">⏳ Wacht op voltooiing</div>
-                `;
-            } else {
-                cardEl.innerHTML = `
-                    <div class="card-task">${card.task}</div>
-                    <div class="card-question">${card.question}</div>
-                    <div class="answer-indicator">⏳ Wacht op antwoord</div>
-                `;
-            }
+
+            // Kaarten in de flop wachten allemaal op een antwoord; toon enkel een al gekend antwoord
+            cardEl.innerHTML = `
+                <div class="card-task">${card.task}</div>
+                <div class="card-question">${card.question || ''}</div>
+                ${hasAnswer ? `<div class="answer-indicator">✅ Antwoord: ${hasAnswer}</div>` : ''}
+            `;
             
             container.appendChild(cardEl);
         });
@@ -3885,10 +4010,10 @@ function previewDistanceCircle(cardIndex) {
     }).addTo(map);
     
     // Voeg popup toe
-    distanceCircle.bindPopup(`� Preview: Seeker locatie<br>Radius: ${card.radius}m<br><small>Dit is alleen een preview. Klik Ja/Nee om exclusion zone te maken.</small>`);
+    distanceCircle.bindPopup(`🔍 Preview: Seeker locatie<br>Radius: ${card.radius}m<br><small>Dit is alleen een preview. Klik Ja/Nee om exclusion zone te maken.</small>`);
     
     // Zoom naar de cirkel
-    map.fitBounds(distanceCircle.getBounds(), { padding: [50, 50] });
+    map.fitBounds(distanceCircle.getBounds(), { paddingTopLeft: [50, 50], paddingBottomRight: [50, 50 + getHiddenMapHeight()] });
     
     // Verwijder oude opponent marker indien aanwezig
     if (opponentMarker) {

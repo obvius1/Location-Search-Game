@@ -190,8 +190,9 @@ Na elk antwoord wordt een rode zone op de kaart getekend waar de fiets NIET kan 
 1. Verwijder alle bestaande Leaflet layers
 2. Laad `gameData.cardAnswers` → `createExclusionLayer(answer)` (string-gebaseerd)
 3. Laad `gameData.exclusionZones` → `createExclusionLayerFromData(data)` (object-gebaseerd)
-4. `inverseMask.bringToFront()`
-5. `updateZoneLockIndicator()`
+4. `mergeExclusionLayers()`: alle lagen → polygonen (`layerToPolygons`) → unie → afgeknipt aan het speelveld → **één** rode polygoon (`EXCLUSION_AREA_STYLE`). Lukt dat niet (onbekend laagtype of fout), dan worden de lagen apart getekend
+5. `inverseMask.bringToFront()`
+6. `updateZoneLockIndicator()`
 
 ### FurthestDistance: exacte Voronoi-cel
 Gebruikt **Sutherland-Hodgman halvevlak-knippen** (geen raster!):
@@ -306,8 +307,11 @@ lastUndoAction = {
 
 | Breakpoint | Layout |
 |---|---|
-| < 1100px (mobiel) | Controls schuiven omhoog vanuit onderkant (bottom sheet) |
+| < 1100px (mobiel) | Controls schuiven omhoog vanuit onderkant (bottom sheet): standaard 50vh, `.expanded` 88vh (knop ▲/▼ in de handle), `.minimized` enkel de handle |
 | ≥ 1100px (desktop) | Controls als rechterzijbalk (35%), kaart links (65%) |
+
+- Titel in de handle volgt de stap (`updateControlsTitle`): "Spel starten", "Locatie instellen", "Checklist · x/9", "Kaarten · n opgelost"
+- Kaart centreren op mobiel altijd via `setViewInVisibleMap()` / `getHiddenMapHeight()`, anders valt het punt achter het paneel
 
 ---
 
