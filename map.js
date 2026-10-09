@@ -12,6 +12,7 @@ let dampoortLine = null;
 let watersportbaanLine = null;
 let poiMarkers = {};             // vaste POI-markers (Dampoort, Weba, ...), enkel zichtbaar als context
 let contextLayers = [];          // lagen die de geopende kaart uitleggen
+let contextFocus = null;          // gebied waarop de kaartcontext inzoomt
 let neighborhoodLayers = [];
 let exclusionLayers = [];
 let mergedExclusion = null;      // polygon-clipping MultiPolygon van alle uitgesloten zones (voor het %)
@@ -102,7 +103,7 @@ function initializeMap() {
     }
     if (RAILWAY_BUFFER.length > 0) {
         railwayBuffer = L.polygon(RAILWAY_BUFFER.map(p => [p.lat, p.lng]), {
-            color: '#2A6FAE', fillColor: '#2A6FAE', fillOpacity: 0.15, weight: 1, interactive: false
+            color: '#2A6FAE', fillColor: '#2A6FAE', fillOpacity: 0.25, weight: 2, dashArray: '8, 6', interactive: false
         });
     }
 
@@ -127,6 +128,22 @@ function fitToField(bottomPadding = 0) {
 /**
  * Centreer op een punt in het zichtbare deel (boven een eventueel onderblad)
  */
+/**
+ * Zoom in op waar de getoonde kaartcontext over gaat (anders het hele speelveld)
+ */
+function fitToContext(bottomPadding = 0) {
+    if (!map || !gameZoneCircle) return;
+    if (!contextFocus) { fitToField(bottomPadding); return; }
+    map.invalidateSize();
+    // Nooit verder uitzoomen dan het speelveld: beperk het gebied tot het veld
+    const field = gameZoneCircle.getBounds().pad(0.05);
+    const focus = L.latLngBounds(
+        [Math.max(contextFocus.getSouth(), field.getSouth()), Math.max(contextFocus.getWest(), field.getWest())],
+        [Math.min(contextFocus.getNorth(), field.getNorth()), Math.min(contextFocus.getEast(), field.getEast())]
+    );
+    map.fitBounds(focus, { paddingTopLeft: [24, 24], paddingBottomRight: [24, 24 + bottomPadding], animate: false, maxZoom: 16 });
+}
+
 function centerOn(latlng, zoom, bottomPadding = 0) {
     map.invalidateSize();
     map.setView(latlng, zoom, { animate: false });
@@ -170,6 +187,7 @@ function sideLabel(lat, lng, text) {
 function clearCardContext() {
     contextLayers.forEach(layer => map.removeLayer(layer));
     contextLayers = [];
+    contextFocus = null;
     hideNeighborhoods();
 }
 
@@ -182,15 +200,20 @@ function showCardContext(card, extra = {}) {
     clearCardContext();
     if (!card || !map) return;
     const add = (layer) => { layer.addTo(map); contextLayers.push(layer); return layer; };
+    const focus = (bounds) => { contextFocus = contextFocus ? contextFocus.extend(bounds) : L.latLngBounds(bounds.getSouthWest(), bounds.getNorthEast()); };
     const c = LOCATIONS.center;
     const lngOffset = 0.025;
 
     switch (card.answerType) {
-        case 'r40':
-            add(L.polygon(R40_POLYGON.map(p => [p.lat, p.lng]), { color: '#111417', weight: 5, fill: false, interactive: false }));
-            add(sideLabel(c.lat + 0.004, c.lng, 'binnen'));
-            add(sideLabel(c.lat + 0.026, c.lng, 'buiten'));
+        case 'r40': {
+            const ring = add(L.polygon(R40_POLYGON.map(p => [p.lat, p.lng]), { color: '#111417', weight: 5, fill: false, interactive: false }));
+            const b = ring.getBounds();
+            focus(b.pad(0.35));
+            // Labels net onder de WEC-marker binnen de ring, en net boven de ring erbuiten
+            add(sideLabel(c.lat - 0.0028, c.lng, 'binnen'));
+            add(sideLabel(b.getNorth() + (b.getNorth() - b.getSouth()) * 0.12, b.getCenter().lng, 'buiten'));
             break;
+        }
         case 'leie-schelde':
             add(L.polyline(LEIE_SCHELDE_LINE.map(p => [p.lat, p.lng]), { color: '#2A6FAE', weight: 7, interactive: false }));
             add(sideLabel(c.lat + 0.02, c.lng - 0.02, 'noorden'));
@@ -231,19 +254,23 @@ function showCardContext(card, extra = {}) {
             });
             break;
         case 'distanceFromBike': {
-            const pos = extra.position || (currentLiveLat ? { lat: currentLiveLat, lng: currentLiveLng } : null);
+            const pos = extra.position !== undefined ? extra.position : (currentLiveLat ? { lat: currentLiveLat, lng: currentLiveLng } : null);
             if (pos && card.radius) {
-                add(L.circle([pos.lat, pos.lng], { radius: card.radius, color: '#2A6FAE', weight: 3, fillColor: '#2A6FAE', fillOpacity: 0.08, dashArray: '10, 6', interactive: false }));
+                const circle = add(L.circle([pos.lat, pos.lng], { radius: card.radius, color: '#2A6FAE', weight: 3, fillColor: '#2A6FAE', fillOpacity: 0.08, dashArray: '10, 6', interactive: false }));
+                focus(circle.getBounds().pad(0.1));
             }
             break;
         }
         case 'SameOrAdjacentNeighborhood': {
             const wijk = extra.wijk;
-            drawNeighborhoods({ main: wijk ? [wijk] : [], adjacent: wijk ? getAdjacentNeighborhoods(wijk) : [] });
+            const adjacent = wijk ? getAdjacentNeighborhoods(wijk) : [];
+            drawNeighborhoods({ main: wijk ? [wijk] : [], adjacent });
+            neighborhoodBounds([wijk, ...adjacent]).forEach(focus);
             break;
         }
         case 'eliminateNeighborhood':
             drawNeighborhoods({ main: extra.three || [], adjacent: [] });
+            neighborhoodBounds(extra.three || []).forEach(focus);
             break;
     }
 }
@@ -265,7 +292,7 @@ function drawNeighborhoods({ main = [], adjacent = [] } = {}) {
             interactive: false
         }).addTo(map);
         neighborhoodLayers.push(polygon);
-        if (isMain || isAdjacent || main.length === 0) {
+        if (isMain || main.length === 0) {
             const label = L.marker(polygon.getBounds().getCenter(), {
                 interactive: false,
                 icon: L.divIcon({ className: 'neighborhood-label', html: `<div class="neighborhood-label-text">${neighborhood.name.split(' - ')[0]}</div>`, iconSize: [120, 20] })
@@ -273,6 +300,10 @@ function drawNeighborhoods({ main = [], adjacent = [] } = {}) {
             neighborhoodLayers.push(label);
         }
     });
+}
+
+function neighborhoodBounds(names) {
+    return CITY_NEIGHBORHOODS.filter(n => names.includes(n.name)).map(n => L.latLngBounds(n.polygon.map(p => [p.lat, p.lng])).pad(0.15));
 }
 
 function hideNeighborhoods() {

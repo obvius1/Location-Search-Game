@@ -193,8 +193,8 @@ h1, h2, h3 { font-family: var(--f-head); font-stretch: 75%; font-weight: 800; li
 .status-line.bad { border-left-color: var(--zone); }
 
 @media (prefers-reduced-motion: no-preference) {
-    .sheet { animation: up .2s ease-out; }
-    .toast { animation: down .18s ease-out; }
+    .sheet.enter { animation: up .2s ease-out; }
+    .toast.enter { animation: down .18s ease-out; }
     @keyframes up { from { transform: translateY(20px); opacity: .5; } to { transform: none; opacity: 1; } }
     @keyframes down { from { transform: translateY(-12px); opacity: .4; } to { transform: none; opacity: 1; } }
 }

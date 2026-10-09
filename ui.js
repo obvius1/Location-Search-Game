@@ -282,12 +282,13 @@ function sheetExtra() {
 function showSheetContext() {
     const target = sheetTarget();
     if (target.answerType === 'copyQuestion') { clearCardContext(); return; }
-    showCardContext(target, sheetExtra());
+    // Aan de kant van de tegenstander tekenen we pas iets als jij hun gegevens invult
+    showCardContext(target, ui.sheet.mode === 'them' ? { position: null } : sheetExtra());
 }
 
 function fitAboveSheet() {
     const sheet = $('.sheet');
-    fitToField(sheet && !isDesktop() ? sheet.offsetHeight : 0);
+    fitToContext(sheet && !isDesktop() ? sheet.offsetHeight : 0);
 }
 
 function closeSheet() {
@@ -362,7 +363,9 @@ function seekControls(card, current) {
             <div class="inline"><input class="input mono" id="seek-pos" value="${esc(sh.position)}" placeholder="51.0543, 3.7234" inputmode="decimal"><button class="btn" id="copy-seek-pos">Kopieer</button></div></div>`;
     }
     if (card.answerType === 'SameOrAdjacentNeighborhood') {
-        extra = `<div class="field"><label for="seek-wijk">Wijk van jullie item</label>${wijkSelect('seek-wijk', sh.wijk)}</div>`;
+        const adjacent = sh.wijk ? getAdjacentNeighborhoods(sh.wijk) : [];
+        extra = `<div class="field"><label for="seek-wijk">Wijk van jullie item</label>${wijkSelect('seek-wijk', sh.wijk)}
+            ${adjacent.length ? `<p class="why">Buurwijken: ${adjacent.map(shortWijk).map(esc).join(', ')}</p>` : ''}</div>`;
     }
     if (card.answerType === 'eliminateNeighborhood') {
         extra = [0, 1, 2].map(i => `<div class="field"><label for="seek-elim-${i}">Wijk ${i + 1} die jullie noemen</label>${wijkSelect(`seek-elim-${i}`, sh.three[i], 'seek-elim')}</div>`).join('');
@@ -594,18 +597,30 @@ function startGame() {
 
 /* ===== Onderblad en melding ===== */
 
+let lastSheetKey = null, lastToast = null;
+
 function renderOverlay() {
+    // Animeer enkel bij openen (niet bij elke wijziging) en behoud de scrollpositie
+    const sheetKey = ui.screen === 'wizard' && ui.wizard.step === 2 ? 'wizard'
+        : ui.sheet ? (ui.sheet.type === 'card' ? 'card:' + ui.sheet.cardId : ui.sheet.type) : null;
+    const oldSheet = $('.sheet');
+    const scroll = oldSheet && sheetKey === lastSheetKey ? oldSheet.scrollTop : 0;
+    const sheetEnter = sheetKey !== lastSheetKey ? ' enter' : '';
+    const toastEnter = ui.toast !== lastToast ? ' enter' : '';
+    lastSheetKey = sheetKey; lastToast = ui.toast;
+
     let html = '';
     if (ui.toast) {
-        html += `<div class="toast" role="status"><button class="toast-text" id="toast-close" aria-label="Melding sluiten">${esc(ui.toast)}</button>${ui.undoable ? '<button id="undo">Ongedaan maken</button>' : ''}</div>`;
+        html += `<div class="toast${toastEnter}" role="status"><button class="toast-text" id="toast-close" aria-label="Melding sluiten">${esc(ui.toast)}</button>${ui.undoable ? '<button id="undo">Ongedaan maken</button>' : ''}</div>`;
     }
     if (ui.screen === 'wizard' && ui.wizard.step === 2) {
-        html += wizardLocationSheet();
+        html += wizardLocationSheet().replace('class="sheet"', `class="sheet${sheetEnter}"`);
     } else if (ui.sheet) {
         const inner = ui.sheet.type === 'card' ? cardSheet() : coordsSheet();
-        html += `<div class="scrim" data-close></div><div class="sheet" role="dialog" aria-modal="true">${inner}</div>`;
+        html += `<div class="scrim" data-close></div><div class="sheet${sheetEnter}" role="dialog" aria-modal="true">${inner}</div>`;
     }
     $('#overlay').innerHTML = html;
+    if ($('.sheet')) $('.sheet').scrollTop = scroll;
     updateHideOutputs();
     updateCheckOutput();
 }
@@ -675,9 +690,9 @@ document.addEventListener('click', (event) => {
 
     // Kaarten
     if (t.dataset.card) { openCard(t.dataset.card); render(); fitAboveSheet(); return; }
-    if (t.dataset.mode !== undefined) { ui.sheet.mode = t.dataset.mode || null; ui.sheet.copyId = null; ui.sheet.error = null; showSheetContext(); renderOverlay(); return; }
+    if (t.dataset.mode !== undefined) { ui.sheet.mode = t.dataset.mode || null; ui.sheet.copyId = null; ui.sheet.error = null; showSheetContext(); renderOverlay(); fitAboveSheet(); return; }
     if (t.dataset.copyPick) { ui.sheet.copyId = t.dataset.copyPick; showSheetContext(); renderOverlay(); fitAboveSheet(); return; }
-    if (t.id === 'copy-reselect') { ui.sheet.copyId = null; showSheetContext(); renderOverlay(); return; }
+    if (t.id === 'copy-reselect') { ui.sheet.copyId = null; showSheetContext(); renderOverlay(); fitAboveSheet(); return; }
     if (t.dataset.answer !== undefined) { answerFromSheet(t.dataset.answer); return; }
     if (t.matches('[data-them-done]')) {
         const sh = ui.sheet, card = Game.card(sh.cardId);
@@ -690,10 +705,10 @@ document.addEventListener('click', (event) => {
         ui.mapCtx = { cardId: target.id, extra: sheetExtra(), title: target.question };
         ui.sheet = null; ui.tab = 'map';
         render();
-        fitToField();
+        fitToContext();
         return;
     }
-    if (t.id === 'clear-ctx') { ui.mapCtx = null; clearCardContext(); render(); return; }
+    if (t.id === 'clear-ctx') { ui.mapCtx = null; clearCardContext(); render(); fitToField(); return; }
 
     // Kaart
     if (t.id === 'toggle-bike') { Game.setShowBike(!Game.showBike()); showBikeOnMap(); render(); return; }
@@ -753,14 +768,26 @@ document.addEventListener('click', (event) => {
 
 document.addEventListener('input', (event) => {
     const t = event.target;
-    if (t.id === 'opp-pos' || t.id === 'hide-wijk' || t.classList.contains('hide-elim')) { updateHideOutputs(); return; }
+    if (t.id === 'opp-pos' || t.id === 'hide-wijk' || t.classList.contains('hide-elim')) {
+        updateHideOutputs();
+        // Toon ook op de kaart wat de tegenstander noemt
+        const extra = {
+            position: $('#opp-pos') ? parseCoords($('#opp-pos').value) : null,
+            wijk: $('#hide-wijk') ? $('#hide-wijk').value : '',
+            three: [...document.querySelectorAll('.hide-elim')].map(x => x.value).filter(Boolean)
+        };
+        showCardContext(sheetTarget(), extra);
+        if (t.id !== 'opp-pos' || extra.position) fitAboveSheet();
+        return;
+    }
     if (t.id === 'check-pos') { updateCheckOutput(); return; }
     if (t.id === 'seek-pos') { ui.sheet.position = t.value; ui.sheet.error = null; showSheetContext(); return; }
-    if (t.id === 'seek-wijk') { ui.sheet.wijk = t.value; ui.sheet.error = null; showSheetContext(); return; }
+    if (t.id === 'seek-wijk') { ui.sheet.wijk = t.value; ui.sheet.error = null; showSheetContext(); renderOverlay(); fitAboveSheet(); return; }
     if (t.classList.contains('seek-elim')) {
         ui.sheet.three = [...document.querySelectorAll('.seek-elim')].map(s => s.value);
         showSheetContext();
         renderOverlay();
+        fitAboveSheet();
         return;
     }
     if (t.id === 'wiz-straat') { ui.wizard.notes.straat = t.value; $('#wiz-straat-n').textContent = `${t.value.length} tekens`; refreshStartButton(); return; }
@@ -786,4 +813,9 @@ function refreshStartButton() {
 
 document.addEventListener('keydown', (event) => {
     if (event.key === 'Escape' && ui.sheet) closeSheet();
+});
+
+// Na het invullen van een positie: inzoomen op de afstandscirkel
+document.addEventListener('change', (event) => {
+    if (event.target.id === 'seek-pos' && ui.sheet) fitAboveSheet();
 });
