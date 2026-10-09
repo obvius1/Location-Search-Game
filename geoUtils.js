@@ -595,19 +595,6 @@ function getDistanceToNearestPOI(lat, lng, poiType, excludePoiIds = []) {
 }
 
 /**
- * Check of er een POI van bepaald type binnen radius is
- * @param {number} lat - Huidige latitude
- * @param {number} lng - Huidige longitude
- * @param {string} poiType - Type POI
- * @param {number} radius - Radius in meters
- * @returns {boolean} True als POI binnen radius is
- */
-function hasNearbyPOI(lat, lng, poiType, radius) {
-    const distance = getDistanceToNearestPOI(lat, lng, poiType);
-    return distance <= radius;
-}
-
-/**
  * Genereer de punten van één cirkel als gesloten ring [lat, lng]
  * @param {number} lat - Middelpunt latitude
  * @param {number} lng - Middelpunt longitude

@@ -1,337 +1,159 @@
-# 🤖 AI Context - Gent Location Game
+# AI Context - Gent Location Game
 
-Dit bestand is speciaal voor AI-assistenten om het project volledig te begrijpen zonder de volledige codebase te moeten exploreren.
+Dit bestand is voor AI-assistenten, zodat ze het project snel begrijpen zonder de hele code te moeten doorzoeken.
 
 ---
 
-## 📋 Project Overzicht
+## Project
 
-**Naam**: Gent Location Game (Jet Lag: The Knock-Off)
-**Type**: Mobile-first Progressive Web App (PWA)
-**Doel**: Locatiegebaseerd spel voor 2 teams in Gent — elk team verstopt een fiets, het andere team probeert die te vinden via kaarten/vragen
-**Stack**: Vanilla JavaScript, HTML/CSS, Leaflet Maps, polygon-clipping (unie/verschil van polygonen, via unpkg), LocalStorage
+**Naam**: Jet Lag Gent (Gent Location Game)
+**Type**: Progressive Web App (PWA), gemaakt voor de gsm
+**Doel**: Locatiespel voor 2 teams in Gent. Elk team verstopt een fiets, het andere team zoekt die via taken en vragen.
+**Stack**: Vanilla JavaScript, HTML/CSS, Leaflet 1.9.4, polygon-clipping 0.15.7 (via unpkg), localStorage
 **Deployment**: GitHub Pages (statische site, geen backend)
 **Laatst bijgewerkt**: 9 oktober 2026
 
+Er speelt op dit moment niemand een spel. Oude opgeslagen spellen hoeven niet compatibel te blijven.
+
 ---
 
-## 🎮 Game Mechanica
+## Spelverloop
 
 ### Speelveld
-- **Locatie**: Gent (België)
-- **Radius**: 3,5km rond de WEC (`GAME_RADIUS` in geoUtils.js is de enige bron: zones, kaart en teksten (`.game-radius-km`) volgen automatisch; centrum = `LOCATIONS.center` in geo-data.json)
-- **Regel**: Alleen locaties binnen deze zone zijn geldig
+- Cirkel van 3,5 km rond de WEC. `GAME_RADIUS` in geoUtils.js is de enige bron: zones, kaart en teksten (`.game-radius-km`) volgen automatisch. Het middelpunt is `LOCATIONS.center` in geo-data.json.
+- Alleen locaties binnen het speelveld zijn geldig.
 
-### Rollen
-- **2 teams**, elk met een fiets die ze verstoppen
-- **Hider**: verstopt de fiets, vult checklist in (9 foto's/notities), beantwoordt vragen
-- **Seeker**: voert taken uit, stelt vragen aan de hider, probeert de fiets te lokaliseren via exclusion zones
-- **Doel**: als eerste de fiets van het andere team vinden
-
-### Game Flow
+### Flow
 ```
-1. Beide spelers voeren DEZELFDE seed in → identieke kaartenvolgorde
-2. Hider verstopt fiets → vult 9-item checklist in (foto's, straatnaam, boom, etc.)
-3. Hider bevestigt GPS-locatie van de fiets in app
-4. Beide spelers zien dezelfde flop (12 kaarten: 4 per fase)
-5. Om de beurt: voer taak uit → stel vraag aan tegenstander via chat (WhatsApp/Messenger)
-6. App berekent antwoord automatisch op basis van GPS → exclusion zone verschijnt op kaart
-7. Hoe meer vragen → hoe kleiner het zoekgebied
+1. Beide teams kiezen DEZELFDE spelcode (seed) -> dezelfde kaarten in dezelfde volgorde
+2. Wizard stap 1: spelcode + optionele regel (zoneLockEnabled), vast tijdens het spel
+3. Wizard stap 2: fiets op de kaart zetten (GPS of tikken, versleepbare pin, moet binnen het speelveld)
+4. Wizard stap 3: 6 foto's afvinken + notities (straatnaam, eenrichting Ja/Nee, boom Ja/Nee)
+5. Beide teams zien dezelfde flop: 4 kaarten per fase
+6. Wie een taak eerst doet, stelt de vraag. In de app duid je per kaart aan: "Wij" of "De tegenstander"
+   - Wij: je vult het antwoord van de tegenstander in -> uitgesloten zone op de kaart
+   - De tegenstander: de app toont wat JIJ moet antwoorden over je eigen fiets
+7. De kaart verlaat de flop; de volgende kaart van dezelfde fase komt op DEZELFDE plek
 ```
 
-### Geen centrale server
-- **Alles is lokaal** — de app berekent antwoorden op basis van GPS
-- Communicatie via WhatsApp/Messenger: antwoorden, bewijsfoto's, GPS-coördinaten
-- Als tegenstander een kaart speelt, moet je die ook markeren als "tegenstander speelde dit eerst"
+### Geen server
+Alles is lokaal. De teams communiceren via WhatsApp/Messenger (antwoorden, foto's, coördinaten).
 
-### Automatische Antwoorden
-Bij bepaalde answerTypes berekent de app automatisch het antwoord op basis van GPS:
+### Antwoordtypes (`answerType` in cards.json)
 
-| answerType | Vraag | Logica |
+| answerType | Vraag | Zone (Wij) / jouw antwoord (Tegenstander) |
 |---|---|---|
-| `r40` | Binnen/buiten R40 binnenring? | Point-in-polygon op R40_POLYGON |
-| `leie-schelde` | Noorden/zuiden van Leie-Schelde? | Cross product op lijn |
-| `proximity` | Dichter bij Weba of IKEA? | Vergelijk afstand tot beide POIs |
-| `dampoort` | Oosten/westen van Dampoort? | Vergelijk longitude |
-| `watersportbaan` | Oosten/westen van watersportbaantip? | Vergelijk longitude |
-| `bufferLine` | Binnen 800m van spoorlijn Oostende-Antwerpen? | Buffer zone check |
-| `distanceFromBike` | Is fiets binnen Xm van jouw positie? | Hider checkt seeker-coördinaten |
-| `FurthestDistance` | Welke [POI] is zeker NIET de dichtste? | Voronoi-cel van genoemde POI (exact polygon via Sutherland-Hodgman) |
-| `radiusProximity` | Is er een [bibliotheek/ziekenhuis/watertoren] binnen Xm? | Nee: unie van alle cirkels, afgeknipt aan het speelveld. Ja: speelveld min de unie van alle cirkels. Beide via polygon-clipping, dus overlap klopt altijd |
-| `SameOrAdjacentNeighborhood` | Huidige/aangrenzende wijk van het item? | Point-in-polygon + buurwijk detectie |
-| `eliminateNeighborhood` | 3 wijken gegeven, 1 elimineren | Wijk-polygoon uitsluiten |
-| `requiresAnswer: false` | Foto-hints (Links/Rechts/Voor/Achter/Beneden/Gebouw) | Hider stuurt foto via chat |
+| `r40` | Binnen/buiten R40? | Point-in-polygon op R40_POLYGON |
+| `leie-schelde` | Noorden/zuiden van Leie-Schelde? | Kant van de lijn |
+| `proximity` | Dichter bij Weba of IKEA? | Middelloodlijn |
+| `dampoort` / `watersportbaan` | Oosten/westen van ...? | Longitude |
+| `bufferLine` | Binnen 800 m van de spoorlijn? | Buffer rond de lijn |
+| `distanceFromBike` | Fiets binnen X m van jouw positie? | Wij: positie meegeven (`answer.position`). Tegenstander: hun coördinaten plakken, app rekent de afstand |
+| `FurthestDistance` | Welke [POI] is zeker NIET de dichtste? | Voronoi-cel van de genoemde POI (Sutherland-Hodgman) |
+| `radiusProximity` | Is er een [POI] binnen X m? | Nee: unie van cirkels; Ja: speelveld min de unie (polygon-clipping) |
+| `SameOrAdjacentNeighborhood` | Zelfde of aangrenzende wijk als het item? | Wij kiezen de wijk van het item (`answer.wijk`) |
+| `eliminateNeighborhood` | 3 wijken, 1 wordt geëlimineerd | Wij kiezen 3 wijken (`answer.three`) en daarna welke geëlimineerd werd |
+| `copyQuestion` | Museumkaart: kopieer een vraag | Zie hieronder |
+| `requiresAnswer: false` | Foto's, straatnaam, eenrichting, boom | Taakkaart. Tegenstander-kant toont de foto/notitie uit de checklist |
+
+### Kopieer een vraag (`copyQuestion`)
+- **Wij**: kies een vraag die de tegenstander jullie al stelde (kaart opgelost door `them`) en beantwoord ze met de gewone knoppen van die kaart. De zone hoort bij de museumkaart: `solved` krijgt `{ answer: { copy: { cardId, ...antwoord } } }`.
+- **Tegenstander**: kies welke van jullie vragen (opgelost door `us`) ze kopiëren; de app toont jouw antwoord.
+- Elke vraag kan maar één keer gekopieerd worden (`Game.copyCandidates`). Is er niets te kopiëren, dan blijft de kaart in de flop.
 
 ---
 
-## 🏗️ Architectuur
+## Architectuur
 
-### Bestandsstructuur
 ```
 gent-location-game/
-├── index.html              # PWA entry point, kaart + controls
-├── styles.css              # Mobile-first CSS (~1500+ lijnen)
-├── app.js                  # Hoofdlogica (~3900+ lijnen)
-├── cards.js                # Kaarten + seed-based shuffling
-├── geoUtils.js             # Geografische berekeningen
-├── storage.js              # LocalStorage management + gameRules
-├── service-worker.js       # Offline PWA support
-├── manifest.json           # PWA manifest
-├── polygon-helper.html     # Dev tool voor polygon coördinaten
-├── README.md               # Gebruikersdocumentatie
-├── AI-CONTEXT.md           # Dit bestand
-├── data/
-│   ├── cards.json          # Hider checklist (9 items) + speelkaarten (3 fases)
-│   ├── geo-data.json       # POI locations (colruyts, catlocations, libraries, hospitals, watertowers, etc.)
-│   ├── rules.json          # Vaste spelregels + optionele regels (met key voor gameRules systeem)
-│   └── stadswijken-gent.geojson  # GeoJSON met alle Gentse wijken
-└── icons/                  # PWA app icons
+├── index.html          # Schil: kopbalk, #stage (kaart, overlay, paneel), tabs
+├── styles.css          # Alle stijlen (tokens licht/donker, gsm eerst, >=900px paneel rechts)
+├── storage.js          # localStorage: gameData + gameRules
+├── geoUtils.js         # Geodata laden, afstanden, wijken, automatische antwoorden (performAllChecks)
+├── cards.js            # Kaarten laden, seed-shuffle, CardManager (flop)
+├── map.js              # Leaflet-kaart, uitgesloten zones, kaartcontext, live locatie
+├── game.js             # Spelregels: flop, oplossen, zones, kopiëren, antwoorden over je fiets, undo
+├── ui.js               # Schermen: wizard, tabs Kaart/Kaarten/Meer, onderbladen, toast
+├── service-worker.js   # Offline cache (network-first), bump CACHE_NAME bij elke release
+├── manifest.json
+├── polygon-helper.html # Dev tool voor polygooncoördinaten
+└── data/
+    ├── cards.json      # hiderChecklist + kaarten (3 fases)
+    ├── geo-data.json   # POI's, R40, Leie-Schelde, spoorlijn, ...
+    ├── rules.json      # Vaste regels + optionele regels (key = gameRules-sleutel)
+    └── stadswijken-gent.geojson
 ```
 
-### Belangrijke Globale Variabelen (app.js)
-```javascript
-let cardManager = null;         // CardManager instantie
-let currentCardIndex = 0;       // Index voor single card view
-let exclusionLayers = [];       // Array van Leaflet layers op kaart
-let lastUndoAction = null;      // Laatste kaartactie (kaart-ID + flop-staat) voor undo
-let liveMarker = null;          // Blauw bolletje (live GPS)
-let liveAccuracyCircle = null;  // Nauwkeurigheidscirkel
-let liveWatchId = null;         // watchPosition ID
-let liveTrackingEnabled = false;
-let currentLiveLat = null;      // Meest recente GPS lat (voor zone lock check)
-let currentLiveLng = null;
-let rulesData = [];             // Vaste spelregels (uit rules.json)
-let optionalRulesData = [];     // Optionele regels met key + text
-```
+Laadvolgorde in index.html: leaflet, polygon-clipping, storage, geoUtils, cards, map, game, ui.
+`map.js` roept `UI.refreshMapStatus()` aan als zones of de live positie veranderen.
+
+### game.js (`Game`)
+- `restore()`, `start({seed, location, checklist, zoneLock})`, `reset()`
+- `flop()`, `card(id)`, `deckLeft(phase)`, `solved()`, `solvedOf(id)`
+- `answerOptions(card)`, `asksQuestion(card)`, `applyZone(data, card, answer, ownerId)`
+- `solve(card, by, answer)`: `by` = `'us'` of `'them'`. Eerste keer: kaart naar `discarded`, nieuwe kaart op dezelfde plek, geeft de nieuwe kaart terug. Opnieuw oplossen = antwoord wijzigen (zone wordt vervangen, geen nieuwe kaart).
+- `undo()`: zet een volledige momentopname terug (gameData + kaartstand) van vóór de laatste `solve`.
+- `hideAnswer(card)`: wat je antwoordt over je eigen fiets (`kind`: big, valid, distance, wijk, elim, text)
+- `showBike()` / `setShowBike(v)`: eigen fiets tonen, standaard verborgen, onthouden in localStorage (`showBike`)
+
+### map.js
+- `initializeMap()`, `fitToField(bottomPadding)`, `fitToContext(bottomPadding)`, `centerOn(latlng, zoom, bottomPadding)`
+- `setBikeMarker(location, {visible, draggable, onDrag})`, `setPinMarker(location)`
+- `showCardContext(card, {wijk, three, position})` / `clearCardContext()`: tekent waar een vraag over gaat (R40, lijnen, POI's, cirkels, wijken) en zet `contextFocus` om op in te zoomen (begrensd tot het speelveld)
+- `updateExclusionZones()`: alle zones -> één unie, afgeknipt aan het speelveld (`mergeExclusionLayers`) -> `mergedExclusion`
+- `remainingFieldPercent()`, `isPointExcluded(lat, lng)`
+- `startLiveLocation()` / `stopLiveLocation()`; `currentLiveLat` / `currentLiveLng`
+
+### ui.js
+- Staat in `ui`: `screen` (wizard/game), `tab` (map/cards/more), `sheet`, `toast`, `mapCtx`, `pin`, `wizard`
+- `render()` = kopbalk + tabs + paneel + kaart-overlay + onderblad/toast
+- Onderblad per kaart (`cardSheet`): eerst "Wie deed de taak eerst?", dan `seekControls` (Wij) of `hideBlock` (Tegenstander)
+- "Groot op de kaart" houdt de context vast op de Kaart-tab (chip met ×)
+- Coördinaten-onderblad: eigen positie kopiëren, geplakte coördinaten nakijken (in het veld, afstand tot fiets en jou, uitgesloten zone, pin op de kaart)
+- Toast bovenaan onder de kopbalk, 4,5 s, tik om te sluiten, "Ongedaan maken", balkje dat aftelt
+- Bevestigingen gebeuren in de pagina zelf (geen `confirm()`/`alert()`)
 
 ---
 
-## 🃏 Kaartensysteem
+## Opslag
 
-### CardManager (cards.js)
-```javascript
-class CardManager {
-    seed          // Gebruikte seed
-    deck[]        // Volledig shuffled deck (alle kaarten)
-    flop[]        // 12 zichtbare kaarten (4 per fase)
-    discarded[]   // Opgeloste kaarten
-    deckIndex     // Huidige positie in deck
-}
-```
-- **Flop**: altijd 12 kaarten zichtbaar (4 fase 1, 4 fase 2, 4 fase 3)
-- Als een kaart opgelost wordt → nieuwe kaart van dezelfde fase getrokken
-- **Seed**: zorgt voor identieke volgorde bij beide spelers
-- Kaart-ID: `${seed}_${index}` (gebruikt voor opslaan antwoorden)
-
-### cards.json structuur
-```json
-{
-  "hiderChecklist": ["item1", "item2", ...],  // 9 items
-  "cards": [
-    {
-      "task": "Beschrijving taak",
-      "question": "Vraag aan tegenstander",
-      "phase": 1,
-      "answerType": "r40",
-      "pois": [],
-      "radius": 750,        // Optioneel, voor radiusProximity/distanceFromBike
-      "poiType": "libraries", // Optioneel, voor radiusProximity/FurthestDistance
-      "requiresAnswer": false  // Optioneel, voor foto-kaarten
-    }
-  ]
-}
-```
-
-### Fase indeling
-- **🟢 Fase 1 (Early Game)**: Brede geografische vragen (R40, Leie-Schelde, Dampoort, etc.)
-- **🟡 Fase 2 (Mid Game)**: Wijkvragen, radius-vragen, meer specifiek
-- **🔴 Fase 3 (Late Game)**: Foto-hints van de hider checklist, directe locatie-aanwijzingen
-
----
-
-## 💾 Storage (storage.js)
-
-### gameData (localStorage key: `jetlag_game_data`)
+### gameData (`jetlag_game_data`)
 ```javascript
 {
   seed: "ABC123",
   location: { lat, lng, timestamp },
-  cardAnswers: [{ cardId, opponentAnswer, cardTask, cardIndex, timestamp }],
-  exclusionZones: [{ type, answer, cardId, ... }],  // voor complexe zones; gekoppeld aan de vaste kaart-ID (NIET aan de plek in de flop: een nieuwe kaart krijgt dezelfde plek)
+  checklist: { photos: {0: true, ...}, notes: { straat, eenrichting: "Ja"|"Nee", boom: "Ja"|"Nee" } },
+  cardAnswers: [{ cardId, cardTask, opponentAnswer }],      // zones met een tekstantwoord (r40, ...)
+  exclusionZones: [{ type, cardId, ... }],                  // radiusProximity, distanceFromBike, furthestDistance, neighborhood, eliminateNeighborhood
+  solved: [{ cardId, by: "us"|"them", answer }],
   gameStarted: true,
-  version: 1
+  version: 2
 }
 ```
+Zones hangen aan de vaste kaart-ID (`${seed}_${index}`), nooit aan de plek in de flop.
 
-### cardManager state (apart opgeslagen)
-```javascript
-{ flop: [...], discarded: [...], deckIndex: 12 }
-```
-
-### gameRules (localStorage key: `gameRules`)
-```javascript
-{ zoneLockEnabled: true }  // uitbreidbaar met meer regels
-```
-
-### Functies
-- `loadGameData()` / `saveGameData(data)`
-- `saveSeed(seed)` → zet ook `gameStarted: true`
-- `saveOpponentAnswer(cardId, answer, task, index)` → pass `null` als answer om te verwijderen
-- `loadGameRules()` / `saveGameRules(rules)` / `getGameRule(key)` / `toggleGameRule(key)`
+### Andere sleutels
+- `cardManagerState`: `{ flop, discarded, deckIndex }`
+- `gameRules`: `{ zoneLockEnabled }`, gekozen in de wizard, daarna vergrendeld
+- `showBike`, `liveLocation`: voorkeuren per toestel, blijven bij een nieuw spel
 
 ---
 
-## 🗺️ Exclusion Zones
-
-### Hoe het werkt
-Na elk antwoord wordt een rode zone op de kaart getekend waar de fiets NIET kan zijn.
-
-### updateExclusionZones() flow
-1. Verwijder alle bestaande Leaflet layers
-2. Laad `gameData.cardAnswers` → `createExclusionLayer(answer)` (string-gebaseerd)
-3. Laad `gameData.exclusionZones` → `createExclusionLayerFromData(data)` (object-gebaseerd)
-4. `mergeExclusionLayers()`: alle lagen → polygonen (`layerToPolygons`) → unie → afgeknipt aan het speelveld → **één** rode polygoon (`EXCLUSION_AREA_STYLE`). Lukt dat niet (onbekend laagtype of fout), dan worden de lagen apart getekend
-5. `inverseMask.bringToFront()`
-6. `updateZoneLockIndicator()`
-
-### FurthestDistance: exacte Voronoi-cel
-Gebruikt **Sutherland-Hodgman halvevlak-knippen** (geen raster!):
-- Start met spelcirkel (64 punten)
-- Knip met elk halvevlak: "dichter bij selectedPOI dan bij elke andere POI"
-- Resultaat = exacte Voronoi-cel polygon van de genoemde POI
-- Getekend als één strakke rode polygoon
+## Optionele regel: geen taken in uitgesloten zones
+- `zoneLockEnabled`, standaard aan, gekozen bij de start, vast tijdens het spel (Meer toont de regel uitgeschakeld)
+- Kaart-tab: chip linksonder "Open zone · taken mogen" / "Uitgesloten zone · geen taken hier" (via `isPointExcluded` op de live positie)
+- Bij het openen van een kaart in een uitgesloten zone: waarschuwing. Er is geen harde blokkering.
 
 ---
 
-## ⚙️ Optionele Spelregels
+## Bekende aandachtspunten
+1. Het middelpunt is de WEC. Gebruik nergens nog "Belfort".
+2. FurthestDistance: "zeker NIET de dichtste" (Voronoi-cel), niet "de verste".
+3. Undo kan enkel de laatste actie terugdraaien, via de toast. Een fout antwoord kan je ook later aanpassen door de opgeloste kaart te openen.
+4. De ingebouwde browser van de editor onderdrukt `confirm()`; daarom alles in de pagina.
+5. Nieuwe JS-bestanden toevoegen aan `urlsToCache` in service-worker.js en `CACHE_NAME` verhogen.
 
-### Systeem
-- Toegankelijk via "⚙️ Optionele Spelregels" knop (onder "📖 Hoe werkt het spel?" knop)
-- Regels kunnen ALLEEN aangepast worden **voor** de start van het spel
-- Na start: modal toont geel waarschuwingsbanner, toggles zijn disabled
-- Opgeslagen in localStorage onder `gameRules`
-
-### Huidige regels
-| Key | Label | Default | Beschrijving |
-|---|---|---|---|
-| `zoneLockEnabled` | Zone vergrendeling | AAN | Taken kunnen niet uitgevoerd worden in al-uitgesloten zones |
-
-### Zone Lock Indicator
-- Persistent bolletje op de kaart (naast de live tracking knop)
-- 🟢 "Zone OK" = speler staat in actieve zone
-- 🔴 "Zone geblokkeerd" = speler staat in uitgesloten zone
-- Klikken toont tooltip met uitleg
-- Kaart SLUITEN blijft altijd mogelijk (geen harde blokkering)
-
-### rules.json structuur
-```json
-{
-  "rules": ["Vaste spelregel 1", "Vaste spelregel 2", ...],
-  "optionalRules": [
-    { "key": "zoneLockEnabled", "text": "Tekst die in spelregels modal verschijnt" }
-  ]
-}
-```
-
----
-
-## ↩️ Undo Systeem
-
-### Wanneer
-- Na elk antwoord geven (handleOpponentAnswer, handleRadiusProximityAnswer, handleDistanceFromBikeAnswer, handleFurthestDistanceAnswer, handleEliminateNeighborhoodAnswer)
-- Na elke handmatige discard (handleDiscardCard, handleDirectDiscard, discardCardFromFlop)
-
-### Hoe
-```javascript
-lastUndoAction = {
-    cardId: string,     // vaste kaart-ID van de weggelegde kaart
-    cardTask: string,
-    cardManagerState: { flop, discarded, deckIndex }  // deep clone
-}
-```
-
-### UI
-- Knop `↩️ "[kaartnaam]" terugzetten` verschijnt in de **Opgeloste Kaarten** view
-- Alleen zichtbaar als `lastUndoAction !== null`
-- Overschreven bij elke nieuwe actie (altijd alleen laatste actie)
-- Na undo: CardManager hersteld; enkel de cardAnswers/exclusionZones van die kaart (cardId) worden verwijderd, zodat latere wijzigingen aan andere kaarten behouden blijven
-
----
-
-## 📍 Live Locatie Tracking
-
-- Start automatisch bij app-load (niet pas na checklist)
-- **Blauw pulserende cirkel** = huidige positie (liveMarker)
-- **Lichtblauwe cirkel** = GPS-nauwkeurigheidsradius (liveAccuracyCircle)
-- Toggle knop "🔵 Live" / "⚫ Live uit" (linksboven op kaart)
-- `currentLiveLat` / `currentLiveLng` worden bijgehouden voor zone lock check
-- `enableHighAccuracy: false` voor batterijbesparing
-
----
-
-## 📖 Demo/Tutorial Modal
-
-- Triggered via **"📖 Hoe werkt het spel?"** knop (altijd toegankelijk, ook tijdens spel)
-- Sluit het spel **niet** af — volledig non-destructief
-- 7 stappen met navigatie (dots + Vorige/Volgende knoppen)
-- Inhoud: welkom, geen server uitleg, spelverloop, kaarten & fases, locatie delen, exclusion zones, tips
-- Knop op laatste stap: "Sluiten" (was vroeger "Start een echt spel" — NIET terugzetten)
-
----
-
-## 🎮 UI Structuur
-
-### Secties (index.html)
-1. `#setup-section` — seed invoer
-2. `#location-section` — GPS bevestiging
-3. `#checklist-section` — 9-item hider checklist
-4. `#cards-section` — kaarten (3 views)
-   - `#single-card-view` — één kaart met antwoordknoppen
-   - `#flop-view` — 12 kaarten in grid per fase
-   - `#discarded-view` — opgeloste kaarten + undo knop
-
-### Knoppen volgorde (in controls)
-1. 📋 Bekijk Spelregels
-2. ⚙️ Optionele Spelregels
-3. 📖 Hoe werkt het spel? (demo)
-
-### Modals
-- `#rules-modal` — spelregels (vaste + actieve optionele)
-- `#game-rules-modal` — optionele spelregels toggles
-- `#demo-modal` — tutorial stap-voor-stap
-- `#neighborhood-modal` — wijk selectie voor SameOrAdjacentNeighborhood
-
----
-
-## 📱 Responsiveness
-
-| Breakpoint | Layout |
-|---|---|
-| < 1100px (mobiel) | Controls schuiven omhoog vanuit onderkant (bottom sheet): standaard 50vh, `.expanded` 88vh (knop ▲/▼ in de handle), `.minimized` enkel de handle |
-| ≥ 1100px (desktop) | Controls als rechterzijbalk (35%), kaart links (65%) |
-
-- Titel in de handle volgt de stap (`updateControlsTitle`): "Spel starten", "Locatie instellen", "Checklist · x/9", "Kaarten · n opgelost"
-- Kaart centreren op mobiel altijd via `setViewInVisibleMap()` / `getHiddenMapHeight()`, anders valt het punt achter het paneel
-
----
-
-## ⚠️ Bekende Quirks & Aandachtspunten
-
-1. **Radius**: Het is 3,5km rond de WEC. Vroeger was het Belfort het centrum; de sleutel heette toen `belfort`, nu `center`. Gebruik nergens nog "Belfort" in code of UI-teksten
-2. **FurthestDistance vraagstelling**: "Welke [POI] is zeker NIET de dichtste?" (Voronoi-cel exclusion) — NIET "welke is het verste?" (dat geeft wiskundig een veel grotere exclusion via Sutherland-Hodgman)
-3. **Zone lock**: Kaart SLUITEN is altijd mogelijk ondanks zone lock — alleen de tooltip/indicator verschijnt
-4. **Undo**: Alleen de allerlaatste actie kan ongedaan gemaakt worden
-5. **gameStarted flag**: Wordt gezet zodra `saveSeed()` aangeroepen wordt — optionele spelregels zijn daarna vergrendeld
-6. **distanceFromBike**: Wordt beantwoord door de HIDER (die de seeker-coördinaten ingeeft en de afstand berekent) — niet automatisch
-7. **DEMOMODE als seed**: Was vroeger een trigger, nu vervangen door de demo-knop — DEMOMODE als seed werkt niet meer als speciale modus
-8. **Geen live multiplayer**: Alles lokaal, communicatie via WhatsApp/Messenger
-
----
-
-## 🔮 Mogelijke Toekomstige Features (besproken maar niet geïmplementeerd)
-
-- [ ] Rand-van-speelveld vraag: "Is fiets minder dan Xm van de rand?" — X = `radius * 0.146` afgerond op mooie stappen (≤250m: stap 50, 250-1000m: stap 100, >1000m: stap 500)
-- [ ] Meerdere optionele spelregels (systeem is al uitbreidbaar)
-- [ ] Andere steden (Brugge, Antwerpen, Brussel) — spelcirkel en POIs aanpassen
-- [ ] Real-time multiplayer
-- [ ] Dark mode
+## Later (besproken, nog niet gebouwd)
+- "Hoe werkt het spel"-rondleiding
+- Rand-van-speelveld vraag, meer optionele regels, andere steden

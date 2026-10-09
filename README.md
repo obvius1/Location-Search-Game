@@ -5,7 +5,7 @@ Een locatiegebaseerd spel voor 2 teams in Gent, geïnspireerd door Jet Lag: The 
 ## 🎮 Spelconcept
 
 - **2 teams**, elk met een fiets die ze verstoppen in Gent
-- **Hider**: verstopt de fiets, vult een 9-item checklist in (foto's, notities), en beantwoordt vragen van het andere team
+- **Hider**: verstopt de fiets, neemt 6 foto's en noteert straatnaam, eenrichting en boom, en beantwoordt vragen van het andere team
 - **Seeker**: voert taken uit op kaarten, stelt vragen aan de hider via WhatsApp/Messenger, en probeert de fiets te lokaliseren via uitsluitingszones op de kaart
 - **Doel**: als eerste de fiets van het andere team vinden
 
@@ -16,20 +16,22 @@ Een locatiegebaseerd spel voor 2 teams in Gent, geïnspireerd door Jet Lag: The 
 
 ## 🕹️ Hoe te spelen
 
-1. **Voer een seed in**: Beide teams gebruiken **exact dezelfde** 6-karakter code → identieke kaartvolgorde
-2. **Verstop de fiets**: De hider vult de 9-item checklist in (foto's, omschrijvingen) en bevestigt de GPS-locatie
-3. **Speel kaarten**: Beide teams zien dezelfde 12 kaarten (de "flop" — 4 per fase)
-4. **Voer tasks uit**: Voer de task op de kaart uit, stel daarna de bijhorende vraag aan je tegenstander via chat
-5. **Antwoord berekend**: De app berekent het antwoord automatisch op basis van GPS → een uitsluitingszone verschijnt op de kaart
-6. **Zoekgebied verkleint**: Hoe meer kaarten gespeeld, hoe kleiner het gebied waar de fiets kan zijn
-7. **Fiets gevonden**: Het team dat als eerste de fiets van de tegenstander vindt, wint
+1. **Nieuw spel**: beide teams kiezen **exact dezelfde** spelcode en dezelfde optionele regel
+2. **Verstop de fiets**: zet de fiets op de kaart (GPS of tikken, versleep de pin) en vul de checklist in
+3. **De flop**: beide teams zien dezelfde kaarten, 4 per fase (tab **Kaarten**)
+4. **Wie was eerst?**: open een kaart en kies **Wij** of **De tegenstander**
+   - **Wij**: vul het antwoord van de tegenstander in, de app tekent een uitgesloten zone op de kaart
+   - **De tegenstander**: de app toont meteen wat jij moet antwoorden over je fiets
+5. **Volgende kaart**: de kaart verlaat de flop en de volgende kaart van die fase komt op dezelfde plek
+6. **Zoekgebied verkleint**: de tab **Kaart** toont hoeveel procent van het speelveld nog mogelijk is
+7. **Fiets gevonden**: het team dat als eerste de fiets van de tegenstander vindt, wint
 
 ### Geen centrale server
 Alles verloopt lokaal — communicatie via WhatsApp/Messenger. Antwoorden, bewijsfoto's en GPS-coördinaten worden via chat gedeeld.
 
-## 🗺️ Automatische antwoorden
+## 🗺️ Vragen
 
-De app berekent automatisch het antwoord op basis van de GPS-locatie van de hider:
+Bij elke vraag toont de kaart waar ze over gaat. Was de tegenstander eerst, dan berekent de app jouw antwoord op basis van de locatie van je fiets:
 
 | Type | Vraag |
 |---|---|
@@ -39,20 +41,21 @@ De app berekent automatisch het antwoord op basis van de GPS-locatie van de hide
 | **Dampoort** | Oosten of westen van Dampoort-station? |
 | **Watersportbaan** | Oosten of westen van de watersportbaantip? |
 | **Spoorlijn buffer** | Binnen 800m van de spoorlijn Oostende–Antwerpen? |
-| **Afstand van fiets** | Is de fiets binnen X meter van een bepaalde positie? *(hider checkt manueel)* |
+| **Afstand van fiets** | Is de fiets binnen X meter van een bepaalde positie? *(plak de coördinaten van de tegenstander)* |
 | **Verste POI** | Welke [POI] is zeker NIET de dichtste? *(Voronoi-cel exclusion)* |
 | **Radius POI** | Is er een [bibliotheek/ziekenhuis/watertoren] binnen X meter? |
 | **Wijk** | In welke of aangrenzende wijk staat de fiets? |
 | **Wijk elimineren** | Welke van deze 3 wijken kan je uitsluiten? |
+| **Kopieer een vraag** | Museumkaart: stel een vraag opnieuw die al gesteld is *(elke vraag één keer)* |
 | **Foto-hints** | Foto van links/rechts/voor/achter/beneden/gebouw *(hider stuurt via chat)* |
 
 ## ⚙️ Optionele spelregels
 
-Bereikbaar via de **⚙️ Optionele Spelregels** knop. Regels kunnen alleen aangepast worden **voor** de start van het spel.
+Kies je bij de start van een nieuw spel. Tijdens het spel liggen ze vast (zichtbaar onder **Meer**).
 
 | Regel | Default | Beschrijving |
 |---|---|---|
-| **Zone vergrendeling** | AAN | Taken mogen niet uitgevoerd worden in al-uitgesloten zones |
+| **Geen taken in uitgesloten zones** | AAN | Taken mogen niet uitgevoerd worden in al-uitgesloten zones. De kaart toont of je in een open of uitgesloten zone staat |
 
 ## 🚀 Deployment
 
@@ -69,10 +72,12 @@ Bereikbaar via de **⚙️ Optionele Spelregels** knop. Regels kunnen alleen aan
 gent-location-game/
 ├── index.html              # PWA entry point
 ├── styles.css              # Mobile-first CSS
-├── app.js                  # Hoofdlogica
+├── ui.js                   # Schermen (wizard, Kaart/Kaarten/Meer, onderbladen)
+├── game.js                 # Spelregels (flop, antwoorden, kopiëren, undo)
+├── map.js                  # Kaart, uitgesloten zones, kaartcontext, live locatie
 ├── cards.js                # Kaartensysteem + seed-based shuffling
 ├── geoUtils.js             # Geografische berekeningen
-├── storage.js              # LocalStorage management
+├── storage.js              # LocalStorage
 ├── service-worker.js       # Offline PWA support
 ├── manifest.json           # PWA manifest
 ├── data/
@@ -90,8 +95,9 @@ gent-location-game/
 - ✅ **Live locatie** — blauw pulserende dot toont je huidige positie
 - ✅ **Seed-based randomization** — identieke kaartvolgorde voor beide teams
 - ✅ **Exacte uitsluitingszones** — wiskundig berekende polygonen (Voronoi, Sutherland-Hodgman)
-- ✅ **Undo** — laatste actie ongedaan maken
-- ✅ **Tutorial** — in-app uitleg via de 📖 knop
+- ✅ **Undo** — laatste actie ongedaan maken via de melding bovenaan
+- ✅ **Fiets verbergen** — je eigen fiets is standaard verborgen op je scherm
+- ✅ **Coördinaten** — je positie kopiëren en coördinaten van de tegenstander nakijken
 
 ### Kaarten aanpassen
 Bewerk `data/cards.json` om kaarten toe te voegen of aan te passen:

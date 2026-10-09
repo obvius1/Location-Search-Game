@@ -160,13 +160,6 @@ class CardManager {
     }
     
     /**
-     * Verkrijg kaarten per fase
-     */
-    getFlopByPhase(phase) {
-        return this.flop.filter(card => card.phase === phase);
-    }
-    
-    /**
      * Verwijder een kaart uit de flop en trek een nieuwe
      */
     discardCard(cardIndex) {
@@ -227,38 +220,6 @@ class CardManager {
     }
     
     /**
-     * Verkrijg een specifieke kaart uit de flop
-     */
-    getCard(index) {
-        if (index < 0 || index >= this.flop.length) {
-            return null;
-        }
-        return this.flop[index];
-    }
-    
-    /**
-     * Verkrijg het totaal aantal kaarten in de flop
-     */
-    getTotalCards() {
-        return this.flop.length;
-    }
-    
-    /**
-     * Verkrijg het aantal resterende kaarten in het deck
-     */
-    getRemainingCards() {
-        // Kaarten die nog niet in de flop liggen en nog niet opgelost zijn
-        return this.deck.filter(card => !this.isCardInFlop(card) && !this.isCardDiscarded(card)).length;
-    }
-    
-    /**
-     * Verkrijg de seed
-     */
-    getSeed() {
-        return this.seed;
-    }
-    
-    /**
      * Verkrijg state voor opslag
      */
     getState() {
@@ -267,30 +228,5 @@ class CardManager {
             discarded: this.discarded,
             deckIndex: this.deckIndex
         };
-    }
-    
-    // Legacy methoden voor backward compatibility
-    getCurrentCard() {
-        return this.flop[0] || null;
-    }
-    
-    getCurrentIndex() {
-        return 0;
-    }
-    
-    nextCard() {
-        return this.flop[1] || null;
-    }
-    
-    previousCard() {
-        return this.flop[0] || null;
-    }
-    
-    hasNext() {
-        return this.flop.length > 1;
-    }
-    
-    hasPrevious() {
-        return false;
     }
 }
