@@ -63,14 +63,25 @@ function validList(valid, invalid) {
         ${invalid.map(([n, extra]) => `<div class="off"><span class="mark no">✗</span><span class="name">${esc(n)}</span><span class="d">${esc(extra || '')}</span></div>`).join('')}</div>`;
 }
 async function copyText(text, btn) {
+    const label = btn.textContent;
+    let ok = false;
     try {
         await navigator.clipboard.writeText(text);
-        btn.textContent = 'Gekopieerd';
+        ok = true;
     } catch {
-        const input = btn.parentElement.querySelector('input');
-        if (input) { input.removeAttribute('readonly'); input.select(); }
-        btn.textContent = 'Kopieer zelf';
+        // Terugval zonder toetsenbord: onzichtbaar tekstvak, kopiëren, weer weg
+        const area = document.createElement('textarea');
+        area.value = text;
+        area.setAttribute('readonly', '');
+        area.style.cssText = 'position:fixed;top:0;left:0;opacity:0;pointer-events:none';
+        document.body.appendChild(area);
+        area.select();
+        try { ok = document.execCommand('copy'); } catch { ok = false; }
+        area.remove();
+        btn.blur();
     }
+    btn.textContent = ok ? 'Gekopieerd' : 'Lukt niet';
+    setTimeout(() => { if (btn.isConnected) btn.textContent = label; }, 2000);
 }
 async function loadRulesData() {
     try {
@@ -463,7 +474,7 @@ function updateCheckOutput() {
         ['Speelveld', inField ? 'Binnen het speelveld' : 'Buiten het speelveld', inField ? 'yes' : 'no'],
         bike ? ['Tot jouw fiets', formatMeters(calculateDistance(p.lat, p.lng, bike.lat, bike.lng)), ''] : null,
         me ? ['Tot jou', formatMeters(calculateDistance(p.lat, p.lng, me.lat, me.lng)), ''] : null,
-        ['Jouw kaart', excluded ? 'In een uitgesloten zone' : 'In een open zone', excluded ? 'no' : 'yes']
+        inField ? ['Jouw kaart', excluded ? 'In een uitgesloten zone' : 'In een open zone', excluded ? 'no' : 'yes'] : null
     ].filter(Boolean);
     out.innerHTML = `<dl class="kv">${rows.map(([k, v, c]) => `<dt>${k}</dt><dd class="${c}">${v}</dd>`).join('')}</dl>
         <button class="btn" id="pin-to-map">Toon op de kaart</button>`;
