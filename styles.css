@@ -20,7 +20,7 @@
     --f-body: "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", sans-serif;
     --f-mono: "IBM Plex Mono", ui-monospace, Consolas, monospace;
     --top-h: 36px;
-    --tabs-h: 58px;
+    --tabs-h: 54px;
 }
 @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
@@ -58,8 +58,8 @@ h1, h2, h3 { font-family: var(--f-head); font-stretch: 75%; font-weight: 800; li
 .pad { padding: 16px; display: flex; flex-direction: column; gap: 18px; max-width: 640px; margin: 0 auto; }
 
 /* Tabbalk */
-.tabs { flex: none; display: grid; grid-template-columns: repeat(3, 1fr); border-top: 1px solid var(--line); background: var(--surface); padding-bottom: env(safe-area-inset-bottom, 0px); z-index: 1200; }
-.tab { border: 0; background: none; padding: 9px 4px 10px; display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 12px; color: var(--muted); position: relative; min-height: var(--tabs-h); }
+.tabs { flex: none; display: grid; grid-template-columns: repeat(3, 1fr); border-top: 1px solid var(--line); background: var(--surface); padding-bottom: max(calc(env(safe-area-inset-bottom, 0px) - 20px), 0px); z-index: 1200; }
+.tab { border: 0; background: none; padding: 8px 4px 6px; display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 12px; color: var(--muted); position: relative; min-height: var(--tabs-h); }
 .tab svg { width: 24px; height: 24px; }
 .tab[aria-selected="true"] { color: var(--ink); font-weight: 700; }
 .tab[aria-selected="true"]::before { content: ""; position: absolute; top: -1px; left: 18%; right: 18%; height: 4px; background: var(--ink); }
