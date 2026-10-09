@@ -137,20 +137,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     setTimeout(() => fitToField(), 60);
 });
 
-// iPhone-app op het beginscherm: de app vult anders het scherm niet tot onderaan (zwarte balk).
-// navigator.standalone bestaat enkel op iOS; op Android zou schermhoogte te groot zijn.
-function fitIosStandalone() {
-    if (navigator.standalone !== true) return;
-    document.documentElement.classList.add('ios-standalone');
-    const portrait = window.innerHeight >= window.innerWidth;
-    const full = portrait ? Math.max(screen.width, screen.height) : Math.min(screen.width, screen.height);
-    document.documentElement.style.setProperty('--app-h', Math.max(window.innerHeight, full) + 'px');
-    if (typeof map !== 'undefined' && map) map.invalidateSize();
-}
-fitIosStandalone();
-window.addEventListener('resize', fitIosStandalone);
-window.addEventListener('orientationchange', () => setTimeout(fitIosStandalone, 200));
-
 window.addEventListener('beforeunload', () => {
     if (liveWatchId !== null) navigator.geolocation.clearWatch(liveWatchId);
 });

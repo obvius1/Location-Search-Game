@@ -153,6 +153,7 @@ Zones hangen aan de vaste kaart-ID (`${seed}_${index}`), nooit aan de plek in de
 2. FurthestDistance: "zeker NIET de dichtste" (Voronoi-cel), niet "de verste".
 3. Undo kan enkel de laatste actie terugdraaien, via de toast. Een fout antwoord kan je ook later aanpassen door de opgeloste kaart te openen.
 4. De ingebouwde browser van de editor onderdrukt `confirm()`; daarom alles in de pagina.
+6. iPhone-app op het beginscherm: houd `apple-mobile-web-app-status-bar-style` op `default`. Met `black-translucent` maakt iOS 26 de app een statusbalk te kort (zwarte balk onderaan, WebKit-bug 301108); dat is niet met CSS op te lossen.
 5. Bij elke release `APP_VERSION` in version.js verhogen: dat is de versie onder Meer én de cachenaam van de service worker. Nieuwe JS-bestanden ook toevoegen aan `urlsToCache` in service-worker.js.
 
 ## Later (besproken, nog niet gebouwd)
