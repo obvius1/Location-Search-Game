@@ -629,7 +629,7 @@ function renderOverlay() {
         html += wizardLocationSheet().replace('class="sheet"', `class="sheet${sheetEnter}"`);
     } else if (ui.sheet) {
         const inner = ui.sheet.type === 'card' ? cardSheet() : coordsSheet();
-        html += `<div class="scrim" data-close></div><div class="sheet${sheetEnter}" role="dialog" aria-modal="true">${inner}</div>`;
+        html += `<div class="scrim" data-close></div><div class="sheet${sheetEnter}${ui.sheet.type === 'card' ? ' card-sheet' : ''}" role="dialog" aria-modal="true">${inner}</div>`;
     }
     $('#overlay').innerHTML = html;
     if ($('.sheet')) $('.sheet').scrollTop = scroll;
