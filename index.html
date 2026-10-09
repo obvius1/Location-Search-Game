@@ -178,7 +178,7 @@
             <!-- Game Info -->
             <section class="card info-section">
                 <h3>ℹ️ Spelinfo</h3>
-                <p><strong>Speelveld:</strong> 3.5km rondom de WEC</p>
+                <p><strong>Speelveld:</strong> <span class="game-radius-km">3,5</span>km rondom de WEC</p>
                 <p><strong>Seed:</strong> <span id="current-seed">-</span></p>
                 <button id="copy-seed-btn" class="btn btn-secondary btn-small hidden">📋 Kopieer Code</button>
                 <button id="reset-game-btn" class="btn btn-danger btn-small hidden" style="margin-top: 8px;">�️ Verwijder Spel</button>
@@ -288,7 +288,7 @@
                     <div class="demo-step active" data-step="0">
                         <div class="demo-step-icon">🗺️</div>
                         <h4 class="demo-step-title">Welkom bij Jet Lag: The Knock-Off!</h4>
-                        <p>Het speelveld is een zone van <strong>3,5km rond de WEC</strong>.</p>
+                        <p>Het speelveld is een zone van <strong><span class="game-radius-km">3,5</span>km rond de WEC</strong>.</p>
                         <p>Er zijn <strong>2 teams</strong>, beide verstoppen een fiets.</p>
                         <p>Het doel: om als eerste de fiets van het andere team te vinden.</p>
                     </div>
@@ -434,6 +434,7 @@
     </div>
     
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/polygon-clipping@0.15.7/dist/polygon-clipping.umd.min.js"></script>
     <script src="storage.js"></script>
     <script src="geoUtils.js"></script>
     <script src="cards.js"></script>

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'jet-lag-game-v2';
+const CACHE_NAME = 'jet-lag-game-v3';
 const urlsToCache = [
   './',
   './index.html',
@@ -17,7 +17,8 @@ const urlsToCache = [
   './icons/apple-touch-icon.png',
   './icons/favicon-32x32.png',
   'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css',
-  'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'
+  'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js',
+  'https://unpkg.com/polygon-clipping@0.15.7/dist/polygon-clipping.umd.min.js'
 ];
 
 // Install service worker en cache bestanden

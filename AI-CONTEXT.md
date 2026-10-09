@@ -9,7 +9,7 @@ Dit bestand is speciaal voor AI-assistenten om het project volledig te begrijpen
 **Naam**: Gent Location Game (Jet Lag: The Knock-Off)
 **Type**: Mobile-first Progressive Web App (PWA)
 **Doel**: Locatiegebaseerd spel voor 2 teams in Gent — elk team verstopt een fiets, het andere team probeert die te vinden via kaarten/vragen
-**Stack**: Vanilla JavaScript, HTML/CSS, Leaflet Maps, LocalStorage
+**Stack**: Vanilla JavaScript, HTML/CSS, Leaflet Maps, polygon-clipping (unie/verschil van polygonen, via unpkg), LocalStorage
 **Deployment**: GitHub Pages (statische site, geen backend)
 **Laatst bijgewerkt**: 9 oktober 2026
 
@@ -19,7 +19,7 @@ Dit bestand is speciaal voor AI-assistenten om het project volledig te begrijpen
 
 ### Speelveld
 - **Locatie**: Gent (België)
-- **Radius**: 3,5km rond de WEC (`GAME_RADIUS` in geoUtils.js, centrum = `LOCATIONS.center` in geo-data.json)
+- **Radius**: 3,5km rond de WEC (`GAME_RADIUS` in geoUtils.js is de enige bron: zones, kaart en teksten (`.game-radius-km`) volgen automatisch; centrum = `LOCATIONS.center` in geo-data.json)
 - **Regel**: Alleen locaties binnen deze zone zijn geldig
 
 ### Rollen
@@ -57,7 +57,7 @@ Bij bepaalde answerTypes berekent de app automatisch het antwoord op basis van G
 | `bufferLine` | Binnen 800m van spoorlijn Oostende-Antwerpen? | Buffer zone check |
 | `distanceFromBike` | Is fiets binnen Xm van jouw positie? | Hider checkt seeker-coördinaten |
 | `FurthestDistance` | Welke [POI] is zeker NIET de dichtste? | Voronoi-cel van genoemde POI (exact polygon via Sutherland-Hodgman) |
-| `radiusProximity` | Is er een [bibliotheek/ziekenhuis/watertoren] binnen Xm? | Radius check op POI collections |
+| `radiusProximity` | Is er een [bibliotheek/ziekenhuis/watertoren] binnen Xm? | Nee: unie van alle cirkels, afgeknipt aan het speelveld. Ja: speelveld min de unie van alle cirkels. Beide via polygon-clipping, dus overlap klopt altijd |
 | `SameOrAdjacentNeighborhood` | Huidige/aangrenzende wijk van het item? | Point-in-polygon + buurwijk detectie |
 | `eliminateNeighborhood` | 3 wijken gegeven, 1 elimineren | Wijk-polygoon uitsluiten |
 | `requiresAnswer: false` | Foto-hints (Links/Rechts/Voor/Achter/Beneden/Gebouw) | Hider stuurt foto via chat |

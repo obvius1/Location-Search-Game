@@ -298,6 +298,10 @@ function initializeMap() {
         })
     }).addTo(map).bindPopup('<b>WEC</b><br>Centrum van het speelveld');
     
+    // Speelveldgrootte in teksten, afgeleid van GAME_RADIUS (bv. 3500 → "3,5")
+    const gameRadiusKm = (GAME_RADIUS / 1000).toLocaleString('nl-BE');
+    document.querySelectorAll('.game-radius-km').forEach(el => { el.textContent = gameRadiusKm; });
+
     // Teken de speelzone grens (dunne lijn)
     gameZoneCircle = L.circle([LOCATIONS.center.lat, LOCATIONS.center.lng], {
         color: '#2563eb',
@@ -305,7 +309,7 @@ function initializeMap() {
         fillOpacity: 0,
         radius: GAME_RADIUS,
         weight: 2
-    }).addTo(map).bindPopup('<b>Speelveld</b><br>3,5km rondom de WEC');
+    }).addTo(map).bindPopup(`<b>Speelveld</b><br>${gameRadiusKm}km rondom de WEC`);
     
     // Maak inverse mask - alles buiten de zone wordt grijs
     // Grote outer rectangle (ruim buiten Gent)
@@ -2618,139 +2622,37 @@ function createExclusionLayerFromData(exclusionData) {
             return null;
         }
         
+        // Speelveld en cirkels als polygonen, voor polygon-clipping.
+        // Alles wordt afgeknipt aan het speelveld (LOCATIONS.center + GAME_RADIUS).
+        const center = LOCATIONS.center;
+        // Speelveldrand met 1° stappen: blijft ook bij een groot speelveld nauwkeurig
+        const gameArea = [getCirclePoints(center.lat, center.lng, GAME_RADIUS, 1)];
+        const circles = pois.map(poi => [getCirclePoints(poi.lat, poi.lng, radius)]);
+
         if (answer === 'no') {
             // "Nee" = er is GEEN POI binnen radius
-            // Sluit alle zones BINNEN de radius uit (rode circles)
-            const earthRadius = 6371000;
-            const layers = pois.map(poi => {
-                const circlePoints = [];
-                for (let angle = 0; angle <= 360; angle += 5) {
-                    const rad = (angle * Math.PI) / 180;
-                    const latOffset = (radius / earthRadius) * (180 / Math.PI) * Math.cos(rad);
-                    const lngOffset = 
-                        ((radius / earthRadius) * (180 / Math.PI) * Math.sin(rad)) /
-                        Math.cos((poi.lat * Math.PI) / 180);
-                    
-                    circlePoints.push([poi.lat + latOffset, poi.lng + lngOffset]);
-                }
-                
-                return L.polygon(circlePoints, exclusionStyle).bindPopup(`❌ Uitgesloten: Binnen ${radius / 1000}km van ${poi.name || poiType}`);
-            });
-            
-            console.log(`Created ${layers.length} exclusion circles for radiusProximity (no)`);
-            if (layers.length > 0) {
-                return L.featureGroup(layers);
+            // Rood = unie van alle cirkels BINNEN het speelveld,
+            // zodat overlappende cirkels niet dubbel rood worden.
+            const excluded = polygonClipping.intersection(gameArea, polygonClipping.union(...circles));
+
+            console.log(`Created exclusion polygon for radiusProximity (no): ${excluded.length} part(s)`);
+            if (excluded.length === 0) {
+                return null;
             }
+            return L.polygon(excluded, exclusionStyle)
+                .bindPopup(`❌ Uitgesloten: Binnen ${radius / 1000}km van een ${poiType}`);
         } else {
             // "Ja" = er IS een POI binnen radius
-            // Doel: kleur ALLES BUITEN de unie van alle cirkels rood,
-            // zodat overlappende cirkels NIET rood worden.
-            
-            // Voor hospitals: maak grote rode polygon met gaten voor de cirkels
-            if (poiType === 'hospitals' || poiType === 'watertowers') {
-                const earthRadius = 6371000;
-                const center = LOCATIONS.center;
-                const gameRadius = GAME_RADIUS;
-                
-                // Maak een grote rechthoek rond het speelveld
-                const degPerMeterLat = 1 / 111320;
-                const degPerMeterLng = (lat) => 1 / (111320 * Math.cos((lat * Math.PI) / 180));
-                
-                const latDelta = gameRadius * degPerMeterLat;
-                const lngDelta = gameRadius * degPerMeterLng(center.lat);
-                
-                const outerBounds = [
-                    [center.lat + latDelta, center.lng - lngDelta],
-                    [center.lat + latDelta, center.lng + lngDelta],
-                    [center.lat - latDelta, center.lng + lngDelta],
-                    [center.lat - latDelta, center.lng - lngDelta],
-                    [center.lat + latDelta, center.lng - lngDelta]
-                ];
-                
-                // Maak gaten (holes) voor elke hospital cirkel
-                const holes = pois.map(poi => {
-                    const hole = [];
-                    for (let angle = 360; angle >= 0; angle -= 5) {
-                        const rad = (angle * Math.PI) / 180;
-                        const latOffset = (radius / earthRadius) * (180 / Math.PI) * Math.cos(rad);
-                        const lngOffset = 
-                            ((radius / earthRadius) * (180 / Math.PI) * Math.sin(rad)) /
-                            Math.cos((poi.lat * Math.PI) / 180);
-                        
-                        hole.push([poi.lat + latOffset, poi.lng + lngOffset]);
-                    }
-                    return hole;
-                });
-                
-                // Polygon met outer ring en holes
-                const polygonWithHoles = L.polygon([outerBounds, ...holes], exclusionStyle)
-                    .bindPopup(`❌ Uitgesloten: Buiten ${radius / 1000}km van alle ${poiType}`);
-                
-                console.log(`Created exclusion polygon with ${holes.length} holes for hospitals (yes)`);
-                return polygonWithHoles;
+            // Rood = speelveld MIN de unie van alle cirkels,
+            // zodat overlappende cirkels NIET rood worden en de randen echte rondes zijn.
+            const excluded = polygonClipping.difference(gameArea, ...circles);
+
+            console.log(`Created exclusion polygon for radiusProximity (yes): ${excluded.length} part(s)`);
+            if (excluded.length === 0) {
+                return null;
             }
-            
-            // Voor andere POI types (bijv. libraries): gebruik raster
-            // Implementatie: raster van kleine rechthoeken; cellen buiten de
-            // (radius rond eender welke POI) krijgen een rood vak.
-
-            const earthRadius = 6371000;
-            const center = LOCATIONS.center;
-            const gameRadius = GAME_RADIUS; // beperk tot speelveld
-
-            // Bepaal bounds rond het centrum
-            const degPerMeterLat = 1 / 111320; // ~ meters per graad breedte
-            const degPerMeterLng = (lat) => 1 / (111320 * Math.cos((lat * Math.PI) / 180));
-
-            const latDelta = gameRadius * degPerMeterLat;
-            const lngDelta = gameRadius * degPerMeterLng(center.lat);
-            const minLat = center.lat - latDelta;
-            const maxLat = center.lat + latDelta;
-            const minLng = center.lng - lngDelta;
-            const maxLng = center.lng + lngDelta;
-
-            // Raster resolutie (meters). Lager = fijner, maar zwaarder.
-            const cellSizeM = 60; // 150m balans tussen performance en kwaliteit
-
-            // Stapgroottes in graden voor huidige breedtegraad
-            const dLat = cellSizeM * degPerMeterLat;
-            const dLng = cellSizeM * degPerMeterLng(center.lat);
-
-            const layers = [];
-
-            for (let lat = minLat; lat < maxLat; lat += dLat) {
-                for (let lng = minLng; lng < maxLng; lng += dLng) {
-                    // Cel centrum
-                    const cLat = lat + dLat / 2;
-                    const cLng = lng + dLng / 2;
-
-                    // Sla cellen buiten het SPEELVELD (GAME_RADIUS) over
-                    const distToCenter = calculateDistance(cLat, cLng, center.lat, center.lng);
-                    if (distToCenter > gameRadius) {
-                        continue;
-                    }
-
-                    // Is het centrum binnen radius van een van de POIs?
-                    let insideAny = false;
-                    for (let i = 0; i < pois.length; i++) {
-                        const p = pois[i];
-                        const dist = calculateDistance(cLat, cLng, p.lat, p.lng);
-                        if (dist <= radius) {
-                            insideAny = true;
-                            break;
-                        }
-                    }
-
-                    // Alles BUITEN de unie van cirkels kleuren we rood
-                    if (!insideAny) {
-                        const bounds = [[lat, lng], [lat + dLat, lng + dLng]];
-                        layers.push(L.rectangle(bounds, exclusionStyle));
-                    }
-                }
-            }
-
-            console.log(`Created grid outside-union mask with ${layers.length} cells`);
-            return L.featureGroup(layers);
+            return L.polygon(excluded, exclusionStyle)
+                .bindPopup(`❌ Uitgesloten: Buiten ${radius / 1000}km van alle ${poiType}`);
         }
     }
     

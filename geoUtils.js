@@ -1,7 +1,7 @@
 // Geografische utilities voor Gent Location Game
 
 // Constanten voor Gent
-const GAME_RADIUS = 3500; // 3,5km in meters
+const GAME_RADIUS = 3500; // Straal van het speelveld in meters (zones en teksten passen zich hieraan aan)
 
 // Belangrijke locaties in Gent - wordt geladen vanuit geo-data.json
 let LOCATIONS = {};
@@ -169,7 +169,7 @@ function toRadians(degrees) {
 }
 
 /**
- * Controleert of een locatie binnen de speelzone ligt (3,5km van de WEC)
+ * Controleert of een locatie binnen de speelzone ligt (GAME_RADIUS rond de WEC)
  */
 function isWithinGameZone(lat, lng) {
     if (!LOCATIONS.center) {
@@ -612,6 +612,31 @@ function getDistanceToNearestPOI(lat, lng, poiType, excludePoiIds = []) {
 function hasNearbyPOI(lat, lng, poiType, radius) {
     const distance = getDistanceToNearestPOI(lat, lng, poiType);
     return distance <= radius;
+}
+
+/**
+ * Genereer de punten van één cirkel als gesloten ring [lat, lng]
+ * @param {number} lat - Middelpunt latitude
+ * @param {number} lng - Middelpunt longitude
+ * @param {number} radius - Radius in meters
+ * @param {number} angleStep - Hoekstap in graden (default 5)
+ * @returns {Array} Array van [lat, lng] punten (eerste = laatste punt)
+ */
+function getCirclePoints(lat, lng, radius, angleStep = 5) {
+    const points = [];
+    const earthRadius = 6371000; // meters
+
+    for (let angle = 0; angle <= 360; angle += angleStep) {
+        const rad = (angle * Math.PI) / 180;
+        const latOffset = (radius / earthRadius) * (180 / Math.PI) * Math.cos(rad);
+        const lngOffset =
+            ((radius / earthRadius) * (180 / Math.PI) * Math.sin(rad)) /
+            Math.cos((lat * Math.PI) / 180);
+
+        points.push([lat + latOffset, lng + lngOffset]);
+    }
+
+    return points;
 }
 
 /**
