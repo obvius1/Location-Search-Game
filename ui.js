@@ -493,6 +493,50 @@ function updateCheckOutput() {
         <button class="btn" id="pin-to-map">Toon op de kaart</button>`;
 }
 
+/* ===== Rondleiding: hoe werkt het spel ===== */
+
+const TOUR = [
+    ['Verstop je fiets, vind die van hen', `
+        <p>Twee teams verstoppen elk een fiets binnen ${formatMeters(GAME_RADIUS)} rond de WEC. Wie als eerste de fiets van het andere team vindt, wint.</p>
+        <p>Er is geen server: elk toestel houdt zijn eigen spel bij. Antwoorden, foto's en coördinaten stuur je via WhatsApp of Messenger.</p>`],
+    ['Zelfde code, zelfde kaarten', `
+        <p>Beide teams starten met <strong>dezelfde spelcode</strong>. Zo hebben jullie dezelfde kaarten in dezelfde volgorde.</p>
+        <p>Er liggen altijd 4 kaarten per fase open, voor beide teams samen: de <strong>flop</strong>.</p>
+        <dl class="kv"><dt><i class="line-mark lm1"></i> Fase 1</dt><dd>Brede vragen, geven een richting</dd>
+        <dt><i class="line-mark lm2"></i> Fase 2</dt><dd>Delen de kaart verder op</dd>
+        <dt><i class="line-mark lm3"></i> Fase 3</dt><dd>Hints naar de exacte plek</dd></dl>`],
+    ['Wie de taak eerst doet, stelt de vraag', `
+        <p>Elke kaart heeft een taak en een vraag. Het team dat de taak eerst doet (en het bewijs doorstuurt), mag de vraag stellen.</p>
+        <p>Open de kaart en kies wie eerst was. Daarna verdwijnt ze uit de flop en komt de volgende kaart van die fase op dezelfde plek.</p>`],
+    ['Wij eerst: vul hun antwoord in', `
+        <p>Stuur de vraag naar de tegenstander en tik hun antwoord aan. De app kleurt het deel van het speelveld <strong>rood</strong> waar hun fiets niet kan staan.</p>
+        <p>Op de kaart zie je bij elke vraag waar ze over gaat. Bovenaan staat hoeveel procent van het speelveld nog mogelijk is.</p>`],
+    ['Zij eerst: de app geeft jouw antwoord', `
+        <p>Was de tegenstander eerst, dan toont de app meteen wat jij moet antwoorden over je eigen fiets. Bij een afstandsvraag plak je hun coördinaten; bij foto's zie je welke foto je moet sturen.</p>
+        <p>Je fiets is standaard verborgen op je scherm. Tonen kan via het fietsknopje op de kaart.</p>`],
+    ['Handig om te weten', `
+        <ul class="tour-list">
+            <li><strong>Ongedaan maken</strong> kan in de melding bovenaan. Later kan je een opgeloste kaart openen en het antwoord aanpassen, of ze terug in de flop zetten.</li>
+            <li><strong>Coördinaten</strong>: kopieer je positie of kijk die van de tegenstander na via het richtkruisje op de kaart.</li>
+            <li><strong>Optionele regel</strong>: geen taken in uitgesloten zones. De kaart toont linksonder of je in een open zone staat.</li>
+            <li>De volledige <strong>spelregels</strong> staan onder Meer.</li>
+        </ul>`]
+];
+
+function tourSheet() {
+    const step = ui.sheet.step;
+    const [title, body] = TOUR[step];
+    const last = step === TOUR.length - 1;
+    return `<div class="sheet-head"><span>Hoe werkt het spel · ${step + 1}/${TOUR.length}</span><button class="close" data-close aria-label="Sluiten">×</button></div>
+        <div class="tour-steps">${TOUR.map((_, i) => `<i class="${i <= step ? 'on' : ''}"></i>`).join('')}</div>
+        <h2 class="task">${title}</h2>
+        <div class="tour-body">${body}</div>
+        <div class="pair tour-nav sheet-foot">
+            <button class="btn btn-quiet" data-tour="${step - 1}" ${step === 0 ? 'disabled' : ''}>Vorige</button>
+            ${last ? '<button class="btn btn-main" data-close>Klaar</button>' : `<button class="btn btn-main" data-tour="${step + 1}">Volgende</button>`}
+        </div>`;
+}
+
 /* ===== Meer ===== */
 
 function ruleToggle(locked, checked) {
@@ -523,6 +567,8 @@ function renderMore() {
                     <dt>Straatnaam</dt><dd>${esc(notes.straat || '')}</dd><dt>Eenrichting</dt><dd>${esc(notes.eenrichting || '')}</dd><dt>Boom (min. 2 m hoog) binnen 5 m</dt><dd>${esc(notes.boom || '')}</dd></dl>`
                 : '<p class="why">Verborgen, zodat niemand de plek op je scherm ziet.</p>'}
             <button class="btn ${showBike ? '' : 'btn-quiet'}" id="toggle-bike">${showBike ? 'Fiets verbergen' : 'Toon mijn fiets'}</button></section>
+        <section class="block"><h2 class="head">Uitleg</h2>
+            <button class="row" data-open="tour"><div class="txt"><div class="q">Hoe werkt het spel?</div><div class="meta">Korte rondleiding in 6 stappen</div></div>${ARROW}</button></section>
         <section class="block"><h2 class="head">Spelregels</h2><ol class="rules">${RULES_LIST.map(r => `<li>${esc(r)}</li>`).join('')}</ol></section>
         <section class="block"><h2 class="head">Spel</h2>
             ${ui.confirmReset ? `<p><strong>Dit wist alle antwoorden, zones en je fietslocatie op dit toestel.</strong></p>
@@ -543,6 +589,7 @@ function renderWizard() {
             <p class="lede">Spreek één code af met het andere team. Zo hebben jullie dezelfde kaarten.</p>
             <input class="input code-in" id="wiz-code" value="${esc(w.code)}" maxlength="8" autocomplete="off" aria-label="Spelcode">
             <button class="link" id="wiz-gen" style="align-self:center">Maak een nieuwe code</button>
+            <button class="row" data-open="tour"><div class="txt"><div class="q">Eerste keer? Hoe werkt het spel</div></div>${ARROW}</button>
             <section class="block"><h2 class="head">Optionele spelregels</h2>${ruleToggle(false, w.zoneLock)}
                 <p class="why">Kies hetzelfde als het andere team. Tijdens het spel ligt dit vast.</p></section>
             <button class="btn btn-main" id="wiz-next">Verder</button>
@@ -653,8 +700,8 @@ function renderOverlay() {
     if (ui.screen === 'wizard' && ui.wizard.step === 2) {
         html += wizardLocationSheet().replace('class="sheet"', `class="sheet${sheetEnter}"`);
     } else if (ui.sheet) {
-        const inner = ui.sheet.type === 'card' ? cardSheet() : coordsSheet();
-        html += `<div class="scrim" data-close></div><div class="sheet${sheetEnter}${ui.sheet.type === 'card' ? ' card-sheet' : ''}" role="dialog" aria-modal="true">${inner}</div>`;
+        const inner = ui.sheet.type === 'card' ? cardSheet() : ui.sheet.type === 'tour' ? tourSheet() : coordsSheet();
+        html += `<div class="scrim" data-close></div><div class="sheet${sheetEnter}${ui.sheet.type === 'card' ? ' card-sheet' : ui.sheet.type === 'tour' ? ' card-sheet tour-sheet' : ''}" role="dialog" aria-modal="true">${inner}</div>`;
     }
     $('#overlay').innerHTML = html;
     if ($('.sheet')) $('.sheet').scrollTop = scroll;
@@ -724,6 +771,8 @@ document.addEventListener('click', (event) => {
         return;
     }
     if (t.dataset.open === 'coords') { ui.sheet = { type: 'coords' }; render(); return; }
+    if (t.dataset.open === 'tour') { ui.sheet = { type: 'tour', step: 0 }; render(); return; }
+    if (t.dataset.tour !== undefined) { ui.sheet.step = +t.dataset.tour; renderOverlay(); $('.sheet').scrollTop = 0; return; }
     if (t.dataset.copyText) { copyText(t.dataset.copyText, t); return; }
     if (t.id === 'copy-seek-pos') { copyText($('#seek-pos').value, t); return; }
 

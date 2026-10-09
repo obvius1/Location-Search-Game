@@ -114,6 +114,7 @@ Laadvolgorde in index.html: leaflet, polygon-clipping, version, storage, geoUtil
 - "Groot op de kaart" houdt de context vast op de Kaart-tab (chip met ×)
 - Coördinaten-onderblad: eigen positie kopiëren, geplakte coördinaten nakijken (in het veld, afstand tot fiets en jou, uitgesloten zone, pin op de kaart)
 - Toast bovenaan onder de kopbalk, 4,5 s, tik om te sluiten, "Ongedaan maken", balkje dat aftelt
+- Rondleiding "Hoe werkt het spel" (`TOUR`, 6 stappen, onderblad type `tour`): bereikbaar onder Meer en in wizardstap 1; verandert niets aan het spel
 - Bevestigingen gebeuren in de pagina zelf (geen `confirm()`/`alert()`)
 
 ---
@@ -158,5 +159,4 @@ Zones hangen aan de vaste kaart-ID (`${seed}_${index}`), nooit aan de plek in de
 5. Bij elke release `APP_VERSION` in version.js verhogen: dat is de versie onder Meer én de cachenaam van de service worker. Nieuwe JS-bestanden ook toevoegen aan `urlsToCache` in service-worker.js.
 
 ## Later (besproken, nog niet gebouwd)
-- "Hoe werkt het spel"-rondleiding
 - Rand-van-speelveld vraag, meer optionele regels, andere steden

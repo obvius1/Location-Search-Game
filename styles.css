@@ -197,6 +197,14 @@ h1, h2, h3 { font-family: var(--f-head); font-stretch: 75%; font-weight: 800; li
 .live-location-dot { animation: pulse-blue 2s infinite; }
 
 /* ===== Wizard ===== */
+.tour-steps { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; }
+.tour-steps i { height: 4px; background: var(--line); }
+.tour-steps i.on { background: var(--ink); }
+.tour-body { display: flex; flex-direction: column; gap: 10px; }
+.tour-body .kv dt { display: flex; align-items: center; gap: 6px; }
+.tour-list { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 8px; }
+.sheet.tour-sheet { height: 62%; }
+.card-sheet .tour-nav.sheet-foot { display: grid; gap: 10px; }
 .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; }
 .steps i { height: 5px; background: var(--line); }
 .steps i.on { background: var(--ink); }
