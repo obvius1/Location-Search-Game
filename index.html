@@ -2,445 +2,57 @@
 <html lang="nl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Jet Lag: The Knock-Off</title>
-    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Jet Lag Gent</title>
+
     <!-- PWA Meta Tags -->
-    <meta name="description" content="Location-based game in Gent - Jet Lag style">
-    <meta name="theme-color" content="#2563eb">
+    <meta name="description" content="Fietsverstoppertje in Gent, in de stijl van Jet Lag">
+    <meta name="theme-color" content="#111417">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Jet Lag Game">
-    
+    <meta name="apple-mobile-web-app-title" content="Jet Lag Gent">
+
     <!-- Icons -->
     <link rel="icon" type="image/x-icon" href="icons/favicon.ico">
     <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32x32.png">
     <link rel="icon" type="image/png" sizes="16x16" href="icons/favicon-16x16.png">
     <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
-    
+
     <!-- PWA Manifest -->
     <link rel="manifest" href="manifest.json">
-    
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75,600;75,800&family=Atkinson+Hyperlegible:wght@400;700&family=IBM+Plex+Mono:wght@500&display=swap">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <!-- Map Section - Fullscreen -->
-    <div id="map"></div>
+    <div class="app" id="app">
+        <header class="top" id="top">
+            <h1 id="top-title">Jet Lag Gent</h1>
+            <span class="sub" id="top-sub"></span>
+        </header>
 
-    <!-- Live Tracking Toggle (zichtbaar op kaart) -->
-    <button id="live-tracking-btn" class="live-tracking-btn hidden" onclick="toggleLiveLocation()">⚫ Live uit</button>
-
-    <!-- Zone Lock Indicator (zichtbaar tijdens spel) -->
-    <div class="zone-lock-wrapper hidden" id="zone-lock-wrapper">
-        <button id="zone-lock-indicator" class="map-overlay-btn zone-lock-btn zone-lock-neutral" onclick="toggleZoneLockInfo()" data-zone-info="">🔒 Zone</button>
-        <div id="zone-lock-tooltip" class="zone-lock-tooltip hidden"></div>
-    </div>
-    
-    <!-- Bottom Controls Sheet -->
-    <div id="controls-container" class="hidden">
-        <div class="controls-handle" id="controls-handle">
-            <div class="handle-bar"></div>
-            <div class="handle-title" id="handle-title">Spel starten</div>
-            <button class="handle-expand" id="controls-expand" aria-label="Paneel vergroten">▲</button>
+        <div class="stage" id="stage">
+            <div id="map"></div>
+            <div id="map-overlay"></div>
+            <main class="panel" id="panel"></main>
+            <div id="overlay"></div>
         </div>
-        <div class="controls-content" id="controls-content">
-            <!-- Game Setup Section -->
-            <section id="setup-section" class="card">
-                <h2>🎲 Spel Starten</h2>
-                <div class="input-group">
-                    <label for="seed-input">Spelcode:</label>
-                    <input type="text" id="seed-input" placeholder="Voer een code in of genereer er een">
-                    <button id="generate-seed-btn" class="btn btn-secondary">Genereer Code</button>
-                </div>
-                <button id="start-game-btn" class="btn btn-primary">Start Spel</button>
-            </section>
 
-            <!-- Location Check Section -->
-            <section id="location-section" class="card hidden">
-                <h2>📍 Locatie Instellen</h2>
-                <div class="status-indicator" id="location-status">
-                    <span class="status-icon">⏳</span>
-                    <span class="status-text">Wacht op locatie...</span>
-                </div>
-                <button id="get-gps-btn" class="btn btn-primary">Haal GPS Locatie Op</button>
-                <div id="adjust-location-container" class="hidden">
-                    <p class="info-text">📍 Versleep de <strong style="color: #22c55e;">groene marker</strong> op de kaart naar je exacte locatie</p>
-                    <button id="confirm-location-btn" class="btn btn-success">Bevestig Locatie</button>
-                </div>
-                <div id="location-result" class="result-box hidden"></div>
-            </section>
-
-            <!-- Hider Checklist Section -->
-            <section id="checklist-section" class="card hidden">
-                <h2>✅ Hider Checklist</h2>
-                <p class="checklist-intro">Voordat je wegloopt, moet je de volgende taken voltooien:</p>
-                <div id="checklist-items" class="checklist-items">
-                    <!-- Checklist items worden dynamisch geladen -->
-                </div>
-                <button id="complete-checklist-btn" class="btn btn-success" disabled>✓ Alles Voltooid - Start Spel</button>
-            </section>
-
-            <!-- Cards Section -->
-            <section id="cards-section" class="card hidden">
-                <h2>🃏 Speelkaarten</h2>
-                <div class="view-toggle">
-                    <button id="single-view-btn" class="btn-toggle active">Enkele Kaart</button>
-                    <button id="flop-view-btn" class="btn-toggle">Volledige Flop</button>
-                </div>
-                
-                <!-- Single Card View -->
-                <div id="single-card-view">
-                    <div class="card-counter">
-                        <span>Kaart <span id="current-card-number">1</span> van <span id="total-cards">12</span></span>
-                    </div>
-                    <div id="current-card" class="game-card">
-                        <div class="card-task"></div>
-                        <div class="card-question"></div>
-                    </div>
-                    <div class="card-actions">
-                        <button id="prev-card-btn" class="btn btn-secondary">← Vorige</button>
-                        <button id="discard-card-btn" class="btn btn-danger">✓ Opgelost</button>
-                        <button id="next-card-btn" class="btn btn-secondary">Volgende →</button>
-                    </div>
-                </div>
-                
-                <!-- Flop View -->
-                <div id="flop-view" class="hidden">
-                    <div class="flop-stats">
-                        <span>🃏 <span id="flop-count">12</span> kaarten in flop</span>
-                        <span>📦 <span id="remaining-count">0</span> kaarten in deck</span>
-                        <span id="discarded-stats" class="clickable">✓ <span id="discarded-count">0</span> opgelost</span>
-                    </div>
-                    <div class="flop-phase-section">
-                        <h3 class="phase-header phase-1-header">🟢 Early Game</h3>
-                        <div id="flop-phase-1" class="flop-grid"></div>
-                    </div>
-                    
-                    <div class="flop-phase-section">
-                        <h3 class="phase-header phase-2-header">🟡 Mid Game</h3>
-                        <div id="flop-phase-2" class="flop-grid"></div>
-                    </div>
-                    
-                    <div class="flop-phase-section">
-                        <h3 class="phase-header phase-3-header">🔴 Late Game</h3>
-                        <div id="flop-phase-3" class="flop-grid"></div>
-                    </div>
-                </div>
-                
-                <!-- Discarded View -->
-                <div id="discarded-view" class="hidden">
-                    <div class="flop-stats">
-                        <button id="back-to-flop-btn" class="btn btn-secondary">← Terug naar flop</button>
-                    </div>
-                    <button id="undo-last-card-btn" class="btn btn-undo hidden" onclick="handleUndoLastCard()"></button>
-                    
-                    <div class="flop-phase-section">
-                        <h3 class="phase-header">✓ Opgeloste Kaarten</h3>
-                        <div id="discarded-grid" class="flop-grid"></div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Questions Section -->
-            <section id="questions-section" class="card hidden">
-                <h2>❓ Automatische Antwoorden</h2>
-                <div id="questions-result" class="questions-list"></div>
-                
-                <!-- Distance Calculator -->
-                <div class="distance-calculator">
-                    <h3>🧭 Afstand Calculator</h3>
-                    <p class="calculator-help">Deel je locatie of check de afstand van een tegenstander</p>
-                    
-                    <div class="calculator-section">
-                        <button id="share-location-btn" class="btn btn-primary">📍 Deel Mijn Locatie</button>
-                        <div id="current-location-display" class="location-display hidden">
-                            <div class="location-coords" id="share-coords-text"></div>
-                        </div>
-                    </div>
-                    
-                    <div class="calculator-divider">OF</div>
-                    
-                    <div class="calculator-section">
-                        <label for="opponent-coords-input">Coördinaten van tegenstander:</label>
-                        <input 
-                            type="text" 
-                            id="opponent-coords-input" 
-                            placeholder="51.0543, 3.7234"
-                            class="coords-input"
-                        >
-                        <button id="calculate-distance-btn" class="btn btn-secondary">📏 Bereken Afstand</button>
-                        <div id="distance-result" class="distance-result hidden"></div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Game Info -->
-            <section id="game-info-section" class="card info-section hidden">
-                <h3>ℹ️ Spelinfo</h3>
-                <p><strong>Speelveld:</strong> <span class="game-radius-km">3,5</span>km rondom de WEC</p>
-                <p><strong>Seed:</strong> <span id="current-seed">-</span></p>
-                <button id="copy-seed-btn" class="btn btn-secondary btn-small hidden">📋 Kopieer Code</button>
-                <button id="reset-game-btn" class="btn btn-danger btn-small hidden" style="margin-top: 8px;">🗑️ Verwijder Spel</button>
-            </section>
-
-            <!-- Rules Section -->
-            <section class="card rules-section">
-                <button id="show-rules-btn" class="btn btn-secondary btn-rules-toggle">📋 Bekijk Spelregels</button>
-                <button class="btn btn-secondary btn-rules-toggle" onclick="showDemoModal()">📖 Hoe werkt het spel?</button>
-                <button class="btn btn-secondary btn-rules-toggle" onclick="openGameRulesModal()">⚙️ Optionele Spelregels</button>
-            </section>
-        </div>
-    </div>
-    <!-- Edit Answer Modal -->
-    <div id="edit-answer-modal" class="modal hidden">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>Antwoord Wijzigen</h3>
-                <button class="modal-close" onclick="closeEditModal()">×</button>
-            </div>
-            <div class="modal-body">
-                <div class="game-card">
-                    <div id="edit-card-task" class="card-task"></div>
-                    <div id="edit-card-question" class="card-question"></div>
-                </div>
-                <div id="edit-answer-buttons" class="answer-buttons"></div>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Neighborhood Answer Modal -->
-    <div id="neighborhood-answer-modal" class="modal hidden">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>🏘️ Wijk Antwoord</h3>
-                <button class="modal-close" onclick="closeNeighborhoodModal()">×</button>
-            </div>
-            <div class="modal-body">
-                <p class="info-text">
-                    <strong>Huidige wijk:</strong> <span id="current-neighborhood-display">-</span>
-                </p>
-                <p class="info-text" style="margin-top: 8px;">
-                    Als je verplaatst bent sinds je locatie bevestigde, selecteer hieronder de correcte wijk:
-                </p>
-                
-                <div class="input-group">
-                    <label for="neighborhood-select">Selecteer wijk (jouw locatie of buurwijk):</label>
-                    <select id="neighborhood-select" class="form-select">
-                        <option value="">-- Kies een wijk --</option>
-                    </select>
-                </div>
-                
-                <div class="input-group">
-                    <label for="neighborhood-answer">Antwoord van tegenstander:</label>
-                    <select id="neighborhood-answer" class="form-select">
-                        <option value="">-- Kies antwoord --</option>
-                        <option value="yes">✅ Ja, in een van die wijken</option>
-                        <option value="no">❌ Nee, niet in die wijken</option>
-                    </select>
-                </div>
-                
-                <button id="confirm-neighborhood-btn" class="btn btn-primary" style="margin-top: 16px;">Bevestig Antwoord</button>
-                
-                <div id="neighborhood-info" class="result-box hidden" style="margin-top: 16px;"></div>
-            </div>
-        </div>
+        <nav class="tabs" id="tabs" role="tablist" hidden></nav>
     </div>
 
-    <!-- Spelregels Modal -->
-    <div id="game-rules-modal" class="modal hidden">
-        <div class="modal-content game-rules-modal-content">
-            <div class="modal-header">
-                <h3>⚙️ Optionele Spelregels</h3>
-                <button class="modal-close" onclick="closeGameRulesModal()">×</button>
-            </div>
-            <div class="game-rules-body">
-                <p class="game-rules-intro">Deze regels zijn optioneel en kunnen aan- of uitgezet worden voor de start van het spel.</p>
-                <div id="game-rules-locked-msg" class="game-rules-locked-msg hidden">
-                    🔒 Het spel is al gestart — instellingen kunnen niet meer gewijzigd worden.
-                </div>
-
-                <!-- Regel: Zone vergrendeling -->
-                <div class="game-rule-item">
-                    <div class="game-rule-info">
-                        <div class="game-rule-name">🔒 Zone vergrendeling</div>
-                        <div class="game-rule-desc">Taken kunnen niet worden uitgevoerd in al-uitgesloten zones. Dit dwingt spelers om weg te bewegen uit het centrum en zorgt voor meer replayability.</div>
-                    </div>
-                    <label class="toggle-switch">
-                        <input type="checkbox" id="rule-toggle-zoneLockEnabled" onchange="handleToggleGameRule('zoneLockEnabled')">
-                        <span class="toggle-slider"></span>
-                    </label>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Demo Mode Modal -->
-    <div id="demo-modal" class="modal hidden">
-        <div class="modal-content demo-modal-content">
-            <div class="modal-header demo-modal-header">
-                <h3>📖 Hoe werkt het spel?</h3>
-                <button class="modal-close" onclick="closeDemoModal()">×</button>
-            </div>
-            <div class="demo-modal-body">
-                <div id="demo-steps-container">
-                    <!-- Stap 1 -->
-                    <div class="demo-step active" data-step="0">
-                        <div class="demo-step-icon">🗺️</div>
-                        <h4 class="demo-step-title">Welkom bij Jet Lag: The Knock-Off!</h4>
-                        <p>Het speelveld is een zone van <strong><span class="game-radius-km">3,5</span>km rond de WEC</strong>.</p>
-                        <p>Er zijn <strong>2 teams</strong>, beide verstoppen een fiets.</p>
-                        <p>Het doel: om als eerste de fiets van het andere team te vinden.</p>
-                    </div>
-
-                    <!-- Stap 2 -->
-                    <div class="demo-step" data-step="1">
-                        <div class="demo-step-icon">📡</div>
-                        <h4 class="demo-step-title">Geen centrale server — alles zelf bijhouden</h4>
-                        <p>Er is <strong>geen centrale server</strong>. De app berekent alles lokaal op je eigen toestel.</p>
-                        <p>Beide spelers voeren <strong>dezelfde code</strong> in om dezelfde kaarten te krijgen. Deel de code via WhatsApp of Messenger.</p>
-                        <p>Indien de tegenstander een vraag oplost is het dus ook uiterst belangrijk dat je die ook als <strong>🗑️ Tegenstander speelde dit eerst</strong> markeert!</p>
-                        <div class="demo-info-box">
-                            <strong>Communicatie gaat volledig via chat:</strong>
-                            <ul>
-                                <li>Antwoorden op vragen</li>
-                                <li>Bewijsfotos van taken</li>
-                                <li>GPS-coördinaten voor afstand</li>
-                            </ul>
-                        </div>
-                    </div>
-
-                    <!-- Stap 3 -->
-                    <div class="demo-step" data-step="2">
-                        <div class="demo-step-icon">🎮</div>
-                        <h4 class="demo-step-title">Hoe verloopt een spelronde?</h4>
-                        <ol>
-                            <li>De <strong>hider</strong> verstopt de fiets en vult de <strong>checklist</strong> in (foto's, straatnaam, …)</li>
-                            <li>Je voert de <strong>taak</strong> op de kaart uit (bv. "fotografeer een X")</li>
-                            <li>Dan stel je de bijhorende <strong>vraag</strong> aan de tegenstander via chat</li>
-                            <li>Het antwoord sluit een deel van de kaart <strong>uit</strong></li>
-                            <li>Hoe meer vragen, hoe kleiner het zoekgebied wordt</li>
-                        </ol>
-                    </div>
-
-                    <!-- Stap 4 -->
-                    <div class="demo-step" data-step="3">
-                        <div class="demo-step-icon">🃏</div>
-                        <h4 class="demo-step-title">Kaarten & Fases</h4>
-                        <p>Er zijn altijd maximaal<strong>12 kaarten tegelijk zichtbaar</strong> (de "flop"), verdeeld in 3 fases:</p>
-                        <div class="demo-phase-list">
-                            <div class="demo-phase demo-phase-1">
-                                <strong>🟢 Early Game (fase 1)</strong>
-                                <span>Brede vragen, geeft algemene richting</span>
-                            </div>
-                            <div class="demo-phase demo-phase-2">
-                                <strong>🟡 Mid Game (fase 2)</strong>
-                                <span>Gaat de kaart meer opdelen maar geeft (normaal gezien) geen richting aan</span>
-                            </div>
-                            <div class="demo-phase demo-phase-3">
-                                <strong>🔴 Late Game (fase 3)</strong>
-                                <span>Specifieke vragen, geeft directe hints naar de exacte locatie van de fiets</span>
-                            </div>
-                        </div>
-                        <p style="margin-top:12px">Als je een kaart oplost, komt er automatisch een nieuwe uit het deck.</p>
-                    </div>
-
-                    <!-- Stap 5 -->
-                    <div class="demo-step" data-step="4">
-                        <div class="demo-step-icon">🧩</div>
-                        <h4 class="demo-step-title">Automatische vraagtypes uitgelegd</h4>
-                        <p>De app berekent sommige antwoorden automatisch. Er zijn een paar types:</p>
-                        <div class="demo-info-box">
-                            <p><strong>📏 Straal-vragen</strong><br>
-                            <em>"Is er een X binnen X mmeter?"</em><br>
-                            De app antwoordt automatisch <strong>Ja</strong> of <strong>Nee</strong>.</p>
-                        </div>
-                        <div class="demo-info-box">
-                            <p><strong>🏪 Verste locatie</strong><br>
-                            <em>"Welke X binnen de speelzone is het verste?"</em><br>
-                            De app geeft de <strong>naam van de verste locatie</strong> terug. Dat is het antwoord dat je terug stuurt naar de tegenstander</p>
-                        </div>
-                        <div class="demo-info-box">
-                            <p><strong>🏘️ Wijkvragen</strong><br>
-                            <em>"Is de huidige wijk of de wijk ernaast de wijk van het item?" / "Elimineer 1 wijk uit 3"</em><br>
-                            De app toont de wijken op de kaart en geeft een <strong>Ja/Nee</strong> of <strong>welke wijk geëlimineerd</strong> wordt.</p>
-                        </div>
-                    </div>
-
-                    <!-- Stap 6 -->
-                    <div class="demo-step" data-step="5">
-                        <div class="demo-step-icon">📍</div>
-                        <h4 class="demo-step-title">Locatie delen & afstand checken</h4>
-                        <p>In het tabblad <strong>"Automatische Antwoorden"</strong> vind je de afstandscalculator:</p>
-                        <ol>
-                            <li>Druk op <strong>"Deel Mijn Locatie"</strong> → kopieer je coördinaten</li>
-                            <li>Stuur ze via <strong>WhatsApp/Messenger</strong> naar de andere speler</li>
-                            <li>Die plakt ze in het veld <strong>"Coördinaten van tegenstander"</strong></li>
-                            <li>Die drukt op <strong>"Bereken Afstand"</strong> → Andere team ziet exact hoever je nog bent</li>
-                            <li><strong>Belangrijk:</strong> Bij <strong>"Mijn coördinaten"</strong> geef je je doorgestuurde coordinaten weer!</li>
-                        </ol>
-                        <div class="demo-info-box">
-                            Coördinaten zien er zo uit: <code>51.0493, 3.7257</code>
-                        </div>
-                    </div>
-
-                    <!-- Stap 7 -->
-                    <div class="demo-step" data-step="6">
-                        <div class="demo-step-icon">🗺️</div>
-                        <h4 class="demo-step-title">Exclusion zones op de kaart</h4>
-                        <p>Na elk antwoord kleurt de kaart een <strong>rood gekleurd vlak</strong> in. Dat is het gebied waar de fiets <strong>NIET</strong> kan zijn.</p>
-                        <p>Hoe meer vragen beantwoord worden, hoe kleiner het zoekgebied.</p>
-                        <div class="demo-info-box">
-                            <p>Tik op een opgeloste kaart in de flop om het antwoord te <strong>wijzigen</strong> als er een fout werd gemaakt.</p>
-                            <p>Dit gebruik je ook om een vraag te "kopiëren" wanneer je dat mag doen.</p>
-                        </div>
-                    </div>
-
-                    <!-- Stap 8 -->
-                    <div class="demo-step" data-step="7">
-                        <div class="demo-step-icon">💡</div>
-                        <h4 class="demo-step-title">Tips & Veel Plezier!</h4>
-                        <ul class="demo-tips-list">
-                            <li>Zorg voor goede GPS-ontvangst: ga even naar buiten en wacht op een nauwkeurige fix</li>
-                            <li>De hider moet bij het begin direct de <strong>checklist</strong> invullen (foto's en notities)</li>
-                            <li>Alle communicatie gaat via <strong>chat</strong> er is geen chat functie hier!</li>
-                            <li>De winnaar is het team dat als eerste de fiets van het andere team kan vinden!</li>
-                        </ul>
-                        <button class="btn btn-primary demo-close-btn" onclick="closeDemoModal()">Sluiten</button>
-                    </div>
-                </div>
-
-                <!-- Navigation -->
-                <div class="demo-navigation">
-                    <button class="btn btn-secondary demo-nav-btn" id="demo-prev-btn" onclick="demoPrevStep()" disabled>← Vorige</button>
-                    <div class="demo-dots" id="demo-dots"></div>
-                    <button class="btn btn-primary demo-nav-btn" id="demo-next-btn" onclick="demoNextStep()">Volgende →</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Rules Modal -->
-    <div id="rules-modal" class="modal hidden">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>📋 Spelregels</h3>
-                <button class="modal-close" onclick="closeRulesModal()">×</button>
-            </div>
-            <div class="modal-body">
-                <ol id="rules-list" class="rules-list"></ol>
-            </div>
-        </div>
-    </div>
-    
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/polygon-clipping@0.15.7/dist/polygon-clipping.umd.min.js"></script>
     <script src="storage.js"></script>
     <script src="geoUtils.js"></script>
     <script src="cards.js"></script>
-    <script src="app.js"></script>
-    
+    <script src="map.js"></script>
+    <script src="game.js"></script>
+    <script src="ui.js"></script>
+
     <!-- PWA Service Worker Registration -->
     <script>
         if ('serviceWorker' in navigator) {

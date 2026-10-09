@@ -247,7 +247,8 @@ class CardManager {
      * Verkrijg het aantal resterende kaarten in het deck
      */
     getRemainingCards() {
-        return this.deck.length - this.deckIndex;
+        // Kaarten die nog niet in de flop liggen en nog niet opgelost zijn
+        return this.deck.filter(card => !this.isCardInFlop(card) && !this.isCardDiscarded(card)).length;
     }
     
     /**

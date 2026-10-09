@@ -1,9 +1,11 @@
-const CACHE_NAME = 'jet-lag-game-v3';
+const CACHE_NAME = 'jet-lag-game-v4';
 const urlsToCache = [
   './',
   './index.html',
   './styles.css',
-  './app.js',
+  './map.js',
+  './game.js',
+  './ui.js',
   './cards.js',
   './geoUtils.js',
   './storage.js',
