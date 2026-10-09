@@ -3182,6 +3182,9 @@ function editDiscardedAnswer(discardedIndex) {
     document.getElementById('edit-answer-modal').classList.remove('hidden');
 }
 
+// Handler voor de bevestig knop van de neighborhood modal bij het bewerken van een opgeloste kaart
+let neighborhoodEditHandler = null;
+
 /**
  * Bewerk het antwoord van een opgeloste neighborhood kaart
  */
@@ -3212,7 +3215,6 @@ function editNeighborhoodDiscardedAnswer(discardedIndex) {
     const neighborhoodSelect = document.getElementById('neighborhood-select');
     const answerSelect = document.getElementById('neighborhood-answer');
     const neighborhoodInfo = document.getElementById('neighborhood-info');
-    const confirmBtn = document.getElementById('confirm-neighborhood-btn');
 
     fillNeighborhoodSelect();
 
@@ -3225,11 +3227,8 @@ function editNeighborhoodDiscardedAnswer(discardedIndex) {
     modal.dataset.editMode = 'true';
     delete modal.dataset.cardIndex;
 
-    // Verwijder oude event listener en voeg nieuwe toe
-    const newConfirmBtn = confirmBtn.cloneNode(true);
-    confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
-
-    newConfirmBtn.addEventListener('click', () => {
+    // confirmNeighborhoodAnswer roept deze handler aan zolang de modal in edit mode staat
+    neighborhoodEditHandler = () => {
         const selectedNeighborhood = neighborhoodSelect.value;
         const answer = answerSelect.value;
 
@@ -3263,12 +3262,21 @@ function editNeighborhoodDiscardedAnswer(discardedIndex) {
         renderDiscardedView();
 
         // Reset modal state
-        delete modal.dataset.discardedIndex;
-        delete modal.dataset.editMode;
-    });
+        clearNeighborhoodEditMode();
+    };
 
     // Toon modal
     modal.classList.remove('hidden');
+}
+
+/**
+ * Zet de neighborhood modal terug in normale modus (geen opgeloste kaart aan het bewerken)
+ */
+function clearNeighborhoodEditMode() {
+    const modal = document.getElementById('neighborhood-answer-modal');
+    delete modal.dataset.discardedIndex;
+    delete modal.dataset.editMode;
+    neighborhoodEditHandler = null;
 }
 
 /**
@@ -3434,6 +3442,7 @@ function openNeighborhoodModal(cardIndex) {
     const modal = document.getElementById('neighborhood-answer-modal');
     const neighborhoodInfo = document.getElementById('neighborhood-info');
 
+    clearNeighborhoodEditMode();
     fillNeighborhoodSelect();
     
     // Reset andere velden
@@ -3470,6 +3479,7 @@ function openNeighborhoodModalWithAnswer(cardIndex, answer) {
     const answerSelect = document.getElementById('neighborhood-answer');
     const neighborhoodInfo = document.getElementById('neighborhood-info');
 
+    clearNeighborhoodEditMode();
     fillNeighborhoodSelect();
 
     // Zet het antwoord (Ja of Nee) vooraf in
@@ -3491,6 +3501,13 @@ function openNeighborhoodModalWithAnswer(cardIndex, answer) {
  */
 function confirmNeighborhoodAnswer() {
     const modal = document.getElementById('neighborhood-answer-modal');
+
+    // Bewerken van een opgeloste kaart: laat de edit handler het afhandelen
+    if (modal.dataset.editMode === 'true' && neighborhoodEditHandler) {
+        neighborhoodEditHandler();
+        return;
+    }
+
     const neighborhoodSelect = document.getElementById('neighborhood-select');
     const answerSelect = document.getElementById('neighborhood-answer');
     const neighborhoodInfo = document.getElementById('neighborhood-info');
