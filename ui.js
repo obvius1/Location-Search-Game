@@ -229,11 +229,13 @@ function renderMapOverlay() {
             ${iconButton('id="toggle-legend"', ICONS.info, 'Legende', ui.legend)}
         </div>
         ${ui.legend ? `<div class="map-legend">
-            <span><i class="sw" style="background:color-mix(in srgb, var(--zone) 45%, var(--surface))"></i>Uitgesloten</span>
-            <span><i class="sw" style="background:var(--water);border-radius:50%"></i>Jij (live)</span>
-            <span><i class="sw" style="background:var(--ok)"></i>Jouw fiets${showBike ? '' : ' (verborgen)'}</span>
-            <span><i class="sw" style="background:#C48A00"></i>R40</span>
-            <span><i class="sw" style="background:#2A6FAE"></i>Leie-Schelde</span>
+            <span><i class="sw sw-area"></i>Uitgesloten</span>
+            <span><i class="sw sw-dot"></i>Jij (live)</span>
+            <span><i class="sw sw-pin" style="--pin:#2AAD27"></i>Jouw fiets${showBike ? '' : ' (verborgen)'}</span>
+            <span><i class="sw sw-pin" style="--pin:#CB2B3E"></i>WEC (midden)</span>
+            <span><i class="sw sw-line" style="--line-c:#111417;--line-w:3px"></i>Rand speelveld</span>
+            <span><i class="sw sw-line" style="--line-c:rgba(196,138,0,.9);--line-w:3px"></i>R40</span>
+            <span><i class="sw sw-line" style="--line-c:rgba(42,111,174,.7);--line-w:3px"></i>Leie-Schelde</span>
         </div>` : ''}
         <div class="map-bl">${zoneChip}</div>`;
 }
