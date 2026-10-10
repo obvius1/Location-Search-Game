@@ -253,11 +253,11 @@ function renderCards() {
     return `<div class="pad">
         <p class="lede">Beide teams hebben deze kaarten. Wie een taak eerst doet, stelt de vraag. Was de tegenstander eerst, dan zie je meteen wat jij moet antwoorden.</p>
         ${group(1)}${group(2)}${group(3)}
-        ${solved.length ? `<section class="block"><h2 class="head">Opgelost<span class="n">${solved.length}</span></h2>
+        ${solved.length ? `<section class="block"><h2 class="head">Opgelost<span class="by-legend"><span><i class="by-us"></i>Wij</span><span><i class="by-them"></i>Tegenstander</span></span><span class="n">${solved.length}</span></h2>
             <div class="list">${solved.map(s => {
                 const card = Game.card(s.cardId);
                 const meta = s.by === 'them' ? 'De tegenstander was eerst' : `Jullie · ${Game.answerText(card, s.answer)}`;
-                return `<button class="row done" data-card="${s.cardId}"><div class="txt"><div class="q">${esc(card.question)}</div><div class="meta">${esc(meta)}</div></div>${ARROW}</button>`;
+                return `<button class="row done" data-card="${s.cardId}"><i class="by-mark ${s.by === 'them' ? 'by-them' : 'by-us'}" aria-label="${s.by === 'them' ? 'Opgelost door de tegenstander' : 'Opgelost door jullie'}"></i><div class="txt"><div class="q">${esc(card.question)}</div><div class="meta">${esc(meta)}</div></div>${ARROW}</button>`;
             }).join('')}</div></section>` : ''}
     </div>`;
 }
