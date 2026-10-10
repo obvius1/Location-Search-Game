@@ -190,11 +190,10 @@ h1, h2, h3 { font-family: var(--f-head); font-stretch: 75%; font-weight: 800; li
 .sw { width: 14px; height: 14px; display: inline-block; flex: none; position: relative; }
 /* Stalen in dezelfde kleuren en vormen als op de kaart (map.js) */
 .sw-area { background: linear-gradient(rgba(239, 68, 68, .35), rgba(239, 68, 68, .35)), #F2EFE9; border: 1.5px solid #ef4444; }
-.sw-line { background: #F2EFE9; }
 .sw-dot { width: 13px; height: 13px; border-radius: 50%; background: #2563eb; border: 2px solid #fff; box-shadow: 0 0 0 1px rgba(0,0,0,.25); }
 .sw-pin { width: 11px; height: 11px; margin: 0 1.5px 2px; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); background: var(--pin); }
 .sw-pin::after { content: ""; position: absolute; inset: 3.5px; border-radius: 50%; background: #fff; }
-.sw-line::before { content: ""; position: absolute; left: 0; right: 0; top: 50%; height: var(--line-w); transform: translateY(-50%); background: var(--line-c); border-radius: 1px; }
+.sw-block { background: linear-gradient(var(--c), var(--c)), #F2EFE9; }
 
 /* Leaflet: labels en markers */
 .map-side-label span { display: block; text-align: center; font-family: var(--f-head); font-stretch: 75%; font-weight: 800; font-size: 20px; color: #111417; text-shadow: 0 0 3px #fff, 0 0 3px #fff, 0 0 3px #fff; white-space: nowrap; }
