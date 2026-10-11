@@ -68,7 +68,7 @@ Alles is lokaal. De teams communiceren via WhatsApp/Messenger (antwoorden, foto'
 ```
 gent-location-game/
 ├── index.html          # Schil: kopbalk, #stage (kaart, overlay, paneel), tabs
-├── styles.css          # Alle stijlen (tokens licht/donker, gsm eerst, >=900px paneel rechts)
+├── styles.css          # Alle stijlen (tokens licht/donker, gsm eerst; desktopblok onderaan)
 ├── version.js          # APP_VERSION: getoond onder Meer, ook de cachenaam (verhogen bij elke release)
 ├── storage.js          # localStorage: gameData + gameRules
 ├── geoUtils.js         # Geodata laden, afstanden, wijken, automatische antwoorden (performAllChecks)
@@ -115,6 +115,7 @@ Laadvolgorde in index.html: leaflet, polygon-clipping, version, storage, geoUtil
 - Coördinaten-onderblad: eigen positie kopiëren, geplakte coördinaten nakijken (in het veld, afstand tot fiets en jou, uitgesloten zone, pin op de kaart)
 - Toast bovenaan onder de kopbalk, 4,5 s, tik om te sluiten, "Ongedaan maken", balkje dat aftelt
 - Rondleiding "Hoe werkt het spel" (`TOUR`, 6 stappen, onderblad type `tour`): bereikbaar onder Meer en in wizardstap 1; verandert niets aan het spel
+- Desktop (>= 900px, `isDesktop()`): kaart links altijd zichtbaar met haar knoppen (`mapVisible()`), vaste kolom rechts (`--side`) met tabs Kaarten · Meer; geen Kaart-tab (`render()` zet 'map' om naar 'cards'); onderbladen vullen de kolom. Het desktopblok staat onderaan styles.css zodat het de basisregels overschrijft
 - Bevestigingen gebeuren in de pagina zelf (geen `confirm()`/`alert()`)
 
 ---

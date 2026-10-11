@@ -104,9 +104,26 @@ function newWizard() {
 const UI = {
     /** Wordt aangeroepen door map.js als zones of live positie veranderen */
     refreshMapStatus() {
-        if (ui.screen === 'game' && ui.tab === 'map' && !ui.sheet) renderMapOverlay();
+        if (mapVisible()) renderMapOverlay();
     }
 };
+
+/** Is de kaart met haar knoppen zichtbaar? Op desktop altijd, op gsm enkel in de Kaart-tab zonder onderblad. */
+function mapVisible() {
+    return ui.screen === 'game' && (isDesktop() || (ui.tab === 'map' && !ui.sheet));
+}
+
+// Wisselen tussen gsm- en desktopweergave (venster groter of kleiner maken)
+let wasDesktop = null;
+let resizeTimer = null;
+window.addEventListener('resize', () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(() => {
+        if (ui.screen === 'loading') return;
+        if (wasDesktop !== isDesktop()) render();
+        else if (map) map.invalidateSize();
+    }, 150);
+});
 
 document.addEventListener('DOMContentLoaded', async () => {
     await loadZones();
@@ -148,6 +165,11 @@ function showBikeOnMap() {
 /* ===== Weergave ===== */
 
 function render() {
+    // Op desktop is de kaart altijd zichtbaar: geen aparte Kaart-tab
+    if (isDesktop() && ui.tab === 'map') ui.tab = 'cards';
+    wasDesktop = isDesktop();
+    $('#app').classList.toggle('wizard', ui.screen === 'wizard');
+    document.documentElement.style.setProperty('--top-h', $('#top').offsetHeight + 'px');
     renderHeader();
     renderTabs();
     renderPanel();
@@ -163,7 +185,7 @@ function renderHeader() {
         return;
     }
     const titles = { map: 'Kaart', cards: 'Kaarten', more: 'Meer' };
-    $('#top-title').textContent = titles[ui.tab];
+    $('#top-title').textContent = isDesktop() ? 'Jet Lag Gent' : titles[ui.tab];
     $('#top-sub').textContent = `${Game.data().seed} · ${Game.solved().length} opgelost`;
 }
 
@@ -207,7 +229,7 @@ function iconButton(attrs, icon, label, pressed = null) {
 
 function renderMapOverlay() {
     const overlay = $('#map-overlay');
-    if (ui.screen !== 'game' || ui.tab !== 'map' || ui.sheet) { overlay.innerHTML = ''; return; }
+    if (!mapVisible()) { overlay.innerHTML = ''; return; }
     const showBike = Game.showBike();
     const ctxCard = ui.mapCtx && Game.card(ui.mapCtx.cardId);
     let zoneChip = '';
@@ -344,7 +366,7 @@ function cardSheetMain() {
         ${card.link ? `<a class="link" href="${esc(card.link)}" target="_blank" rel="noopener">Meer info</a>` : ''}`;
     const back = s ? '' : '<button class="link" data-mode="">← Andere keuze</button>';
     const error = sh.error ? `<div class="note bad">${esc(sh.error)}</div>` : '';
-    const mapLink = sheetTarget().answerType !== 'copyQuestion' ? '<button class="link" id="ctx-big">Groot op de kaart</button>' : '';
+    const mapLink = !isDesktop() && sheetTarget().answerType !== 'copyQuestion' ? '<button class="link" id="ctx-big">Groot op de kaart</button>' : '';
 
     if (!sh.mode) {
         const pos = livePosition();
