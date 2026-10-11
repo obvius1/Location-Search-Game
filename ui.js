@@ -113,6 +113,62 @@ function mapVisible() {
     return ui.screen === 'game' && (isDesktop() || (ui.tab === 'map' && !ui.sheet));
 }
 
+/* ===== Breedte van de desktopkolom (versleepbaar) ===== */
+const SIDE_KEY = 'sideWidth';
+const SIDE_DEFAULT = 440;
+const SIDE_MIN = 360;
+const sideMax = () => Math.max(SIDE_MIN, Math.min(720, Math.round(window.innerWidth * 0.6)));
+
+function setSideWidth(px, save = false) {
+    const w = Math.round(Math.min(sideMax(), Math.max(SIDE_MIN, px)));
+    document.documentElement.style.setProperty('--side', w + 'px');
+    const handle = $('#side-resizer');
+    handle.setAttribute('aria-valuenow', String(w));
+    handle.setAttribute('aria-valuemin', String(SIDE_MIN));
+    handle.setAttribute('aria-valuemax', String(sideMax()));
+    if (save) { try { localStorage.setItem(SIDE_KEY, String(w)); } catch { /* enkel deze sessie */ } }
+    if (map) map.invalidateSize();
+    return w;
+}
+function savedSideWidth() {
+    try { return parseInt(localStorage.getItem(SIDE_KEY), 10) || SIDE_DEFAULT; } catch { return SIDE_DEFAULT; }
+}
+
+(function initSideResizer() {
+    const handle = $('#side-resizer');
+    let frame = null;
+    handle.addEventListener('pointerdown', (e) => {
+        if (!isDesktop()) return;
+        e.preventDefault();
+        handle.setPointerCapture(e.pointerId);
+        handle.classList.add('dragging');
+        $('#app').classList.add('resizing');
+    });
+    handle.addEventListener('pointermove', (e) => {
+        if (!handle.hasPointerCapture(e.pointerId)) return;
+        cancelAnimationFrame(frame);
+        frame = requestAnimationFrame(() => setSideWidth(window.innerWidth - e.clientX));
+    });
+    const stop = (e) => {
+        if (!handle.hasPointerCapture(e.pointerId)) return;
+        handle.releasePointerCapture(e.pointerId);
+        handle.classList.remove('dragging');
+        $('#app').classList.remove('resizing');
+        setSideWidth(window.innerWidth - e.clientX, true);
+    };
+    handle.addEventListener('pointerup', stop);
+    handle.addEventListener('pointercancel', stop);
+    handle.addEventListener('dblclick', () => setSideWidth(SIDE_DEFAULT, true));
+    handle.addEventListener('keydown', (e) => {
+        const step = e.shiftKey ? 60 : 20;
+        const now = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--side'), 10) || SIDE_DEFAULT;
+        if (e.key === 'ArrowLeft') { e.preventDefault(); setSideWidth(now + step, true); }
+        if (e.key === 'ArrowRight') { e.preventDefault(); setSideWidth(now - step, true); }
+        if (e.key === 'Home') { e.preventDefault(); setSideWidth(SIDE_DEFAULT, true); }
+    });
+    setSideWidth(savedSideWidth());
+})();
+
 // Wisselen tussen gsm- en desktopweergave (venster groter of kleiner maken)
 let wasDesktop = null;
 let resizeTimer = null;
@@ -120,6 +176,7 @@ window.addEventListener('resize', () => {
     clearTimeout(resizeTimer);
     resizeTimer = setTimeout(() => {
         if (ui.screen === 'loading') return;
+        setSideWidth(savedSideWidth());   // blijft binnen de grenzen als het venster smaller wordt
         if (wasDesktop !== isDesktop()) render();
         else if (map) map.invalidateSize();
     }, 150);

@@ -228,6 +228,8 @@ h1, h2, h3 { font-family: var(--f-head); font-stretch: 75%; font-weight: 800; li
     @keyframes down { from { transform: translateY(-12px); opacity: .4; } to { transform: none; opacity: 1; } }
 }
 
+.side-resizer { display: none; }
+
 /* Desktop: kaart links altijd zichtbaar, vaste kolom rechts met tabs Kaarten · Meer bovenaan.
    Een geopende kaart vult die kolom; er is geen aparte Kaart-tab nodig. */
 @media (min-width: 900px) {
@@ -246,4 +248,8 @@ h1, h2, h3 { font-family: var(--f-head); font-stretch: 75%; font-weight: 800; li
     .map-tl, .map-bl { right: calc(var(--side) + 60px); }
     .map-tr { right: calc(var(--side) + 8px); }
     .map-legend { right: calc(var(--side) + 58px); }
+    .side-resizer { display: block; position: absolute; top: var(--top-h, 36px); bottom: 0; right: calc(var(--side) - 4px); width: 9px; z-index: 1350; cursor: col-resize; touch-action: none; }
+    .side-resizer::after { content: ""; position: absolute; top: 0; bottom: 0; left: 3px; width: 3px; background: transparent; transition: background .15s; }
+    .side-resizer:hover::after, .side-resizer:focus-visible::after, .side-resizer.dragging::after { background: var(--accent); }
+    .app.resizing, .app.resizing * { cursor: col-resize !important; user-select: none; }
 }
