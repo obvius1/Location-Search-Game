@@ -243,6 +243,14 @@ function showCardContext(card, extra = {}) {
             break;
         case 'radiusProximity':
         case 'FurthestDistance':
+            if (card.answerType === 'FurthestDistance') {
+                // Grenzen tussen de gebieden: binnen elk gebied is die plek de dichtste
+                const pois = getPOIsByType(card.poiType);
+                pois.forEach(poi => {
+                    const cell = voronoiCell(pois, poi);
+                    if (cell) add(L.polygon([cell], { color: '#111417', weight: 2.5, dashArray: '10, 7', fill: false, interactive: false }));
+                });
+            }
             getPOIsByType(card.poiType).forEach(poi => {
                 add(L.circleMarker([poi.lat, poi.lng], { radius: 6, color: '#ffffff', weight: 2, fillColor: '#111417', fillOpacity: 1 })
                     .bindTooltip(poi.name, { permanent: card.answerType === 'FurthestDistance', direction: 'top' }));
@@ -307,6 +315,56 @@ function neighborhoodBounds(names) {
 function hideNeighborhoods() {
     neighborhoodLayers.forEach(layer => map.removeLayer(layer));
     neighborhoodLayers = [];
+}
+
+/**
+ * Gebied van het speelveld waar deze POI dichter is dan elke andere (exacte Voronoi-cel,
+ * via Sutherland-Hodgman-knippen van de spelcirkel). Geeft [lat, lng]-punten of null.
+ */
+function voronoiCell(pois, selectedPOI) {
+    if (!pois.length || !selectedPOI) return null;
+    const center = LOCATIONS.center;
+    const cosLat = Math.cos(center.lat * Math.PI / 180);
+    const toXY = (lat, lng) => ({ x: (lng - center.lng) * 111320 * cosLat, y: (lat - center.lat) * 111320 });
+    const fromXY = (xy) => [center.lat + xy.y / 111320, center.lng + xy.x / (111320 * cosLat)];
+
+    // Start met spelcirkel als polygoon (64 punten)
+    const N = 64;
+    let cell = [];
+    for (let i = 0; i < N; i++) {
+        const angle = (2 * Math.PI * i) / N;
+        cell.push({ x: GAME_RADIUS * Math.cos(angle), y: GAME_RADIUS * Math.sin(angle) });
+    }
+    const sel = toXY(selectedPOI.lat, selectedPOI.lng);
+
+    // Knip de polygoon: behoud alleen de helft dichter bij selectedPOI dan bij elke andere POI
+    for (const otherPOI of pois) {
+        if (otherPOI.name === selectedPOI.name) continue;
+        const oth = toXY(otherPOI.lat, otherPOI.lng);
+        // Dichter bij sel dan bij oth: (oth-sel)·P < (|oth|²-|sel|²)/2
+        const A = oth.x - sel.x;
+        const B = oth.y - sel.y;
+        const C = (oth.x * oth.x + oth.y * oth.y - sel.x * sel.x - sel.y * sel.y) / 2;
+        const inside = (p) => A * p.x + B * p.y < C;
+        const intersect = (p1, p2) => {
+            const dx = p2.x - p1.x, dy = p2.y - p1.y;
+            const denom = A * dx + B * dy;
+            if (Math.abs(denom) < 1e-10) return null;
+            const t = (C - A * p1.x - B * p1.y) / denom;
+            return { x: p1.x + t * dx, y: p1.y + t * dy };
+        };
+        const clipped = [];
+        for (let i = 0; i < cell.length; i++) {
+            const curr = cell[i];
+            const next = cell[(i + 1) % cell.length];
+            const cIn = inside(curr), nIn = inside(next);
+            if (cIn) clipped.push(curr);
+            if (cIn !== nIn) { const pt = intersect(curr, next); if (pt) clipped.push(pt); }
+        }
+        cell = clipped;
+        if (cell.length === 0) break;
+    }
+    return cell.length >= 3 ? cell.map(fromXY) : null;
 }
 
 /* ===== Uitgesloten gebied ===== */
@@ -835,68 +893,9 @@ function createExclusionLayerFromData(exclusionData) {
     // Logica: sluit de exacte Voronoi-cel van de geselecteerde POI uit
     // (= de zone waar die POI het dichtst is). Berekend via Sutherland-Hodgman.
     if (exclusionData.type === 'furthestDistance') {
-        const { poiType, selectedPOI } = exclusionData;
-        const pois = getPOIsByType(poiType);
-        if (pois.length === 0) return null;
-
-        const center = LOCATIONS.center;
-        const gameRadius = GAME_RADIUS;
-        const cosLat = Math.cos(center.lat * Math.PI / 180);
-
-        const toXY = (lat, lng) => ({
-            x: (lng - center.lng) * 111320 * cosLat,
-            y: (lat - center.lat) * 111320
-        });
-        const fromXY = (xy) => [
-            center.lat + xy.y / 111320,
-            center.lng + xy.x / (111320 * cosLat)
-        ];
-
-        // Start met spelcirkel als polygoon (64 punten)
-        const N = 64;
-        let voronoiCell = [];
-        for (let i = 0; i < N; i++) {
-            const angle = (2 * Math.PI * i) / N;
-            voronoiCell.push({ x: gameRadius * Math.cos(angle), y: gameRadius * Math.sin(angle) });
-        }
-
-        const sel = toXY(selectedPOI.lat, selectedPOI.lng);
-
-        // Knip de polygoon: behoud alleen de helft dichter bij selectedPOI dan bij elke andere POI
-        for (const otherPOI of pois) {
-            if (otherPOI.name === selectedPOI.name) continue;
-            const oth = toXY(otherPOI.lat, otherPOI.lng);
-
-            // Dichter bij sel dan bij oth: (oth-sel)·P < (|oth|²-|sel|²)/2
-            const A = oth.x - sel.x;
-            const B = oth.y - sel.y;
-            const C = (oth.x * oth.x + oth.y * oth.y - sel.x * sel.x - sel.y * sel.y) / 2;
-
-            const inside = (p) => A * p.x + B * p.y < C;
-            const intersect = (p1, p2) => {
-                const dx = p2.x - p1.x, dy = p2.y - p1.y;
-                const denom = A * dx + B * dy;
-                if (Math.abs(denom) < 1e-10) return null;
-                const t = (C - A * p1.x - B * p1.y) / denom;
-                return { x: p1.x + t * dx, y: p1.y + t * dy };
-            };
-
-            const clipped = [];
-            for (let i = 0; i < voronoiCell.length; i++) {
-                const curr = voronoiCell[i];
-                const next = voronoiCell[(i + 1) % voronoiCell.length];
-                const cIn = inside(curr), nIn = inside(next);
-                if (cIn) clipped.push(curr);
-                if (cIn !== nIn) { const pt = intersect(curr, next); if (pt) clipped.push(pt); }
-            }
-            voronoiCell = clipped;
-            if (voronoiCell.length === 0) break;
-        }
-
-        if (voronoiCell.length < 3) return null;
-
+        const cell = voronoiCell(getPOIsByType(exclusionData.poiType), exclusionData.selectedPOI);
         // Teken de Voronoi-cel direct als exclusion zone (geen raster, exacte polygoon)
-        return L.polygon([voronoiCell.map(p => fromXY(p))], exclusionStyle);
+        return cell ? L.polygon([cell], exclusionStyle) : null;
     }
     
     // Distance From Bike exclusions
