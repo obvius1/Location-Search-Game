@@ -332,7 +332,6 @@ function renderCards() {
     };
     const solved = [...Game.solved()].reverse();
     return `<div class="pad">
-        <p class="lede">Beide teams hebben deze kaarten. Wie een taak eerst doet, stelt de vraag. Was de tegenstander eerst, dan zie je meteen wat jij moet antwoorden.</p>
         ${group(1)}${group(2)}${group(3)}
         ${solved.length ? `<section class="block"><h2 class="head">Opgelost<span class="by-legend"><span><i class="by-us"></i>Wij</span><span><i class="by-them"></i>Tegenstander</span></span><span class="n">${solved.length}</span></h2>
             <div class="list">${solved.map(s => {
@@ -655,10 +654,8 @@ function renderMore() {
     const wijk = bike ? getNeighborhoodAtLocation(bike.lat, bike.lng) : null;
     return `<div class="pad">
         <section class="block"><h2 class="head">Spelcode</h2>
-            <div class="inline"><input class="input code-in" style="font-size:24px;text-align:left" value="${esc(data.seed)}" readonly aria-label="Spelcode"><button class="btn" data-copy-text="${esc(data.seed)}">Kopieer</button></div>
-            <p class="why">Beide teams gebruiken dezelfde code, dus jullie hebben dezelfde kaarten.</p></section>
-        <section class="block"><h2 class="head">Optionele spelregels</h2>${ruleToggle(true, zoneRuleOn())}
-            <p class="why">Vast tijdens het spel. Beide teams spreken dit af bij de start.</p></section>
+            <div class="inline"><input class="input code-in" style="font-size:24px;text-align:left" value="${esc(data.seed)}" readonly aria-label="Spelcode"><button class="btn" data-copy-text="${esc(data.seed)}">Kopieer</button></div></section>
+        <section class="block"><h2 class="head">Optionele spelregels</h2>${ruleToggle(true, zoneRuleOn())}</section>
         <section class="block"><h2 class="head">Locatie</h2>
             <button class="row" data-open="coords"><div class="txt"><div class="q">Positie delen of coördinaten nakijken</div></div>${ARROW}</button>
             <label class="toggle"><div class="txt"><div class="q" style="font-weight:700">Live locatie</div><div class="meta">Toont waar je bent en of je in een uitgesloten zone staat. Uitzetten spaart batterij.</div></div>
