@@ -568,13 +568,11 @@ function coordsSheet() {
     const pos = livePosition();
     return `<div class="sheet-head"><span>Coördinaten</span><button class="close" data-close aria-label="Sluiten">×</button></div>
         <div class="field"><span class="label">Jouw positie nu</span>
-            ${pos ? `<div class="inline"><input class="input mono" value="${fmtCoord(pos)}" readonly aria-label="Jouw positie"><button class="btn" data-copy-text="${fmtCoord(pos)}">Kopieer</button></div>
-                <p class="why">Stuur dit door als de tegenstander om je positie vraagt.</p>`
+            ${pos ? `<div class="inline"><input class="input mono" value="${fmtCoord(pos)}" readonly aria-label="Jouw positie"><button class="btn" data-copy-text="${fmtCoord(pos)}">Kopieer</button></div>`
                 : '<p class="why">Nog geen GPS-positie. Zet live locatie aan onder Meer, of wacht even buiten.</p>'}
         </div>
         <div class="field"><label for="check-pos">Coördinaten nakijken</label>
-            <input class="input mono" id="check-pos" placeholder="51.0543, 3.7234" inputmode="decimal">
-            <p class="why">Bijvoorbeeld de positie die de tegenstander je stuurt.</p></div>
+            <input class="input mono" id="check-pos" placeholder="51.0543, 3.7234" inputmode="decimal"></div>
         <div id="check-out" class="block"></div>`;
 }
 
@@ -702,12 +700,10 @@ function renderWizard() {
     if (w.step === 1) {
         return `<div class="pad">${steps}
             <h2 class="step-title">Spelcode en regels</h2>
-            <p class="lede">Spreek één code af met het andere team. Zo hebben jullie dezelfde kaarten.</p>
             <input class="input code-in" id="wiz-code" value="${esc(w.code)}" maxlength="8" autocomplete="off" aria-label="Spelcode">
             <button class="link" id="wiz-gen" style="align-self:center">Maak een nieuwe code</button>
             <button class="row" data-open="tour"><div class="txt"><div class="q">Eerste keer? Hoe werkt het spel</div></div>${ARROW}</button>
-            <section class="block"><h2 class="head">Optionele spelregels</h2>${ruleToggle(false, w.zoneLock)}
-                <p class="why">Kies hetzelfde als het andere team. Tijdens het spel ligt dit vast.</p></section>
+            <section class="block"><h2 class="head">Optionele spelregels</h2>${ruleToggle(false, w.zoneLock)}</section>
             <button class="btn btn-main" id="wiz-next">Verder</button>
             <section class="block"><h2 class="head">Al bezig met je team?</h2>${importBlock()}</section>
         </div>`;
@@ -719,7 +715,6 @@ function renderWizard() {
     const missing = done < photoItems.length ? `Nog ${photoItems.length - done} foto${photoItems.length - done === 1 ? '' : "'s"}` : 'Vul de notities in';
     return `<div class="pad">${steps}
         <h2 class="step-title">Leg je plek vast</h2>
-        <p class="lede">De tegenstander vraagt hier later naar. De app onthoudt je antwoorden.</p>
         <section class="block"><h2 class="head">Foto's<span class="n">${done}/${photoItems.length}</span></h2><div>
             ${photoItems.map((item, i) => `<label class="check"><input type="checkbox" data-photo="${i}" ${w.photos[i] ? 'checked' : ''}>${esc(item)}</label>`).join('')}</div></section>
         <section class="block"><h2 class="head">Notities</h2>
