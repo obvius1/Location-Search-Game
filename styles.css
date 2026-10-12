@@ -115,6 +115,7 @@ h1, h2, h3 { font-family: var(--f-head); font-stretch: 75%; font-weight: 800; li
 .kv { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; }
 .kv dt { color: var(--muted); } .kv dd { margin: 0; font-weight: 700; min-width: 0; overflow-wrap: anywhere; }
 .rules { padding-left: 22px; display: flex; flex-direction: column; gap: 8px; }
+.rules-extra { margin: 16px 0 8px; padding-top: 12px; border-top: 1.5px dashed var(--line); font-size: 14px; font-weight: 700; }
 .valid { display: flex; flex-direction: column; border-top: 1px solid var(--line); }
 .valid div { display: flex; align-items: center; gap: 12px; padding: 12px 2px; border-bottom: 1px solid var(--line); }
 .valid .mark { width: 24px; text-align: center; font-weight: 800; flex: none; }
