@@ -17,6 +17,8 @@ const ui = {
     mapCtx: null,           // context op de grote kaart: { cardId, extra, title }
     pin: null,
     confirmReset: false,
+    importOpen: false,      // tekstvak om de stand van je teamgenoot te plakken
+    importError: null,
     wizard: null
 };
 
@@ -646,6 +648,15 @@ function ruleToggle(locked, checked) {
         <input type="checkbox" class="switch" id="zone-rule" ${checked ? 'checked' : ''} ${locked ? 'disabled' : ''} aria-label="Geen taken in uitgesloten zones"></label>`;
 }
 
+/** Stand van je teamgenoot overnemen: knop, of het tekstvak om de code te plakken */
+function importBlock() {
+    if (!ui.importOpen) return '<button class="btn btn-quiet" id="import-open">Stand van teamgenoot overnemen</button>';
+    return `<textarea class="input mono import-code" id="import-code" rows="3" placeholder="Plak hier de code" aria-label="Code van je teamgenoot"></textarea>
+        ${ui.importError ? `<p class="import-error">${esc(ui.importError)}</p>` : ''}
+        <p class="why">Dit vervangt alles op dit toestel door de stand van je teamgenoot.</p>
+        <div class="pair"><button class="btn btn-main" id="import-yes">Overnemen</button><button class="btn" id="import-no">Annuleer</button></div>`;
+}
+
 function renderMore() {
     const data = Game.data();
     const showBike = Game.showBike();
@@ -655,6 +666,10 @@ function renderMore() {
     return `<div class="pad">
         <section class="block"><h2 class="head">Spelcode</h2>
             <div class="inline"><input class="input code-in" style="font-size:24px;text-align:left" value="${esc(data.seed)}" readonly aria-label="Spelcode"><button class="btn" data-copy-text="${esc(data.seed)}">Kopieer</button></div></section>
+        <section class="block"><h2 class="head">Teamgenoot</h2>
+            <button class="btn" id="share-state">Deel stand met teamgenoot</button>
+            <p class="why">Enkel naar je eigen team sturen: de code bevat jullie fietslocatie.</p>
+            ${importBlock()}</section>
         <section class="block"><h2 class="head">Optionele spelregels</h2>${ruleToggle(true, zoneRuleOn())}</section>
         <section class="block"><h2 class="head">Locatie</h2>
             <button class="row" data-open="coords"><div class="txt"><div class="q">Positie delen of coördinaten nakijken</div></div>${ARROW}</button>
@@ -694,6 +709,7 @@ function renderWizard() {
             <section class="block"><h2 class="head">Optionele spelregels</h2>${ruleToggle(false, w.zoneLock)}
                 <p class="why">Kies hetzelfde als het andere team. Tijdens het spel ligt dit vast.</p></section>
             <button class="btn btn-main" id="wiz-next">Verder</button>
+            <section class="block"><h2 class="head">Teamgenoot</h2>${importBlock()}</section>
         </div>`;
     }
     const photoItems = (GAME_CARDS.hiderChecklist || []).slice(0, 6);
@@ -956,7 +972,7 @@ document.addEventListener('click', (event) => {
     if (t.matches('[data-close]')) { closeSheet(); return; }
     if (t.id === 'toast-close') { ui.toast = null; ui.undoable = false; clearTimeout(toastTimer); renderOverlay(); return; }
     if (t.id === 'undo') {
-        if (Game.undo()) { showToast('Ongedaan gemaakt', false); render(); scheduleZoneUpdate(); }
+        if (Game.undo()) { showToast('Ongedaan gemaakt', false); showBikeOnMap(); render(); scheduleZoneUpdate(); }
         return;
     }
     if (t.dataset.tab) {
@@ -1006,6 +1022,30 @@ document.addEventListener('click', (event) => {
         ui.sheet = null; ui.tab = 'map';
         render();
         centerOn([ui.pin.lat, ui.pin.lng], 15);
+        return;
+    }
+
+    // Teamgenoot: stand delen en overnemen
+    if (t.id === 'share-state') { copyText(Game.exportCode(), t); return; }
+    if (t.id === 'import-open') { ui.importOpen = true; ui.importError = null; renderPanel(); $('#import-code').focus(); return; }
+    if (t.id === 'import-no') { ui.importOpen = false; ui.importError = null; renderPanel(); return; }
+    if (t.id === 'import-yes') {
+        const text = $('#import-code').value;
+        try {
+            Game.importCode(text);
+        } catch (error) {
+            ui.importError = error.message === 'Andere kaarten'
+                ? 'Deze code komt van een andere versie van de kaarten. Werk eerst beide apps bij.'
+                : 'Dit is geen geldige code. Kopieer ze opnieuw bij je teamgenoot.';
+            renderPanel();
+            $('#import-code').value = text;
+            return;
+        }
+        Object.assign(ui, { screen: 'game', tab: 'map', sheet: null, returnSheet: null, mapCtx: null, importOpen: false, importError: null, confirmReset: false });
+        clearCardContext(); showBikeOnMap();
+        afterSolve('Stand van je teamgenoot overgenomen', null, true);
+        ui.undoable = !!Game.lastAction;
+        renderOverlay();
         return;
     }
 

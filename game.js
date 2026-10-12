@@ -275,11 +275,63 @@ const Game = {
     undo() {
         if (!this.lastAction) return false;
         saveGameData(this.lastAction.data);
+        // Na het overnemen van een stand kan de spelcode (en dus het deck) anders zijn
+        if (this.lastAction.rules) saveGameRules(this.lastAction.rules);
+        if (this.lastAction.data.seed !== this.cm.seed) this.cm = new CardManager(this.lastAction.data.seed);
         const { flop, discarded, deckIndex } = this.lastAction.cards;
         this.cm.restoreFlop(flop, discarded, deckIndex);
         this.saveCards();
         this.lastAction = null;
         return true;
+    },
+
+    /* ===== Stand delen met je teamgenoot ===== */
+
+    /** De volledige stand van dit toestel als code. Enkel voor je eigen team: ze bevat jullie fietslocatie. */
+    exportCode() {
+        const data = loadGameData();
+        const idx = (id) => this.cm.deck.findIndex(d => d.id === id);
+        const loc = data.location;
+        return packCode({
+            v: 1,
+            s: data.seed,
+            l: loc ? [+loc.lat.toFixed(6), +loc.lng.toFixed(6)] : null,
+            c: data.checklist,
+            z: getGameRule('zoneLockEnabled') !== false,
+            o: (data.solved || []).map(x => [idx(x.cardId), x.by === 'us' ? 1 : 0, x.answer || {}]),
+            f: this.cm.flop.map(c => idx(c.id)),
+            d: this.cm.discarded.map(c => idx(c.id)),
+            i: this.cm.deckIndex
+        });
+    },
+
+    /**
+     * Neem de stand van je teamgenoot over: dit toestel wordt er een kopie van.
+     * De zones worden opnieuw berekend uit de antwoorden. Gooit een fout bij een ongeldige code.
+     */
+    importCode(code) {
+        const st = unpackCode(code);
+        if (!st || st.v !== 1 || !st.s || !Array.isArray(st.o)) throw new Error('Ongeldige code');
+        const deck = new CardManager(st.s).deck;
+        const at = (i) => { if (!deck[i]) throw new Error('Andere kaarten'); return deck[i]; };
+        const solved = st.o.map(([i, us, answer]) => ({ cardId: at(i).id, by: us ? 'us' : 'them', answer: answer || {} }));
+        const flop = st.f.map(at), discarded = st.d.map(at);
+
+        const before = this.cm ? { data: JSON.parse(JSON.stringify(loadGameData())), cards: JSON.parse(JSON.stringify(this.cm.getState())), rules: loadGameRules() } : null;
+        this.start({ seed: st.s, location: st.l ? { lat: st.l[0], lng: st.l[1] } : null, checklist: st.c || { photos: {}, notes: {} }, zoneLock: st.z });
+
+        const data = loadGameData();
+        data.solved = solved;
+        // Zelfde regels als bij solve(): enkel jullie eigen vragen geven een zone
+        solved.filter(s => s.by === 'us').forEach(s => {
+            const card = this.card(s.cardId);
+            if (card.answerType === 'copyQuestion' && s.answer.copy) this.applyZone(data, this.card(s.answer.copy.cardId), s.answer.copy, card.id);
+            else if (this.asksQuestion(card)) this.applyZone(data, card, s.answer, card.id);
+        });
+        saveGameData(data);
+        this.cm.restoreFlop(flop, discarded, st.i);
+        this.saveCards();
+        this.lastAction = before;
     },
 
     /** Vragen die je kan kopiëren: wat de tegenstander jullie vroeg (us) of wat jullie hen vroegen (them) */

@@ -74,3 +74,29 @@ function resetGameData() {
     localStorage.removeItem(STORAGE_KEY);
     localStorage.removeItem('cardManagerState');
 }
+
+// ──────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Stand als tekstcode (om via Messenger door te sturen) en terug.
+ * Gewone base64 van de JSON met "JLG1" ervoor; tekst voor of na de code (gescheiden door een spatie) wordt genegeerd.
+ */
+const CODE_PREFIX = 'JLG1';
+
+function packCode(state) {
+    const bytes = new TextEncoder().encode(JSON.stringify(state));
+    let bin = '';
+    bytes.forEach(b => { bin += String.fromCharCode(b); });
+    return CODE_PREFIX + btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+function unpackCode(text) {
+    const match = String(text || '').match(new RegExp(CODE_PREFIX + '([A-Za-z0-9_-]+)'));
+    if (!match) return null;
+    try {
+        const bin = atob(match[1].replace(/-/g, '+').replace(/_/g, '/'));
+        return JSON.parse(new TextDecoder().decode(Uint8Array.from(bin, ch => ch.charCodeAt(0))));
+    } catch {
+        return null;
+    }
+}

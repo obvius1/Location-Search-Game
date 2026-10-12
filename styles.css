@@ -109,6 +109,8 @@ h1, h2, h3 { font-family: var(--f-head); font-stretch: 75%; font-weight: 800; li
 .row .arrow { color: var(--muted); flex: none; }
 .row.done .q { color: var(--muted); }
 .lede, .why { color: var(--muted); }
+.import-code { width: 100%; resize: vertical; font-size: 13px; word-break: break-all; }
+.import-error { color: var(--zone); font-weight: 700; }
 .yes { color: var(--ok); } .no { color: var(--zone); }
 .note { background: var(--tint); padding: 10px 12px; font-size: 15px; }
 .note.bad { border-left: 5px solid var(--zone); }
