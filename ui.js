@@ -835,11 +835,15 @@ function scheduleZoneUpdate() {
     // Pagina niet zichtbaar: er wordt niets getekend, dus meteen rekenen
     if (document.hidden) { updateExclusionZones(); return; }
     zoneUpdatePending = true;
-    // Twee frames wachten: het eerste toont de nieuwe stand, in het tweede wordt gerekend
-    requestAnimationFrame(() => requestAnimationFrame(() => {
+    const run = () => {
+        if (!zoneUpdatePending) return;
         zoneUpdatePending = false;
         updateExclusionZones();
-    }));
+    };
+    // Twee frames wachten: het eerste toont de nieuwe stand, in het tweede wordt gerekend.
+    // Vangnet: tekent de browser even geen frames, dan toch na 400 ms rekenen.
+    requestAnimationFrame(() => requestAnimationFrame(run));
+    setTimeout(run, 400);
 }
 
 /**
