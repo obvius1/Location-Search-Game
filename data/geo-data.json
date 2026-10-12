@@ -85,7 +85,9 @@
       { "lat": 51.00331033915757, "lng": 3.710447336370306, "name": "Sporthal Hekers" },
       { "lat": 51.08853121835885, "lng": 3.703667393391552, "name": "Sporthal Neptunus" },
       { "lat": 51.05366942158928, "lng": 3.733894486383304, "name": "Zwembad Van Eyck" },
-      { "lat": 51.0928185150328, "lng": 3.764860423933274, "name": "Sporthal Wolfput" }
+      { "lat": 51.0928185150328, "lng": 3.764860423933274, "name": "Sporthal Wolfput" },
+      { "lat": 51.05937, "lng": 3.76054, "name": "Zwembad en sporthal Rozebroeken" },
+      { "lat": 51.02427, "lng": 3.76874, "name": "Sporthal Melle Vogelhoek" }
     ]
   },
   "bike_thefts": {
