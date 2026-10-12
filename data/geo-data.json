@@ -70,7 +70,56 @@
       { "lat": 51.053203853314095, "lng": 3.7696888540836038, "name": "Kapoela" },
       { "lat": 51.03902744503181, "lng": 3.7191664197986727, "name": "Aquariumgrot" },
       { "lat": 51.04959388667933, "lng": 3.6933293139281984, "name": "Dierenasiel Gent" }
+    ],
+    "sports": [
+      { "lat": 51.065959256446504, "lng": 3.714939331405818, "name": "Buurtsporthal Tondelier" },
+      { "lat": 51.067185146003496, "lng": 3.680585763376089, "name": "Sporthal Bourgoyen" },
+      { "lat": 51.03655241438977, "lng": 3.729076525070522, "name": "Zwembad Strop" },
+      { "lat": 51.049405447453, "lng": 3.684600855751773, "name": "Topsporthal Vlaanderen" },
+      { "lat": 51.042453813581496, "lng": 3.713729894160406, "name": "Provinciale sporthal - blok I" },
+      { "lat": 51.06365998426298, "lng": 3.737832630520297, "name": "Buurtsporthal Melopee" },
+      { "lat": 51.03765802169475, "lng": 3.768713814718148, "name": "Sporthal Driebeek" },
+      { "lat": 51.04567010239194, "lng": 3.641658462603151, "name": "Sporthal Keiskant" },
+      { "lat": 51.03368426396229, "lng": 3.739889917149663, "name": "Buurtsporthal Ledeberg" },
+      { "lat": 51.05919628290575, "lng": 3.691763988241619, "name": "Zwembad Rooigem" },
+      { "lat": 51.00331033915757, "lng": 3.710447336370306, "name": "Sporthal Hekers" },
+      { "lat": 51.08853121835885, "lng": 3.703667393391552, "name": "Sporthal Neptunus" },
+      { "lat": 51.05366942158928, "lng": 3.733894486383304, "name": "Zwembad Van Eyck" },
+      { "lat": 51.0928185150328, "lng": 3.764860423933274, "name": "Sporthal Wolfput" }
     ]
+  },
+  "bike_thefts": {
+    "year": 2024,
+    "source": "Open data Stad Gent (fietsdiefstallen per wijk); Destelbergen en Merelbeke-Melle: politiestatistiek per gemeente, hele gemeente",
+    "per_neighborhood": {
+      "Binnenstad": 835,
+      "Bloemekenswijk": 40,
+      "Brugse Poort - Rooigem": 74,
+      "Dampoort": 228,
+      "Destelbergen": 17,
+      "Drongen": 13,
+      "Elisabethbegijnhof - Prinsenhof - Papegaai - Sint-Michiels": 166,
+      "Gentbrugge": 19,
+      "Gentse Kanaaldorpen en -zone": 4,
+      "Ledeberg": 89,
+      "Macharius - Heirnis": 71,
+      "Mariakerke": 18,
+      "Merelbeke-Melle": 65,
+      "Moscou - Vogelhoek": 21,
+      "Muide - Meulestede - Afrikalaan": 43,
+      "Nieuw Gent - UZ": 44,
+      "Oostakker": 16,
+      "Oud Gentbrugge": 36,
+      "Rabot - Blaisantvest": 67,
+      "Sint-Amandsberg": 43,
+      "Sint-Denijs-Westrem - Afsnee": 7,
+      "Sluizeken - Tolhuis - Ham": 117,
+      "Stationsbuurt-Noord": 336,
+      "Stationsbuurt-Zuid": 235,
+      "Watersportbaan - Ekkergem": 122,
+      "Wondelgem": 28,
+      "Zwijnaarde": 12
+    }
   },
   "features": [
     {

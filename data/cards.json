@@ -78,6 +78,25 @@
       "pois": []
     },
     {
+      "task": "Vind 3 verschillende wegenwerken (aparte werven, minstens 200 m uit elkaar)",
+      "question": "Ligt de fiets ten noorden of ten zuiden van mijn huidige locatie?",
+      "phase": 1,
+      "answerType": "positionNS"
+    },
+    {
+      "task": "Fotografeer nummerplaten uit 3 verschillende landen",
+      "question": "Ligt de fiets ten oosten of ten westen van mijn huidige locatie?",
+      "phase": 1,
+      "answerType": "positionEW"
+    },
+    {
+      "task": "Fotografeer 3 bussen of trams met elk een eindbestemming in een andere gemeente dan Gent",
+      "question": "Staat de fiets minder dan 750 m van de rand van het speelveld?",
+      "phase": 1,
+      "answerType": "edgeDistance",
+      "distance": 750
+    },
+    {
       "task": "Bezoek een museum of historisch huis dat minder dan 1000 reviews heeft op Google Maps (lijst van geldige museums in Gent, andere kunnen beargumenteerd worden)",
       "question": "Kopieer een vraag die het andere team al gesteld heeft",
       "phase": 2,
@@ -132,6 +151,26 @@
       "answerType": "distanceFromBike",
       "radius": 1000,
       "pois": []
+    },
+    {
+      "task": "Verzamel blaadjes of naalden van 4 verschillende boomsoorten",
+      "question": "Staat de fiets in dezelfde wijk als waar ik nu sta?",
+      "phase": 2,
+      "answerType": "sameNeighborhood"
+    },
+    {
+      "task": "Scoor in een openbare basketring of een voetbaldoel op een pleintje (gefilmd)",
+      "question": "Is er een zwembad of sporthal binnen 1 km van de fiets?",
+      "phase": 2,
+      "answerType": "radiusProximity",
+      "radius": 1000,
+      "poiType": "sports"
+    },
+    {
+      "task": "Fotografeer een fiets met minstens 3 sloten",
+      "question": "Werden er in de wijk van de fiets meer fietsen gestolen dan in de wijk waar ik nu sta?",
+      "phase": 2,
+      "answerType": "theftCompare"
     },
     {
       "task": "Vind een vlag van een land dat niet België is en maak er een foto van",

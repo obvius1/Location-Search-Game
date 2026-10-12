@@ -473,9 +473,10 @@ function seekControls(card, current) {
     }
     let extra = '';
     let options = Game.answerOptions(card);
-    if (card.answerType === 'distanceFromBike') {
+    if (Game.needsPosition(card)) {
         extra = `<div class="field"><label for="seek-pos">Jouw positie (stuur door naar de tegenstander)</label>
-            <div class="inline"><input class="input mono" id="seek-pos" value="${esc(sh.position)}" placeholder="51.0543, 3.7234" inputmode="decimal"><button class="btn" id="copy-seek-pos">Kopieer</button></div></div>`;
+            <div class="inline"><input class="input mono" id="seek-pos" value="${esc(sh.position)}" placeholder="51.0543, 3.7234" inputmode="decimal"><button class="btn" id="copy-seek-pos">Kopieer</button></div>
+            ${Game.wijkFromPosition(card) ? `<p class="why" id="seek-wijk-info">${seekWijkInfo(card)}</p>` : ''}</div>`;
     }
     if (card.answerType === 'SameOrAdjacentNeighborhood') {
         const adjacent = sh.wijk ? getAdjacentNeighborhoods(sh.wijk) : [];
@@ -496,6 +497,16 @@ function seekControls(card, current) {
     return extra + `<div class="field"><span class="label">Antwoord van de tegenstander</span>${choices}</div>`;
 }
 
+/** Welke wijk hoort bij de ingevulde positie (voor wijk- en fietsdiefstalvragen) */
+function seekWijkInfo(card) {
+    const pos = parseCoords(ui.sheet.position);
+    if (!pos) return 'Vul je positie in om je wijk te zien.';
+    const here = getNeighborhoodAtLocation(pos.lat, pos.lng);
+    if (!here) return 'Die positie ligt in geen enkele wijk.';
+    if (card.answerType === 'theftCompare') return `Jullie staan in ${esc(here.name)}: ${BIKE_THEFTS[here.name] ?? '?'} fietsdiefstallen in 2024.`;
+    return `Jullie staan in ${esc(here.name)}.`;
+}
+
 /** Wat jij antwoordt over je fiets als de tegenstander eerst was */
 function hideBlock(card) {
     const info = Game.hideAnswer(card);
@@ -503,6 +514,7 @@ function hideBlock(card) {
         case 'big': return `<div class="answer-big ${info.tone || ''} ${info.small ? 'small' : ''}">${esc(info.text)}</div>${info.why ? `<p class="why">${esc(info.why)}</p>` : ''}`;
         case 'valid': return `<div class="field"><span class="label">${esc(info.label)}</span>${validList(info.valid, info.invalid)}</div>`;
         case 'distance': return `<div class="field"><label for="opp-pos">Coördinaten die de tegenstander stuurt</label><input class="input mono" id="opp-pos" placeholder="51.0543, 3.7234" inputmode="decimal" data-radius="${info.radius}"></div><div id="dist-out" class="block"></div>`;
+        case 'coords': return `<div class="field"><label for="opp-pos">Coördinaten die de tegenstander stuurt</label><input class="input mono" id="opp-pos" placeholder="51.0543, 3.7234" inputmode="decimal"></div><div id="coords-out" class="block"></div>`;
         case 'wijk': return `<div class="field"><label for="hide-wijk">Wijk die de tegenstander noemt</label>${wijkSelect('hide-wijk', '')}</div><div id="wijk-out" class="block"></div>`;
         case 'elim': return [0, 1, 2].map(i => `<div class="field"><label for="hide-elim-${i}">Wijk ${i + 1}</label>${wijkSelect(`hide-elim-${i}`, '', 'hide-elim')}</div>`).join('') + '<div id="elim-out" class="block"></div>';
         default: return `<p>${esc(info.text || '')}</p>`;
@@ -517,6 +529,16 @@ function updateHideOutputs() {
         else {
             const r = Game.distanceAnswer(p, radius);
             dist.innerHTML = `<div class="answer-big ${r.yes ? 'yes' : 'no'}">${r.yes ? 'Ja' : 'Nee'}</div><p class="why">Je fiets staat op ${formatMeters(r.distance)} van hun positie. De grens is ${formatMeters(radius)}.</p>`;
+        }
+    }
+    const coordsOut = $('#coords-out');
+    if (coordsOut) {
+        const p = parseCoords($('#opp-pos').value);
+        if (!p) coordsOut.innerHTML = '<p class="why">Plak de coördinaten als “51.0543, 3.7234”.</p>';
+        else {
+            const r = Game.positionAnswer(sheetTarget(), p);
+            coordsOut.innerHTML = r.error ? `<div class="note bad">${esc(r.error)}</div>`
+                : `<div class="answer-big ${r.tone || ''}">${esc(r.text)}</div><p class="why">${esc(r.why)}</p>`;
         }
     }
     const wijkOut = $('#wijk-out');
@@ -813,10 +835,15 @@ function answerFromSheet(label) {
     const card = Game.card(sh.cardId);
     const target = sheetTarget();
     const answer = label === '__task' ? {} : { answer: label };
-    if (target.answerType === 'distanceFromBike') {
+    if (Game.needsPosition(target)) {
         const pos = parseCoords($('#seek-pos').value);
         if (!pos) { sh.error = 'Vul eerst je positie in, zoals “51.0543, 3.7234”.'; renderOverlay(); return; }
         answer.position = pos;
+        if (Game.wijkFromPosition(target)) {
+            const here = getNeighborhoodAtLocation(pos.lat, pos.lng);
+            if (!here) { sh.error = 'Die positie ligt in geen enkele wijk.'; renderOverlay(); return; }
+            answer.wijk = here.name;
+        }
     }
     if (target.answerType === 'SameOrAdjacentNeighborhood') {
         if (!sh.wijk) { sh.error = 'Kies eerst de wijk waar jullie de taak afrondden.'; renderOverlay(); return; }
@@ -954,7 +981,12 @@ document.addEventListener('input', (event) => {
         return;
     }
     if (t.id === 'check-pos') { updateCheckOutput(); return; }
-    if (t.id === 'seek-pos') { ui.sheet.position = t.value; ui.sheet.error = null; showSheetContext(); return; }
+    if (t.id === 'seek-pos') {
+        ui.sheet.position = t.value; ui.sheet.error = null; showSheetContext();
+        const info = $('#seek-wijk-info');
+        if (info) info.innerHTML = seekWijkInfo(sheetTarget());
+        return;
+    }
     if (t.id === 'seek-wijk') { ui.sheet.wijk = t.value; ui.sheet.error = null; showSheetContext(); renderOverlay(); fitAboveSheet(); return; }
     if (t.classList.contains('seek-elim')) {
         ui.sheet.three = [...document.querySelectorAll('.seek-elim')].map(s => s.value);

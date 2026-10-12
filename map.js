@@ -267,6 +267,45 @@ function showCardContext(card, extra = {}) {
             }
             break;
         }
+        case 'positionNS':
+        case 'positionEW': {
+            const pos = extra.position !== undefined ? extra.position : (currentLiveLat ? { lat: currentLiveLat, lng: currentLiveLng } : null);
+            if (!pos) break;
+            add(L.circleMarker([pos.lat, pos.lng], { radius: 7, color: '#ffffff', weight: 2, fillColor: '#2A6FAE', fillOpacity: 1, interactive: false }));
+            if (card.answerType === 'positionNS') {
+                add(L.polyline([[pos.lat, 3.55], [pos.lat, 3.90]], { color: '#111417', weight: 4, dashArray: '12, 8', interactive: false }));
+                add(sideLabel(pos.lat + 0.012, c.lng, 'noorden'));
+                add(sideLabel(pos.lat - 0.012, c.lng, 'zuiden'));
+            } else {
+                add(L.polyline([[51.15, pos.lng], [50.95, pos.lng]], { color: '#111417', weight: 4, dashArray: '12, 8', interactive: false }));
+                add(sideLabel(c.lat, pos.lng - lngOffset, 'westen'));
+                add(sideLabel(c.lat, pos.lng + lngOffset, 'oosten'));
+            }
+            break;
+        }
+        case 'edgeDistance': {
+            const inner = Math.max(0, GAME_RADIUS - (card.distance || 0));
+            add(L.circle([c.lat, c.lng], { radius: inner, color: '#111417', weight: 3, dashArray: '10, 7', fill: false, interactive: false }));
+            const ringLat = c.lat + (GAME_RADIUS - (card.distance || 0) / 2) / 111320;
+            add(sideLabel(ringLat, c.lng, 'rand'));
+            add(sideLabel(c.lat - 0.006, c.lng, 'midden'));
+            break;
+        }
+        case 'sameNeighborhood':
+        case 'theftCompare': {
+            const pos = extra.position !== undefined ? extra.position : (currentLiveLat ? { lat: currentLiveLat, lng: currentLiveLng } : null);
+            const here = pos ? getNeighborhoodAtLocation(pos.lat, pos.lng) : null;
+            if (here) {
+                // Bij fietsdiefstallen: wijken met meer diefstallen dan de jouwe vallen op
+                const more = card.answerType === 'theftCompare' ? Game.wijkenWithMoreThefts(here.name) : [];
+                drawNeighborhoods({ main: [here.name], adjacent: more });
+                neighborhoodBounds([here.name]).forEach(focus);
+                add(L.circleMarker([pos.lat, pos.lng], { radius: 7, color: '#ffffff', weight: 2, fillColor: '#2A6FAE', fillOpacity: 1, interactive: false }));
+            } else {
+                drawNeighborhoods({ main: [], adjacent: [] });
+            }
+            break;
+        }
         case 'SameOrAdjacentNeighborhood': {
             const wijk = extra.wijk;
             const adjacent = wijk ? getAdjacentNeighborhoods(wijk) : [];
@@ -898,6 +937,38 @@ function createExclusionLayerFromData(exclusionData) {
         return cell ? L.polygon([cell], exclusionStyle) : null;
     }
     
+    // Ten noorden/zuiden of oosten/westen van een positie: de andere helft valt weg
+    if (exclusionData.type === 'halfPlane') {
+        const { axis, value, keep } = exclusionData;
+        const B = { north: 51.15, south: 50.95, east: 3.90, west: 3.55 };
+        let box;
+        if (axis === 'lat') {
+            box = keep === 'above'
+                ? [[value, B.west], [value, B.east], [B.south, B.east], [B.south, B.west]]
+                : [[B.north, B.west], [B.north, B.east], [value, B.east], [value, B.west]];
+        } else {
+            box = keep === 'above'
+                ? [[B.north, B.west], [B.north, value], [B.south, value], [B.south, B.west]]
+                : [[B.north, value], [B.north, B.east], [B.south, B.east], [B.south, value]];
+        }
+        return L.polygon(box, exclusionStyle);
+    }
+
+    // Afstand tot de rand van het speelveld: binnenste schijf of buitenste ring valt weg
+    if (exclusionData.type === 'edgeDistance') {
+        const { answer, distance } = exclusionData;
+        const center = LOCATIONS.center;
+        const inner = Math.max(0, GAME_RADIUS - distance);
+        const innerCircle = getCirclePoints(center.lat, center.lng, inner, 360 / 128);
+        if (answer === 'yes') {
+            // Ja = fiets dicht bij de rand: het binnenste deel valt weg
+            return L.polygon([innerCircle], exclusionStyle);
+        }
+        // Nee = fiets niet dicht bij de rand: de ring langs de rand valt weg
+        const outer = getCirclePoints(center.lat, center.lng, GAME_RADIUS + 50, 360 / 128);
+        return L.polygon([outer, innerCircle], exclusionStyle);
+    }
+
     // Distance From Bike exclusions
     if (exclusionData.type === 'distanceFromBike') {
         const { answer, seekerLocation, radius } = exclusionData;

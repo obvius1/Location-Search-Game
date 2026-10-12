@@ -54,6 +54,10 @@ Alles is lokaal. De teams communiceren via WhatsApp/Messenger (antwoorden, foto'
 | `SameOrAdjacentNeighborhood` | Zelfde of aangrenzende wijk als het item? | Wij kiezen de wijk van het item (`answer.wijk`) |
 | `eliminateNeighborhood` | 3 wijken, 1 wordt geëlimineerd | Wij kiezen 3 wijken (`answer.three`) en daarna welke geëlimineerd werd |
 | `copyQuestion` | Museumkaart: kopieer een vraag | Zie hieronder |
+| `positionNS` / `positionEW` | Ten noorden/zuiden of oosten/westen van mijn positie? | Wij: positie meegeven; zone `halfPlane` (de andere helft valt weg). Zij: hun coördinaten plakken |
+| `edgeDistance` | Minder dan `distance` m van de rand van het speelveld? | Zone `edgeDistance`: Ja = binnenste schijf weg, Nee = ring langs de rand weg |
+| `sameNeighborhood` | In dezelfde wijk als mijn positie? | Wijk volgt uit de positie; zone `neighborhood` met enkel die wijk |
+| `theftCompare` | Meer fietsdiefstallen in de wijk van de fiets dan in mijn wijk? | `BIKE_THEFTS` (geo-data.json `bike_thefts`, 2024: open data per wijk; Destelbergen en Merelbeke-Melle uit de politiestatistiek). Zone `neighborhood` met de wijken die meer hebben |
 | `requiresAnswer: false` | Foto's, straatnaam, eenrichting, boom | Taakkaart. Tegenstander-kant toont de foto/notitie uit de checklist |
 
 ### Kopieer een vraag (`copyQuestion`)
@@ -93,6 +97,7 @@ Laadvolgorde in index.html: leaflet, polygon-clipping, version, storage, geoUtil
 - `restore()`, `start({seed, location, checklist, zoneLock})`, `reset()`
 - `flop()`, `card(id)`, `deckLeft(phase)`, `solved()`, `solvedOf(id)`
 - `answerOptions(card)`, `asksQuestion(card)`, `applyZone(data, card, answer, ownerId)`
+- `needsPosition(card)` / `wijkFromPosition(card)`: vragen waarbij de zoekers hun positie meegeven (`POSITION_TYPES`); `positionAnswer(card, position)` geeft jouw antwoord op basis van hun coördinaten
 - `solve(card, by, answer)`: `by` = `'us'` of `'them'`. Eerste keer: kaart naar `discarded`, nieuwe kaart op dezelfde plek, geeft de nieuwe kaart terug. Opnieuw oplossen = antwoord wijzigen (zone wordt vervangen, geen nieuwe kaart).
 - `unsolve(cardId)`: zet een opgeloste kaart terug in de flop (antwoord en zone weg). Neemt de plek in van de laatst getrokken kaart van die fase, die terug naar het deck gaat. Kan niet zolang een museumkaart die vraag kopieerde (`copiedBy`).
 - `undo()`: zet een volledige momentopname terug (gameData + kaartstand) van vóór de laatste `solve`.

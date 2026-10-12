@@ -4,6 +4,11 @@
 const CARD_MANAGER_KEY = 'cardManagerState';
 const SHOW_BIKE_KEY = 'showBike';
 
+// Vragen waarbij de zoekers hun eigen positie meegeven
+const POSITION_TYPES = ['distanceFromBike', 'positionNS', 'positionEW', 'sameNeighborhood', 'theftCompare'];
+// Vragen die over de wijk van die positie gaan
+const WIJK_FROM_POSITION = ['sameNeighborhood', 'theftCompare'];
+
 const PHOTO_QUESTIONS = [
     [/links/i, 'naar links', 'links'],
     [/rechts/i, 'naar rechts', 'rechts'],
@@ -102,12 +107,30 @@ const Game = {
             case 'radiusProximity':
             case 'distanceFromBike':
             case 'SameOrAdjacentNeighborhood':
+            case 'edgeDistance':
+            case 'sameNeighborhood':
+            case 'theftCompare':
                 return ['Ja', 'Nee'];
+            case 'positionNS':
+                return ['Ten noorden', 'Ten zuiden'];
+            case 'positionEW':
+                return ['Ten oosten', 'Ten westen'];
             case 'FurthestDistance':
                 return getPOIsByType(card.poiType || 'colruyts').map(p => p.name);
             default:
                 return null;
         }
+    },
+
+    /** Moeten de zoekers hun positie meegeven bij deze vraag? */
+    needsPosition(card) { return POSITION_TYPES.includes(card.answerType); },
+    /** Gaat de vraag over de wijk van die positie? */
+    wijkFromPosition(card) { return WIJK_FROM_POSITION.includes(card.answerType); },
+
+    /** Wijken met meer fietsdiefstallen dan de gegeven wijk */
+    wijkenWithMoreThefts(wijk) {
+        const mine = BIKE_THEFTS[wijk];
+        return Object.keys(BIKE_THEFTS).filter(n => BIKE_THEFTS[n] > mine);
     },
 
     /** Kaart die zones oplevert zodra de tegenstander antwoordt */
@@ -155,6 +178,24 @@ const Game = {
                     type: 'eliminateNeighborhood', answer: answer.answer,
                     neighborhoodData: CITY_NEIGHBORHOODS.find(n => n.name === answer.answer), cardId: ownerId
                 });
+                break;
+            case 'positionNS':
+                // Ten noorden: alles ten zuiden van hun positie valt weg (en omgekeerd)
+                data.exclusionZones.push({ type: 'halfPlane', axis: 'lat', value: answer.position.lat, keep: answer.answer === 'Ten noorden' ? 'above' : 'below', cardId: ownerId });
+                break;
+            case 'positionEW':
+                data.exclusionZones.push({ type: 'halfPlane', axis: 'lng', value: answer.position.lng, keep: answer.answer === 'Ten oosten' ? 'above' : 'below', cardId: ownerId });
+                break;
+            case 'edgeDistance':
+                data.exclusionZones.push({ type: 'edgeDistance', answer: yesNo, distance: card.distance, cardId: ownerId });
+                break;
+            case 'sameNeighborhood':
+                // Ja: enkel hun wijk blijft over; Nee: hun wijk valt weg
+                data.exclusionZones.push({ type: 'neighborhood', answer: yesNo, selectedNeighborhood: answer.wijk, allowedNeighborhoods: [answer.wijk], cardId: ownerId });
+                break;
+            case 'theftCompare':
+                // Ja: enkel wijken met meer fietsdiefstallen dan hun wijk blijven over; Nee: die vallen weg
+                data.exclusionZones.push({ type: 'neighborhood', answer: yesNo, selectedNeighborhood: answer.wijk, allowedNeighborhoods: this.wijkenWithMoreThefts(answer.wijk), cardId: ownerId });
                 break;
         }
     },
@@ -260,6 +301,8 @@ const Game = {
         }
         if (card.answerType === 'SameOrAdjacentNeighborhood') return `${shortWijk(answer.wijk)}: ${answer.answer}`;
         if (card.answerType === 'eliminateNeighborhood') return `${shortWijk(answer.answer)} geëlimineerd`;
+        if (card.answerType === 'sameNeighborhood') return `${shortWijk(answer.wijk)}: ${answer.answer}`;
+        if (card.answerType === 'theftCompare') return `meer dan ${shortWijk(answer.wijk)}: ${answer.answer}`;
         return answer.answer || 'voltooid';
     },
 
@@ -300,6 +343,16 @@ const Game = {
             case 'SameOrAdjacentNeighborhood': return { kind: 'wijk' };
             case 'eliminateNeighborhood': return { kind: 'elim' };
             case 'copyQuestion': return { kind: 'copy' };
+            case 'positionNS':
+            case 'positionEW':
+            case 'sameNeighborhood':
+            case 'theftCompare':
+                return { kind: 'coords' };
+            case 'edgeDistance': {
+                const toEdge = GAME_RADIUS - calculateDistance(LOCATIONS.center.lat, LOCATIONS.center.lng, bike.lat, bike.lng);
+                const yes = toEdge < card.distance;
+                return { kind: 'big', text: yes ? 'Ja' : 'Nee', tone: yes ? 'yes' : 'no', why: `Je fiets staat op ${formatMeters(Math.max(0, toEdge))} van de rand. De grens is ${formatMeters(card.distance)}.` };
+            }
         }
 
         // Kaarten zonder vraag: antwoord uit de checklist
@@ -323,6 +376,41 @@ const Game = {
         const bike = this.bike();
         const d = calculateDistance(position.lat, position.lng, bike.lat, bike.lng);
         return { yes: d <= radius, distance: d };
+    },
+
+    /**
+     * Antwoord over je fiets op basis van de positie die de tegenstander doorstuurt
+     * @returns { text, tone, why } of { error }
+     */
+    positionAnswer(card, position) {
+        const bike = this.bike();
+        switch (card.answerType) {
+            case 'positionNS': {
+                const north = bike.lat > position.lat;
+                return { text: north ? 'Ten noorden' : 'Ten zuiden', why: `Je fiets ligt ${formatMeters(Math.abs(bike.lat - position.lat) * 111320)} ${north ? 'noordelijker' : 'zuidelijker'} dan hun positie.` };
+            }
+            case 'positionEW': {
+                const east = bike.lng > position.lng;
+                const d = Math.abs(bike.lng - position.lng) * 111320 * Math.cos(position.lat * Math.PI / 180);
+                return { text: east ? 'Ten oosten' : 'Ten westen', why: `Je fiets ligt ${formatMeters(d)} ${east ? 'oostelijker' : 'westelijker'} dan hun positie.` };
+            }
+            case 'sameNeighborhood': {
+                const theirs = getNeighborhoodAtLocation(position.lat, position.lng);
+                const own = getNeighborhoodAtLocation(bike.lat, bike.lng);
+                if (!theirs) return { error: 'Die positie ligt in geen enkele wijk.' };
+                const yes = !!own && own.name === theirs.name;
+                return { text: yes ? 'Ja' : 'Nee', tone: yes ? 'yes' : 'no', why: `Zij staan in ${theirs.name}, je fiets staat in ${own ? own.name : 'geen wijk'}.` };
+            }
+            case 'theftCompare': {
+                const theirs = getNeighborhoodAtLocation(position.lat, position.lng);
+                const own = getNeighborhoodAtLocation(bike.lat, bike.lng);
+                if (!theirs || !own) return { error: 'Die positie of je fiets ligt in geen enkele wijk.' };
+                const a = BIKE_THEFTS[own.name], b = BIKE_THEFTS[theirs.name];
+                const yes = a > b;
+                return { text: yes ? 'Ja' : 'Nee', tone: yes ? 'yes' : 'no', why: `${own.name}: ${a} fietsdiefstallen, ${theirs.name}: ${b} (2024).` };
+            }
+        }
+        return { error: 'Onbekende vraag.' };
     },
 
     /** Wijkvraag: staat je fiets in die wijk of een buurwijk? */

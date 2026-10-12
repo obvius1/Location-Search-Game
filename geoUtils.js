@@ -19,6 +19,8 @@ let RAILWAY_BUFFER = [];
 let CITY_NEIGHBORHOODS = [];
 // POI Collections (bijv. bibliotheken) - wordt geladen vanuit geo-data.json
 let POI_COLLECTIONS = {};
+// Fietsdiefstallen per wijk (één jaar) - wordt geladen vanuit geo-data.json
+let BIKE_THEFTS = {};
 
 /**
  * Laadt alle geografische data vanuit geo-data.json
@@ -60,6 +62,11 @@ async function loadZones() {
         // Laad POI Collections (bijv. libraries)
         if (data.poi_collections) {
             POI_COLLECTIONS = data.poi_collections;
+        }
+
+        // Fietsdiefstallen per wijk (voor de fietsdiefstal-vraag)
+        if (data.bike_thefts) {
+            BIKE_THEFTS = data.bike_thefts.per_neighborhood || {};
         }
         
         return data;
