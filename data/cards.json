@@ -160,10 +160,10 @@
     },
     {
       "task": "Scoor in een openbare basketring of een voetbaldoel op een pleintje (gefilmd)",
-      "question": "Is er een zwembad of sporthal binnen 1 km van de fiets?",
+      "question": "Is er een zwembad of sporthal binnen 750 m van de fiets?",
       "phase": 2,
       "answerType": "radiusProximity",
-      "radius": 1000,
+      "radius": 750,
       "poiType": "sports"
     },
     {
