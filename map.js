@@ -299,7 +299,8 @@ function showCardContext(card, extra = {}) {
                 // Bij fietsdiefstallen: wijken met meer diefstallen dan de jouwe vallen op
                 const more = card.answerType === 'theftCompare' ? Game.wijkenWithMoreThefts(here.name) : [];
                 drawNeighborhoods({ main: [here.name], adjacent: more });
-                neighborhoodBounds([here.name]).forEach(focus);
+                // Bij de wijkvraag inzoomen op de wijk; bij fietsdiefstallen het hele veld tonen
+                if (card.answerType === 'sameNeighborhood') neighborhoodBounds([here.name]).forEach(focus);
                 add(L.circleMarker([pos.lat, pos.lng], { radius: 7, color: '#ffffff', weight: 2, fillColor: '#2A6FAE', fillOpacity: 1, interactive: false }));
             } else {
                 drawNeighborhoods({ main: [], adjacent: [] });
