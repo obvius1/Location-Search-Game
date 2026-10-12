@@ -342,13 +342,60 @@ function drawNeighborhoods({ main = [], adjacent = [], thefts = false } = {}) {
         if (isMain || main.length === 0 || thefts) {
             const name = neighborhood.name.split(' - ')[0];
             const html = thefts ? `${name}<br><span class="theft-count">${BIKE_THEFTS[neighborhood.name] ?? '?'}</span>` : name;
-            const label = L.marker(polygon.getBounds().getCenter(), {
+            const label = L.marker(labelPoint(neighborhood), {
                 interactive: false,
                 icon: L.divIcon({ className: 'neighborhood-label', html: `<div class="neighborhood-label-text">${html}</div>`, iconSize: [120, thefts ? 34 : 20] })
             }).addTo(map);
             neighborhoodLayers.push(label);
         }
     });
+}
+
+/**
+ * Punt dat het verst van de rand van de wijk ligt (in plaats van het midden van de omhullende rechthoek,
+ * dat bij grillige wijken naast of op de rand valt). Wordt per wijk één keer berekend.
+ */
+function labelPoint(neighborhood) {
+    if (neighborhood.labelPoint) return neighborhood.labelPoint;
+    const k = Math.cos(neighborhood.polygon[0].lat * Math.PI / 180);
+    // Voor de snelheid met hoogstens ~120 hoekpunten rekenen; voor een label volstaat dat ruim
+    const step = Math.ceil(neighborhood.polygon.length / 120);
+    const pts = neighborhood.polygon.filter((_, i) => i % step === 0).map(p => [p.lng * k, p.lat]);
+    const inside = (x, y) => {
+        let res = false;
+        for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) {
+            const [xi, yi] = pts[i], [xj, yj] = pts[j];
+            if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) res = !res;
+        }
+        return res;
+    };
+    const edgeDist = (x, y) => {
+        let min = Infinity;
+        for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) {
+            const [ax, ay] = pts[j], [bx, by] = pts[i];
+            const dx = bx - ax, dy = by - ay, len = dx * dx + dy * dy;
+            const t = len ? Math.max(0, Math.min(1, ((x - ax) * dx + (y - ay) * dy) / len)) : 0;
+            min = Math.min(min, Math.hypot(x - ax - t * dx, y - ay - t * dy));
+        }
+        return min;
+    };
+    const xs = pts.map(p => p[0]), ys = pts.map(p => p[1]);
+    let [x0, x1, y0, y1] = [Math.min(...xs), Math.max(...xs), Math.min(...ys), Math.max(...ys)];
+    let best = null, bestD = -1;
+    // Grof raster, daarna twee keer fijner rond het beste punt
+    for (let round = 0; round < 3; round++) {
+        const n = 14, sx = (x1 - x0) / n, sy = (y1 - y0) / n;
+        for (let i = 0; i <= n; i++) for (let j = 0; j <= n; j++) {
+            const x = x0 + i * sx, y = y0 + j * sy;
+            if (!inside(x, y)) continue;
+            const d = edgeDist(x, y);
+            if (d > bestD) { bestD = d; best = [x, y]; }
+        }
+        if (!best) break;
+        [x0, x1, y0, y1] = [best[0] - 2 * sx, best[0] + 2 * sx, best[1] - 2 * sy, best[1] + 2 * sy];
+    }
+    neighborhood.labelPoint = best ? [best[1], best[0] / k] : L.polygon(neighborhood.polygon.map(p => [p.lat, p.lng])).getBounds().getCenter();
+    return neighborhood.labelPoint;
 }
 
 function neighborhoodBounds(names) {
