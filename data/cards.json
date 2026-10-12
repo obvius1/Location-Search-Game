@@ -26,7 +26,7 @@
       "pois": []
     },
     {
-      "task": "Maak zelf een \"tafel\" (4 poten en een horizontaal vlak) uit dingen die je op straat vindt",
+      "task": "Bouw een stoel uit dingen die je op straat vindt: iemand van de groep moet erop kunnen zitten (zitvlak en rugleuning)",
       "question": "Dichter bij Weba of IKEA?",
       "phase": 1,
       "answerType": "proximity",
@@ -54,7 +54,7 @@
       "pois": []
     },
     {
-      "task": "Rij 7 stops mee met het openbaar vervoer",
+      "task": "Rij 5 stops mee met het openbaar vervoer",
       "question": "Is de fiets binnen 2km van jouw huidige positie?",
       "phase": 1,
       "answerType": "distanceFromBike",
@@ -62,7 +62,7 @@
       "pois": []
     },
     {
-      "task": "Koop een item in 1 winkel, vind een identiek item in een andere winkel maar voor een lagere prijs",
+      "task": "Koop een item in een winkel en vind hetzelfde item in een andere winkel voor een hogere prijs",
       "question": "Welke Colruyt binnen de speelzone is zeker NIET de dichtste bij de fiets?",
       "phase": 1,
       "answerType": "FurthestDistance",
@@ -117,7 +117,7 @@
       "pois": []
     },
     {
-      "task": "Vind alle letters van uw teamnaam in graffiti",
+      "task": "Vind alle klinkers in graffiti",
       "question": "Is er een watertoren binnen 1,25km?",
       "phase": 2,
       "answerType": "radiusProximity",
@@ -160,7 +160,7 @@
       "requiresAnswer": false
     },
     {
-      "task": "Neem 3 foto's, elk van een ander zoogdier (geen mensen)",
+      "task": "Fotografeer de huisnummers 1, 2, 3, 4 en 5, elk in een andere straat",
       "question": "Foto naar achteren",
       "phase": 3,
       "requiresAnswer": false
