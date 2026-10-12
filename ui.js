@@ -842,12 +842,19 @@ function scheduleZoneUpdate() {
     }));
 }
 
-function afterSolve(text, drawn) {
+/**
+ * Na het oplossen van een kaart
+ * @param toMap - true na een antwoord dat de kaart verkleint: naar de Kaart-tab, zodat je de nieuwe zone ziet verschijnen
+ */
+function afterSolve(text, drawn, toMap = false) {
     ui.sheet = null;
+    ui.returnSheet = null;
+    if (toMap) { ui.tab = 'map'; ui.mapCtx = null; }
     if (ui.mapCtx) showCardContext(Game.card(ui.mapCtx.cardId), ui.mapCtx.extra);
     else clearCardContext();
     showToast(text + (drawn ? ` · nieuw: ${drawn.question}` : ''), true);
     render();
+    if (toMap) fitToField();
     scheduleZoneUpdate();
 }
 
@@ -876,7 +883,8 @@ function answerFromSheet(label) {
     const text = card.answerType === 'copyQuestion'
         ? `Gekopieerd: ${label === '__task' ? 'ontvangen' : Game.answerText(target, answer)}`
         : label === '__task' ? 'Taak voltooid' : `${Game.answerText(card, answer)} · kaart bijgewerkt`;
-    afterSolve(text, drawn);
+    // Een antwoord dat de kaart verkleint: toon meteen de kaart
+    afterSolve(text, drawn, label !== '__task' && Game.asksQuestion(target));
 }
 
 /** Kan de geopende kaart groot op de kaart getoond worden? */
