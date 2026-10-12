@@ -153,6 +153,14 @@
       "pois": []
     },
     {
+      "task": "Aai een levend dier",
+      "question": "Is de fiets binnen 750m van jouw huidige positie?",
+      "phase": 2,
+      "answerType": "distanceFromBike",
+      "radius": 750,
+      "pois": []
+    },
+    {
       "task": "Verzamel blaadjes of naalden van 4 verschillende boomsoorten",
       "question": "Staat de fiets in dezelfde wijk als waar ik nu sta?",
       "phase": 2,

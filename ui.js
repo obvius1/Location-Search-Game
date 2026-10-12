@@ -724,8 +724,8 @@ function renderWizard() {
             ${photoItems.map((item, i) => `<label class="check"><input type="checkbox" data-photo="${i}" ${w.photos[i] ? 'checked' : ''}>${esc(item)}</label>`).join('')}</div></section>
         <section class="block"><h2 class="head">Notities</h2>
             <div class="field"><label for="wiz-straat">Straatnaam (volledige officiële naam)</label><input class="input" id="wiz-straat" value="${esc(w.notes.straat)}"><span class="why" id="wiz-straat-n">${w.notes.straat.length} tekens</span></div>
-            <div class="field"><span class="label">Eenrichtingsstraat?</span><div class="seg" data-note="eenrichting">${['Ja', 'Nee'].map(v => `<button aria-pressed="${w.notes.eenrichting === v}">${v}</button>`).join('')}</div></div>
-            <div class="field"><span class="label">Boom (min. 2 m hoog) binnen 5 m?</span><div class="seg" data-note="boom">${['Ja', 'Nee'].map(v => `<button aria-pressed="${w.notes.boom === v}">${v}</button>`).join('')}</div></div>
+            <div class="field"><span class="label" id="note-eenrichting">Eenrichtingsstraat?</span><div class="seg" data-note="eenrichting" role="group" aria-labelledby="note-eenrichting">${['Ja', 'Nee'].map(v => `<button aria-pressed="${w.notes.eenrichting === v}">${v}</button>`).join('')}</div></div>
+            <div class="field"><span class="label" id="note-boom">Boom (min. 2 m hoog) binnen 5 m?</span><div class="seg" data-note="boom" role="group" aria-labelledby="note-boom">${['Ja', 'Nee'].map(v => `<button aria-pressed="${w.notes.boom === v}">${v}</button>`).join('')}</div></div>
         </section>
         <button class="btn btn-main" id="wiz-start" ${ready ? '' : 'disabled'}>${ready ? 'Start het spel' : missing}</button>
         <button class="btn btn-quiet" id="wiz-back">Terug</button>
