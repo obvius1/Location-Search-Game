@@ -26,7 +26,7 @@
       "pois": []
     },
     {
-      "task": "Bouw een stoel uit dingen die je op straat vindt: iemand van de groep moet erop kunnen zitten (zitvlak en rugleuning)",
+      "task": "Bouw een stoel uit dingen die je op straat vindt (zitvlak en rugleuning)",
       "question": "Dichter bij Weba of IKEA?",
       "phase": 1,
       "answerType": "proximity",
