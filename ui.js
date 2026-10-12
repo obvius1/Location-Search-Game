@@ -671,7 +671,7 @@ function renderMore() {
             <button class="btn ${showBike ? '' : 'btn-quiet'}" id="toggle-bike">${showBike ? 'Fiets verbergen' : 'Toon mijn fiets'}</button></section>
         <section class="block"><h2 class="head">Uitleg</h2>
             <button class="row" data-open="tour"><div class="txt"><div class="q">Hoe werkt het spel?</div><div class="meta">Korte rondleiding in 6 stappen</div></div>${ARROW}</button></section>
-        <section class="block"><h2 class="head">Spelregels</h2><ol class="rules">${RULES_LIST.map(r => `<li>${esc(r)}</li>`).join('')}${zoneRuleOn() ? OPTIONAL_RULE_TEXTS.map(r => `<li><strong>Optioneel, staat aan:</strong> ${esc(r)}</li>`).join('') : ''}</ol></section>
+        <section class="block"><h2 class="head">Spelregels</h2><ol class="rules">${RULES_LIST.map(r => `<li>${esc(r)}</li>`).join('')}${zoneRuleOn() ? OPTIONAL_RULE_TEXTS.map(r => `<li>${esc(r)}</li>`).join('') : ''}</ol></section>
         <section class="block"><h2 class="head">Spel</h2>
             ${ui.confirmReset ? `<p><strong>Dit wist alle antwoorden, zones en je fietslocatie op dit toestel.</strong></p>
                 <div class="pair"><button class="btn btn-danger" id="reset-yes">Nieuw spel</button><button class="btn" id="reset-no">Annuleer</button></div>`
