@@ -78,7 +78,7 @@
       "pois": []
     },
     {
-      "task": "Vind 3 verschillende wegenwerken (aparte werven, minstens 200 m uit elkaar)",
+      "task": "Vind 3 verschillende wegenwerken (aparte werven)",
       "question": "Ligt de fiets ten noorden of ten zuiden van mijn huidige locatie?",
       "phase": 1,
       "answerType": "positionNS"
@@ -168,7 +168,7 @@
     },
     {
       "task": "Scoor in een openbare basketring of een voetbaldoel op een pleintje (gefilmd)",
-      "question": "Is er een zwembad of sporthal binnen 750 m van de fiets?",
+      "question": "Is er een zwembad of sporthal binnen 750m van de fiets?",
       "phase": 2,
       "answerType": "radiusProximity",
       "radius": 750,
