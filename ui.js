@@ -809,6 +809,8 @@ function renderOverlay() {
         html += `<div class="scrim" data-close></div><div class="sheet${sheetEnter}${ui.sheet.type === 'card' ? ' card-sheet' : ui.sheet.type === 'tour' ? ' card-sheet tour-sheet' : ''}" role="dialog" aria-modal="true">${inner}</div>`;
     }
     $('#overlay').innerHTML = html;
+    // Schuif de kaartchips onder de melding, zodat het percentage zichtbaar blijft
+    document.documentElement.style.setProperty('--toast-h', ($('.toast')?.offsetHeight || 0) + 'px');
     if ($('.sheet')) $('.sheet').scrollTop = scroll;
     updateHideOutputs();
     updateCheckOutput();

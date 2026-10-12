@@ -166,8 +166,8 @@ h1, h2, h3 { font-family: var(--f-head); font-stretch: 75%; font-weight: 800; li
 @keyframes toast-timer { from { transform: scaleX(1); } to { transform: scaleX(0); } }
 
 /* ===== Kaart-overlay ===== */
-.map-tl { position: absolute; top: 8px; left: 8px; right: 60px; display: flex; flex-direction: column; align-items: flex-start; gap: 6px; z-index: 1000; pointer-events: none; }
-.map-tr { position: absolute; top: 8px; right: 8px; display: flex; flex-direction: column; gap: 6px; z-index: 1000; }
+.map-tl { position: absolute; top: calc(8px + var(--toast-h, 0px)); transition: top .18s ease-out; left: 8px; right: 60px; display: flex; flex-direction: column; align-items: flex-start; gap: 6px; z-index: 1000; pointer-events: none; }
+.map-tr { position: absolute; top: calc(8px + var(--toast-h, 0px)); transition: top .18s ease-out; right: 8px; display: flex; flex-direction: column; gap: 6px; z-index: 1000; }
 .map-bl { position: absolute; left: 8px; bottom: 34px; right: 60px; display: flex; z-index: 1000; pointer-events: none; }
 .map-chip { background: var(--surface); border: 1.5px solid var(--ink); padding: 4px 8px; font-size: 13px; line-height: 1.3; max-width: 100%; pointer-events: auto; }
 .map-chip.pct strong { font-family: var(--f-head); font-stretch: 75%; font-size: 20px; font-weight: 800; font-variant-numeric: tabular-nums; }
