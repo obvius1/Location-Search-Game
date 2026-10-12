@@ -179,6 +179,7 @@ h1, h2, h3 { font-family: var(--f-head); font-stretch: 75%; font-weight: 800; li
 .map-btn { width: 42px; height: 42px; display: grid; place-items: center; background: var(--surface); border: 1.5px solid var(--ink); border-radius: 6px; color: var(--ink); }
 .map-btn svg { width: 22px; height: 22px; }
 .map-btn[aria-pressed="true"] { background: var(--ink); color: var(--surface); }
+.big-map-btn { position: absolute; top: 8px; right: 8px; z-index: 1302; }
 .map-legend { position: absolute; top: 8px; right: 58px; z-index: 1000; background: var(--surface); border: 1.5px solid var(--ink); padding: 8px 10px; display: flex; flex-direction: column; gap: 4px; font-size: 13px; }
 .map-legend span { display: inline-flex; align-items: center; gap: 6px; }
 .sw { width: 14px; height: 14px; display: inline-block; flex: none; position: relative; }

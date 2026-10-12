@@ -32,6 +32,7 @@ const ICONS = {
     bikeOn: '<circle cx="6" cy="16" r="3.5" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="18" cy="16" r="3.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M6 16l4-7h5l3 7M10 9L8.5 6H7" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>',
     bikeOff: '<circle cx="6" cy="16" r="3.5" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="18" cy="16" r="3.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M6 16l4-7h5l3 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M3 3l18 18" stroke="currentColor" stroke-width="2.5"/>',
     info: '<circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 11v6" stroke="currentColor" stroke-width="2.5"/><circle cx="12" cy="7.5" r="1.4" fill="currentColor"/>',
+    expand: '<path d="M14 4h6v6M10 20H4v-6M20 4l-7 7M4 20l7-7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',
     pinOff: '<path d="M12 21c-4-5-7-8-7-12a7 7 0 0 1 14 0c0 4-3 7-7 12z" fill="none" stroke="currentColor" stroke-width="2"/><path d="M4 4l16 16" stroke="currentColor" stroke-width="2.5"/>'
 };
 
@@ -423,13 +424,12 @@ function cardSheetMain() {
         ${card.link ? `<a class="link" href="${esc(card.link)}" target="_blank" rel="noopener">Meer info</a>` : ''}`;
     const back = s ? '' : '<button class="link" data-mode="">← Andere keuze</button>';
     const error = sh.error ? `<div class="note bad">${esc(sh.error)}</div>` : '';
-    const mapLink = !isDesktop() && sheetTarget().answerType !== 'copyQuestion' ? '<button class="link" id="ctx-big">Groot op de kaart</button>' : '';
 
     if (!sh.mode) {
         const pos = livePosition();
         const ruleNote = zoneRuleOn() && pos && isPointExcluded(pos.lat, pos.lng)
             ? '<div class="note bad"><strong>Je staat in een uitgesloten zone.</strong> Volgens de optionele regel doe je deze taak hier niet.</div>' : '';
-        return head + mapLink + ruleNote + `<div class="field sheet-foot"><span class="label">Wie deed de taak eerst?</span>
+        return head + ruleNote + `<div class="field sheet-foot"><span class="label">Wie deed de taak eerst?</span>
             <div class="pair"><button class="btn btn-main" data-mode="us">Wij</button><button class="btn" data-mode="them">De tegenstander</button></div></div>`;
     }
 
@@ -449,17 +449,17 @@ function cardSheetMain() {
         const reselect = s ? '' : '<button class="link" id="copy-reselect">← Andere vraag kopiëren</button>';
         if (sh.mode === 'us') {
             const current = s && s.by === 'us' && s.answer.copy ? s.answer.copy : null;
-            return head + chosen + mapLink + error + seekControls(copied, current) + reselect;
+            return head + chosen + error + seekControls(copied, current) + reselect;
         }
-        return head + chosen + mapLink + `<div class="field"><span class="label">Jouw antwoord over je fiets</span>${hideBlock(copied)}</div>` +
+        return head + chosen + `<div class="field"><span class="label">Jouw antwoord over je fiets</span>${hideBlock(copied)}</div>` +
             (s ? '<p class="why">Deze kaart is opgelost door de tegenstander.</p>' : `${reselect}<div class="sheet-foot"><button class="btn btn-main" data-them-done>Geantwoord, kaart uit de flop</button></div>`);
     }
 
     if (sh.mode === 'us') {
         const current = s && s.by === 'us' ? s.answer : null;
-        return head + mapLink + error + seekControls(card, current) + back;
+        return head + error + seekControls(card, current) + back;
     }
-    return head + mapLink + `<div class="field"><span class="label">Jouw antwoord over je fiets</span>${hideBlock(card)}</div>
+    return head + `<div class="field"><span class="label">Jouw antwoord over je fiets</span>${hideBlock(card)}</div>
         ${s ? '<p class="why">Deze kaart is opgelost door de tegenstander.</p>' : `${back}<div class="sheet-foot"><button class="btn btn-main" data-them-done>Geantwoord, kaart uit de flop</button></div>`}`;
 }
 
@@ -803,6 +803,9 @@ function renderOverlay() {
         html += wizardLocationSheet().replace('class="sheet"', `class="sheet${sheetEnter}"`);
     } else if (ui.sheet) {
         const inner = ui.sheet.type === 'card' ? cardSheet() : ui.sheet.type === 'tour' ? tourSheet() : coordsSheet();
+        if (ui.sheet.type === 'card' && !isDesktop() && canShowBigMap()) {
+            html += `<button class="map-btn big-map-btn" id="ctx-big" aria-label="Groot op de kaart" title="Groot op de kaart"><svg viewBox="0 0 24 24" aria-hidden="true">${ICONS.expand}</svg></button>`;
+        }
         html += `<div class="scrim" data-close></div><div class="sheet${sheetEnter}${ui.sheet.type === 'card' ? ' card-sheet' : ui.sheet.type === 'tour' ? ' card-sheet tour-sheet' : ''}" role="dialog" aria-modal="true">${inner}</div>`;
     }
     $('#overlay').innerHTML = html;
