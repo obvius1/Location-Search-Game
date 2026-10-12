@@ -331,10 +331,10 @@ function drawNeighborhoods({ main = [], adjacent = [] } = {}) {
         const isAdjacent = adjacent.includes(neighborhood.name);
         const polygon = L.polygon(neighborhood.polygon.map(p => [p.lat, p.lng]), {
             color: '#111417',
-            weight: isMain ? 4 : 1.5,
+            weight: isMain ? 4 : isAdjacent ? 2 : 1.5,
             opacity: isMain || isAdjacent ? 0.9 : 0.5,
             fillColor: isMain ? '#111417' : '#2A6FAE',
-            fillOpacity: isMain ? 0.25 : isAdjacent ? 0.15 : 0,
+            fillOpacity: isMain ? 0.25 : isAdjacent ? 0.4 : 0,
             interactive: false
         }).addTo(map);
         neighborhoodLayers.push(polygon);
