@@ -858,12 +858,39 @@ function answerFromSheet(label) {
     afterSolve(text, drawn);
 }
 
+/** Kan de geopende kaart groot op de kaart getoond worden? */
+function canShowBigMap() {
+    return !!ui.sheet && ui.sheet.type === 'card' && sheetTarget().answerType !== 'copyQuestion';
+}
+
+/** Wat er nu op de kaart getekend staat: bij de tegenstander-kant uit wat jij invulde */
+function bigMapExtra() {
+    if (ui.sheet.mode !== 'them') return sheetExtra();
+    return {
+        position: $('#opp-pos') ? parseCoords($('#opp-pos').value) : null,
+        wijk: $('#hide-wijk') ? $('#hide-wijk').value : '',
+        three: [...document.querySelectorAll('.hide-elim')].map(x => x.value).filter(Boolean)
+    };
+}
+
+/** Sluit het kaartvenster en toon de context van de kaart op de Kaart-tab */
+function openBigMap() {
+    const target = sheetTarget();
+    ui.mapCtx = { cardId: target.id, extra: bigMapExtra(), title: target.question };
+    ui.sheet = null; ui.tab = 'map';
+    render();
+    showCardContext(target, ui.mapCtx.extra);
+    fitToContext();
+}
+
 /* ===== Interactie ===== */
 
 document.addEventListener('click', (event) => {
     const t = event.target.closest('button, [data-close]');
     if (!t) return;
 
+    // Tik op de kaart boven een kaartvenster: zelfde als "Groot op de kaart"
+    if (t.classList.contains('scrim') && canShowBigMap()) { openBigMap(); return; }
     if (t.matches('[data-close]')) { closeSheet(); return; }
     if (t.id === 'toast-close') { ui.toast = null; ui.undoable = false; clearTimeout(toastTimer); renderOverlay(); return; }
     if (t.id === 'undo') {
@@ -900,14 +927,7 @@ document.addEventListener('click', (event) => {
         afterSolve('Kaart uit de flop', drawn);
         return;
     }
-    if (t.id === 'ctx-big') {
-        const target = sheetTarget();
-        ui.mapCtx = { cardId: target.id, extra: sheetExtra(), title: target.question };
-        ui.sheet = null; ui.tab = 'map';
-        render();
-        fitToContext();
-        return;
-    }
+    if (t.id === 'ctx-big') { openBigMap(); return; }
     if (t.id === 'clear-ctx') { ui.mapCtx = null; clearCardContext(); render(); fitToField(); return; }
 
     // Kaart
