@@ -79,13 +79,9 @@
       { "lat": 51.042453813581496, "lng": 3.713729894160406, "name": "Provinciale sporthal - blok I" },
       { "lat": 51.06365998426298, "lng": 3.737832630520297, "name": "Buurtsporthal Melopee" },
       { "lat": 51.03765802169475, "lng": 3.768713814718148, "name": "Sporthal Driebeek" },
-      { "lat": 51.04567010239194, "lng": 3.641658462603151, "name": "Sporthal Keiskant" },
       { "lat": 51.03368426396229, "lng": 3.739889917149663, "name": "Buurtsporthal Ledeberg" },
       { "lat": 51.05919628290575, "lng": 3.691763988241619, "name": "Zwembad Rooigem" },
-      { "lat": 51.00331033915757, "lng": 3.710447336370306, "name": "Sporthal Hekers" },
-      { "lat": 51.08853121835885, "lng": 3.703667393391552, "name": "Sporthal Neptunus" },
       { "lat": 51.05366942158928, "lng": 3.733894486383304, "name": "Zwembad Van Eyck" },
-      { "lat": 51.0928185150328, "lng": 3.764860423933274, "name": "Sporthal Wolfput" },
       { "lat": 51.05937, "lng": 3.76054, "name": "Zwembad en sporthal Rozebroeken" },
       { "lat": 51.02427, "lng": 3.76874, "name": "Sporthal Melle Vogelhoek" }
     ]
