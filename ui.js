@@ -300,7 +300,7 @@ function renderMapOverlay() {
     overlay.innerHTML = `
         <div class="map-tl">
             <div class="map-chip pct" title="Deel van het speelveld waar de fiets van de tegenstander nog kan liggen"><strong>${remainingFieldPercent()}%</strong> nog mogelijk</div>
-            ${ctxCard ? `<div class="map-chip ctx-chip"><span>${esc(ui.mapCtx.title)}</span><button id="clear-ctx" aria-label="Context wissen">×</button></div>` : ''}
+            ${ctxCard ? `<div class="map-chip ctx-chip">${ui.returnSheet ? `<button class="ctx-back" id="ctx-back" aria-label="Terug naar de kaart">‹ <span>${esc(ui.mapCtx.title)}</span></button>` : `<span>${esc(ui.mapCtx.title)}</span>`}<button id="clear-ctx" aria-label="Context wissen">×</button></div>` : ''}
         </div>
         <div class="map-tr">
             ${iconButton('data-open="coords"', ICONS.coords, 'Coördinaten')}
@@ -879,11 +879,39 @@ function bigMapExtra() {
 /** Sluit het kaartvenster en toon de context van de kaart op de Kaart-tab */
 function openBigMap() {
     const target = sheetTarget();
+    ui.returnSheet = {
+        ...ui.sheet,
+        three: ui.sheet.three ? [...ui.sheet.three] : ui.sheet.three,
+        hideInputs: {
+            opp: $('#opp-pos') ? $('#opp-pos').value : '',
+            wijk: $('#hide-wijk') ? $('#hide-wijk').value : '',
+            elim: [...document.querySelectorAll('.hide-elim')].map(x => x.value)
+        }
+    };
     ui.mapCtx = { cardId: target.id, extra: bigMapExtra(), title: target.question };
     ui.sheet = null; ui.tab = 'map';
     render();
     showCardContext(target, ui.mapCtx.extra);
     fitToContext();
+}
+
+/** Terug naar de kaart die open stond voor "groot op de kaart", met wat er ingevuld was */
+function returnToCard() {
+    const back = ui.returnSheet;
+    ui.returnSheet = null;
+    if (!back || !Game.card(back.cardId)) return false;
+    const { hideInputs, ...sheet } = back;
+    ui.sheet = sheet;
+    ui.tab = 'cards';
+    render();
+    if (hideInputs.opp && $('#opp-pos')) $('#opp-pos').value = hideInputs.opp;
+    if (hideInputs.wijk && $('#hide-wijk')) $('#hide-wijk').value = hideInputs.wijk;
+    document.querySelectorAll('.hide-elim').forEach((x, i) => { if (hideInputs.elim[i]) x.value = hideInputs.elim[i]; });
+    updateHideOutputs();
+    if (sheet.mode === 'them') showCardContext(sheetTarget(), bigMapExtra());
+    else showSheetContext();
+    fitAboveSheet();
+    return true;
 }
 
 /* ===== Interactie ===== */
@@ -901,6 +929,9 @@ document.addEventListener('click', (event) => {
         return;
     }
     if (t.dataset.tab) {
+        // Van de grote kaart terug naar Kaarten: terug naar de kaart die open stond
+        if (t.dataset.tab === 'cards' && ui.tab === 'map' && ui.returnSheet && returnToCard()) return;
+        if (t.dataset.tab !== 'map') ui.returnSheet = null;
         ui.tab = t.dataset.tab; ui.sheet = null; ui.confirmReset = false;
         render();
         $('#panel').scrollTop = 0;
@@ -931,7 +962,8 @@ document.addEventListener('click', (event) => {
         return;
     }
     if (t.id === 'ctx-big') { openBigMap(); return; }
-    if (t.id === 'clear-ctx') { ui.mapCtx = null; clearCardContext(); render(); fitToField(); return; }
+    if (t.id === 'clear-ctx') { ui.mapCtx = null; ui.returnSheet = null; clearCardContext(); render(); fitToField(); return; }
+    if (t.id === 'ctx-back') { returnToCard(); return; }
 
     // Kaart
     if (t.id === 'toggle-bike') { Game.setShowBike(!Game.showBike()); showBikeOnMap(); render(); return; }
