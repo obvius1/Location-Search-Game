@@ -4,7 +4,7 @@
     "De fiets moet op een publiek toegankelijke plaats gezet worden, 24/7 bereikbaar.",
     "De fiets mag niet verstopt zitten in een struik of dergelijke plaatsen.",
     "De fiets moet aan iets 'niet verplaatsbaar' vasthangen (fietsenrek, paal, ...).",
-    "Voor locatiespecifieke vragen/tasks moet je ook effectief op die locatie zijn.",
+    "Voor locatiespecifieke vragen/taken moet je ook effectief op die locatie zijn.",
     "Een groep moet steeds als 1 groep samen blijven, niet opdelen om iets sneller te vinden.",
     "Foto's die genomen worden mogen bijgehouden worden, maar ze gelden pas eens ze doorgestuurd zijn. Je mag dus je foto's bijhouden, maar als het andere team ze eerst doorstuurt, hebben zij de taak als eerste opgelost.",
     "Streetview mag niet gebruikt worden. Als je een plaats opent op Google Maps en er staat een foto bij die nuttige info heeft, mag dat wel gebruikt worden. Je mag niet in de andere foto's kijken die op Google Maps staan van die locatie.",
@@ -20,7 +20,7 @@
     },
     {
       "key": "zoneLockEnabled",
-      "text": "Foto's moeten genomen worden buiten de uitgesloten zone, maar mag wel zaken bevatten die binnen de zone liggen."
+      "text": "Foto's moeten genomen worden buiten de uitgesloten zone, maar mogen wel zaken bevatten die binnen de zone liggen."
     }
   ]
 }

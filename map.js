@@ -341,7 +341,7 @@ function drawNeighborhoods({ main = [], adjacent = [], thefts = false } = {}) {
         neighborhoodLayers.push(polygon);
         if (isMain || main.length === 0 || thefts) {
             const name = neighborhood.name.split(' - ')[0];
-            const html = thefts ? `${name}<br><span class="theft-count">${BIKE_THEFTS[neighborhood.name] ?? '?'}</span>` : name;
+            const html = thefts ? `${name}<br><span class="theft-count">(${BIKE_THEFTS[neighborhood.name] ?? '?'})</span>` : name;
             const label = L.marker(polygon.getBounds().getCenter(), {
                 interactive: false,
                 icon: L.divIcon({ className: 'neighborhood-label', html: `<div class="neighborhood-label-text">${html}</div>`, iconSize: [120, thefts ? 34 : 20] })
