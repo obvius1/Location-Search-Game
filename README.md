@@ -18,7 +18,7 @@ Een locatiegebaseerd spel voor 2 teams in Gent, geïnspireerd door Jet Lag: The 
 
 1. **Nieuw spel**: beide teams kiezen **exact dezelfde** spelcode en dezelfde optionele regel
 2. **Verstop de fiets**: zet de fiets op de kaart (GPS of tikken, versleep de pin) en vul de checklist in
-3. **De flop**: beide teams zien dezelfde kaarten, 4 per fase (tab **Kaarten**)
+3. **De flop**: beide teams zien dezelfde kaarten, 4 per fase (tab **Flop**)
 4. **Wie was eerst?**: open een kaart en kies **Wij** of **De tegenstander**
    - **Wij**: vul het antwoord van de tegenstander in, de app tekent een uitgesloten zone op de kaart
    - **De tegenstander**: de app toont meteen wat jij moet antwoorden over je fiets
@@ -72,7 +72,7 @@ Kies je bij de start van een nieuw spel. Tijdens het spel liggen ze vast (zichtb
 gent-location-game/
 ├── index.html              # PWA entry point
 ├── styles.css              # Mobile-first CSS
-├── ui.js                   # Schermen (wizard, Kaart/Kaarten/Meer, onderbladen)
+├── ui.js                   # Schermen (wizard, Kaart/Flop/Meer, onderbladen)
 ├── game.js                 # Spelregels (flop, antwoorden, kopiëren, undo)
 ├── map.js                  # Kaart, uitgesloten zones, kaartcontext, live locatie
 ├── cards.js                # Kaartensysteem + seed-based shuffling

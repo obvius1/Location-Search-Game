@@ -79,7 +79,7 @@ gent-location-game/
 ├── cards.js            # Kaarten laden, seed-shuffle, CardManager (flop)
 ├── map.js              # Leaflet-kaart, uitgesloten zones, kaartcontext, live locatie
 ├── game.js             # Spelregels: flop, oplossen, zones, kopiëren, antwoorden over je fiets, undo
-├── ui.js               # Schermen: wizard, tabs Kaart/Kaarten/Meer, onderbladen, toast
+├── ui.js               # Schermen: wizard, tabs Kaart/Flop/Meer, onderbladen, toast
 ├── service-worker.js   # Offline cache (network-first), bump CACHE_NAME bij elke release
 ├── manifest.json
 ├── polygon-helper.html # Dev tool voor polygooncoördinaten
@@ -120,7 +120,7 @@ Laadvolgorde in index.html: leaflet, polygon-clipping, version, storage, geoUtil
 - Coördinaten-onderblad: eigen positie kopiëren, geplakte coördinaten nakijken (in het veld, afstand tot fiets en jou, uitgesloten zone, pin op de kaart)
 - Toast bovenaan onder de kopbalk, 4,5 s, tik om te sluiten, "Ongedaan maken", balkje dat aftelt
 - Rondleiding "Hoe werkt het spel" (`TOUR`, 6 stappen, onderblad type `tour`): bereikbaar onder Meer en in wizardstap 1; verandert niets aan het spel
-- Desktop (>= 900px, `isDesktop()`): kaart links altijd zichtbaar met haar knoppen (`mapVisible()`), vaste kolom rechts (`--side`, versleepbaar 360–720 px via `#side-resizer`, bewaard in localStorage `sideWidth`) met tabs Kaarten · Meer; geen Kaart-tab (`render()` zet 'map' om naar 'cards'); onderbladen vullen de kolom. Het desktopblok staat onderaan styles.css zodat het de basisregels overschrijft
+- Desktop (>= 900px, `isDesktop()`): kaart links altijd zichtbaar met haar knoppen (`mapVisible()`), vaste kolom rechts (`--side`, versleepbaar 360–720 px via `#side-resizer`, bewaard in localStorage `sideWidth`) met tabs Flop · Meer; geen Kaart-tab (`render()` zet 'map' om naar 'cards'); onderbladen vullen de kolom. Het desktopblok staat onderaan styles.css zodat het de basisregels overschrijft
 - Bevestigingen gebeuren in de pagina zelf (geen `confirm()`/`alert()`)
 
 ---

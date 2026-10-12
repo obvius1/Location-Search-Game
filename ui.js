@@ -1,4 +1,4 @@
-// Schermen voor Gent Location Game (gsm eerst): wizard bij de start, tabs Kaart · Kaarten · Meer,
+// Schermen voor Gent Location Game (gsm eerst): wizard bij de start, tabs Kaart · Flop · Meer,
 // onderbladen per kaart en een melding bovenaan. Spellogica zit in game.js, de kaart in map.js.
 
 const PHASES = { 1: 'Fase 1 · vroeg', 2: 'Fase 2 · midden', 3: 'Fase 3 · laat' };
@@ -242,7 +242,7 @@ function renderHeader() {
         $('#top-sub').textContent = `stap ${ui.wizard.step}/3`;
         return;
     }
-    const titles = { map: 'Kaart', cards: 'Kaarten', more: 'Meer' };
+    const titles = { map: 'Kaart', cards: 'Flop', more: 'Meer' };
     $('#top-title').textContent = isDesktop() ? 'Jet Lag Gent' : titles[ui.tab];
     $('#top-sub').textContent = `${Game.data().seed} · ${Game.solved().length} opgelost`;
 }
@@ -252,7 +252,7 @@ function renderTabs() {
     tabs.hidden = ui.screen !== 'game';
     if (tabs.hidden) return;
     const flopCount = Game.flop().length;
-    tabs.innerHTML = [['map', 'Kaart'], ['cards', 'Kaarten'], ['more', 'Meer']].map(([key, label]) =>
+    tabs.innerHTML = [['map', 'Kaart'], ['cards', 'Flop'], ['more', 'Meer']].map(([key, label]) =>
         `<button class="tab" role="tab" aria-selected="${ui.tab === key}" data-tab="${key}">
             <svg viewBox="0 0 24 24" aria-hidden="true">${ICONS[key]}</svg>${label}${key === 'cards' && flopCount ? `<span class="count">${flopCount}</span>` : ''}
         </button>`).join('');
@@ -929,7 +929,7 @@ document.addEventListener('click', (event) => {
         return;
     }
     if (t.dataset.tab) {
-        // Van de grote kaart terug naar Kaarten: terug naar de kaart die open stond
+        // Van de grote kaart terug naar de Flop: terug naar de kaart die open stond
         if (t.dataset.tab === 'cards' && ui.tab === 'map' && ui.returnSheet && returnToCard()) return;
         if (t.dataset.tab !== 'map') ui.returnSheet = null;
         ui.tab = t.dataset.tab; ui.sheet = null; ui.confirmReset = false;
