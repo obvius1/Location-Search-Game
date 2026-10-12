@@ -195,6 +195,7 @@ h1, h2, h3 { font-family: var(--f-head); font-stretch: 75%; font-weight: 800; li
 .map-side-label span { display: block; text-align: center; font-family: var(--f-head); font-stretch: 75%; font-weight: 800; font-size: 20px; color: #111417; text-shadow: 0 0 3px #fff, 0 0 3px #fff, 0 0 3px #fff; white-space: nowrap; }
 .neighborhood-label { background: none; border: none; }
 .neighborhood-label-text { text-align: center; font-size: 12px; font-weight: 700; color: #111417; text-shadow: 0 0 3px #fff, 0 0 3px #fff; white-space: nowrap; }
+.neighborhood-label-text .theft-count { font-family: var(--f-head); font-stretch: 75%; font-size: 16px; font-weight: 800; font-variant-numeric: tabular-nums; }
 .leaflet-control-zoom { margin-bottom: 8px !important; margin-right: 8px !important; }
 .leaflet-control-scale { margin-bottom: 8px !important; }
 @keyframes pulse-blue {

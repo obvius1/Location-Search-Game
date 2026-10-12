@@ -298,12 +298,12 @@ function showCardContext(card, extra = {}) {
             if (here) {
                 // Bij fietsdiefstallen: wijken met meer diefstallen dan de jouwe vallen op
                 const more = card.answerType === 'theftCompare' ? Game.wijkenWithMoreThefts(here.name) : [];
-                drawNeighborhoods({ main: [here.name], adjacent: more });
+                drawNeighborhoods({ main: [here.name], adjacent: more, thefts: card.answerType === 'theftCompare' });
                 // Bij de wijkvraag inzoomen op de wijk; bij fietsdiefstallen het hele veld tonen
                 if (card.answerType === 'sameNeighborhood') neighborhoodBounds([here.name]).forEach(focus);
                 add(L.circleMarker([pos.lat, pos.lng], { radius: 7, color: '#ffffff', weight: 2, fillColor: '#2A6FAE', fillOpacity: 1, interactive: false }));
             } else {
-                drawNeighborhoods({ main: [], adjacent: [] });
+                drawNeighborhoods({ main: [], adjacent: [], thefts: card.answerType === 'theftCompare' });
             }
             break;
         }
@@ -322,9 +322,10 @@ function showCardContext(card, extra = {}) {
 }
 
 /**
- * Tekent alle stadswijken; de gekozen wijken (main) en buurwijken (adjacent) vallen op
+ * Tekent alle stadswijken; de gekozen wijken (main) en buurwijken (adjacent) vallen op.
+ * Met thefts krijgt elke wijk zijn naam en het aantal fietsdiefstallen.
  */
-function drawNeighborhoods({ main = [], adjacent = [] } = {}) {
+function drawNeighborhoods({ main = [], adjacent = [], thefts = false } = {}) {
     hideNeighborhoods();
     CITY_NEIGHBORHOODS.forEach(neighborhood => {
         const isMain = main.includes(neighborhood.name);
@@ -338,10 +339,12 @@ function drawNeighborhoods({ main = [], adjacent = [] } = {}) {
             interactive: false
         }).addTo(map);
         neighborhoodLayers.push(polygon);
-        if (isMain || main.length === 0) {
+        if (isMain || main.length === 0 || thefts) {
+            const name = neighborhood.name.split(' - ')[0];
+            const html = thefts ? `${name}<br><span class="theft-count">${BIKE_THEFTS[neighborhood.name] ?? '?'}</span>` : name;
             const label = L.marker(polygon.getBounds().getCenter(), {
                 interactive: false,
-                icon: L.divIcon({ className: 'neighborhood-label', html: `<div class="neighborhood-label-text">${neighborhood.name.split(' - ')[0]}</div>`, iconSize: [120, 20] })
+                icon: L.divIcon({ className: 'neighborhood-label', html: `<div class="neighborhood-label-text">${html}</div>`, iconSize: [120, thefts ? 34 : 20] })
             }).addTo(map);
             neighborhoodLayers.push(label);
         }
