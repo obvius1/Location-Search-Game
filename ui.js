@@ -666,10 +666,6 @@ function renderMore() {
     return `<div class="pad">
         <section class="block"><h2 class="head">Spelcode</h2>
             <div class="inline"><input class="input code-in" style="font-size:24px;text-align:left" value="${esc(data.seed)}" readonly aria-label="Spelcode"><button class="btn" data-copy-text="${esc(data.seed)}">Kopieer</button></div></section>
-        <section class="block"><h2 class="head">Teamgenoot</h2>
-            <button class="btn" id="share-state">Deel stand met teamgenoot</button>
-            <p class="why">Enkel naar je eigen team sturen: de code bevat jullie fietslocatie.</p>
-            ${importBlock()}</section>
         <section class="block"><h2 class="head">Optionele spelregels</h2>${ruleToggle(true, zoneRuleOn())}</section>
         <section class="block"><h2 class="head">Locatie</h2>
             <button class="row" data-open="coords"><div class="txt"><div class="q">Positie delen of coördinaten nakijken</div></div>${ARROW}</button>
@@ -686,6 +682,10 @@ function renderMore() {
         <section class="block"><h2 class="head">Spelregels</h2><ol class="rules">${RULES_LIST.map(r => `<li>${esc(r)}</li>`).join('')}</ol>
             ${zoneRuleOn() && OPTIONAL_RULE_TEXTS.length ? `<h3 class="rules-extra">Extra afgesproken voor dit spel</h3>
             <ol class="rules" start="${RULES_LIST.length + 1}">${OPTIONAL_RULE_TEXTS.map(r => `<li>${esc(r)}</li>`).join('')}</ol>` : ''}</section>
+        <section class="block"><h2 class="head">Teamgenoot</h2>
+            <button class="btn" id="share-state">Deel stand met teamgenoot</button>
+            <p class="why">Enkel naar je eigen team sturen: de code bevat jullie fietslocatie.</p>
+            ${importBlock()}</section>
         <section class="block"><h2 class="head">Spel</h2>
             ${ui.confirmReset ? `<p><strong>Dit wist alle antwoorden, zones en je fietslocatie op dit toestel.</strong></p>
                 <div class="pair"><button class="btn btn-danger" id="reset-yes">Nieuw spel</button><button class="btn" id="reset-no">Annuleer</button></div>`
