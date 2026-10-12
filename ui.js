@@ -824,13 +824,31 @@ function showToast(text, undoable) {
     toastTimer = setTimeout(() => { ui.toast = null; ui.undoable = false; renderOverlay(); }, TOAST_MS);
 }
 
+/**
+ * Rode zones bijwerken nadat het scherm al getekend is: eerst zie je dat je tik gewerkt heeft
+ * (venster dicht, melding, nieuwe kaart), daarna rekent de app de zones uit. Op een trage gsm
+ * kan dat een halve seconde duren; zo voelt het niet meer alsof de app hangt.
+ */
+let zoneUpdatePending = false;
+function scheduleZoneUpdate() {
+    if (zoneUpdatePending) return;
+    // Pagina niet zichtbaar: er wordt niets getekend, dus meteen rekenen
+    if (document.hidden) { updateExclusionZones(); return; }
+    zoneUpdatePending = true;
+    // Twee frames wachten: het eerste toont de nieuwe stand, in het tweede wordt gerekend
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+        zoneUpdatePending = false;
+        updateExclusionZones();
+    }));
+}
+
 function afterSolve(text, drawn) {
     ui.sheet = null;
     if (ui.mapCtx) showCardContext(Game.card(ui.mapCtx.cardId), ui.mapCtx.extra);
     else clearCardContext();
-    updateExclusionZones();
     showToast(text + (drawn ? ` · nieuw: ${drawn.question}` : ''), true);
     render();
+    scheduleZoneUpdate();
 }
 
 function answerFromSheet(label) {
@@ -925,7 +943,7 @@ document.addEventListener('click', (event) => {
     if (t.matches('[data-close]')) { closeSheet(); return; }
     if (t.id === 'toast-close') { ui.toast = null; ui.undoable = false; clearTimeout(toastTimer); renderOverlay(); return; }
     if (t.id === 'undo') {
-        if (Game.undo()) { updateExclusionZones(); showToast('Ongedaan gemaakt', false); render(); }
+        if (Game.undo()) { showToast('Ongedaan gemaakt', false); render(); scheduleZoneUpdate(); }
         return;
     }
     if (t.dataset.tab) {
