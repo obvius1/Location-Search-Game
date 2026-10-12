@@ -682,7 +682,7 @@ function renderMore() {
         <section class="block"><h2 class="head">Spelregels</h2><ol class="rules">${RULES_LIST.map(r => `<li>${esc(r)}</li>`).join('')}</ol>
             ${zoneRuleOn() && OPTIONAL_RULE_TEXTS.length ? `<h3 class="rules-extra">Extra afgesproken voor dit spel</h3>
             <ol class="rules" start="${RULES_LIST.length + 1}">${OPTIONAL_RULE_TEXTS.map(r => `<li>${esc(r)}</li>`).join('')}</ol>` : ''}</section>
-        <section class="block"><h2 class="head">Teamgenoot</h2>
+        <section class="block"><h2 class="head">Stand delen</h2>
             <button class="btn" id="share-state">Deel stand met teamgenoot</button>
             <p class="why">Enkel naar je eigen team sturen: de code bevat jullie fietslocatie.</p>
             ${importBlock()}</section>
@@ -709,7 +709,7 @@ function renderWizard() {
             <section class="block"><h2 class="head">Optionele spelregels</h2>${ruleToggle(false, w.zoneLock)}
                 <p class="why">Kies hetzelfde als het andere team. Tijdens het spel ligt dit vast.</p></section>
             <button class="btn btn-main" id="wiz-next">Verder</button>
-            <section class="block"><h2 class="head">Teamgenoot</h2>${importBlock()}</section>
+            <section class="block"><h2 class="head">Al bezig met je team?</h2>${importBlock()}</section>
         </div>`;
     }
     const photoItems = (GAME_CARDS.hiderChecklist || []).slice(0, 6);
