@@ -7,13 +7,13 @@ const EARTH_RADIUS = 6371000; // Straal van de aarde in meters
 // Belangrijke locaties in Gent - wordt geladen vanuit geo-data.json
 let LOCATIONS = {};
 
-// R40 binnenring - wordt geladen vanuit zones.json
+// R40 binnenring - wordt geladen vanuit geo-data.json
 let R40_POLYGON = [];
-// Leie-Schelde lijn - wordt geladen vanuit zones.json
+// Leie-Schelde lijn - wordt geladen vanuit geo-data.json
 let LEIE_SCHELDE_LINE = [];
 // Spoorlijn Oostende-Antwerpen - wordt geladen vanuit Oostende-Antwerpen-Spoorlijn.geojson
 let RAILWAY_LINE = [];
-// Spoorlijn buffer zone (1.5km) - wordt geladen vanuit Oostende-Antwerpen-Spoorlijn-Buffer.geojson
+// Spoorlijn buffer zone (800 m) - wordt geladen vanuit Oostende-Antwerpen-Spoorlijn-Buffer.geojson
 let RAILWAY_BUFFER = [];
 // Stadswijken - wordt geladen vanuit stadswijken-gent.geojson
 let CITY_NEIGHBORHOODS = [];
@@ -576,29 +576,6 @@ function getPOIsByType(poiType) {
         return [];
     }
     return POI_COLLECTIONS[poiType];
-}
-
-/**
- * Bereken afstand naar dichtste POI van bepaald type
- * @param {number} lat - Huidige latitude
- * @param {number} lng - Huidige longitude
- * @param {string} poiType - Type POI
- * @param {Array} excludePoiIds - Array van POI IDs om uit te sluiten
- * @returns {number} Afstand in meters naar dichtste POI, of Infinity als geen gevonden
- */
-function getDistanceToNearestPOI(lat, lng, poiType, excludePoiIds = []) {
-    const pois = getPOIsByType(poiType);
-    if (pois.length === 0) return Infinity;
-    
-    let minDistance = Infinity;
-    pois.forEach(poi => {
-        if (excludePoiIds.includes(poi.id)) return;
-        
-        const distance = getDistanceInMeters(lat, lng, poi.lat, poi.lng);
-        minDistance = Math.min(minDistance, distance);
-    });
-    
-    return minDistance;
 }
 
 /**

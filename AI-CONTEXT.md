@@ -82,7 +82,6 @@ gent-location-game/
 ├── ui.js               # Schermen: wizard, tabs Kaart/Flop/Meer, onderbladen, toast
 ├── service-worker.js   # Offline cache (network-first), bump CACHE_NAME bij elke release
 ├── manifest.json
-├── polygon-helper.html # Dev tool voor polygooncoördinaten
 └── data/
     ├── cards.json      # hiderChecklist + kaarten (3 fases)
     ├── geo-data.json   # POI's, R40, Leie-Schelde, spoorlijn, ...

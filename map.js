@@ -4,8 +4,6 @@
 let map = null;
 let gameZoneCircle = null;
 let inverseMask = null;
-let r40Polygon = null;
-let leieScheldeLine = null;
 let railwayLine = null;
 let railwayBuffer = null;
 let poiMarkers = {};             // vaste POI-markers (Dampoort, Weba, ...), enkel zichtbaar als context
@@ -84,11 +82,11 @@ function initializeMap() {
     }).addTo(map);
 
     // R40 ring en Leie-Schelde lijn (altijd zichtbaar, rustig)
-    r40Polygon = L.polygon(R40_POLYGON.map(p => [p.lat, p.lng]), {
+    L.polygon(R40_POLYGON.map(p => [p.lat, p.lng]), {
         color: '#C48A00', fill: false, weight: 2, opacity: 0.8, interactive: false
     }).addTo(map);
     if (LEIE_SCHELDE_LINE.length > 0) {
-        leieScheldeLine = L.polyline(LEIE_SCHELDE_LINE.map(p => [p.lat, p.lng]), {
+        L.polyline(LEIE_SCHELDE_LINE.map(p => [p.lat, p.lng]), {
             color: '#2A6FAE', weight: 3, opacity: 0.7, interactive: false
         }).addTo(map);
     }
@@ -622,13 +620,13 @@ function createExclusionLayer(answer) {
             [largeBounds.south, largeBounds.west]
         ];
         const r40Coords = R40_POLYGON.map(point => [point.lat, point.lng]);
-        return L.polygon([outerBox, r40Coords], exclusionStyle).bindPopup('Uitgesloten: Buiten R40');
+        return L.polygon([outerBox, r40Coords], exclusionStyle);
     }
     
     // Buiten R40 -> je bent buiten, sluit alles BINNEN R40 uit
     if (answer === 'Buiten R40') {
         const r40Coords = R40_POLYGON.map(point => [point.lat, point.lng]);
-        return L.polygon(r40Coords, exclusionStyle).bindPopup('Uitgesloten: Binnen R40');
+        return L.polygon(r40Coords, exclusionStyle);
     }
     
     // Noorden van Leie-Schelde -> je bent in noorden, sluit ZUIDEN uit
@@ -642,7 +640,7 @@ function createExclusionLayer(answer) {
             ...lineCoords.slice().reverse(),
             [lineCoords[0][0], largeBounds.west]
         ];
-        return L.polygon(southBox, exclusionStyle).bindPopup('Uitgesloten: Zuiden Leie-Schelde');
+        return L.polygon(southBox, exclusionStyle);
     }
     
     // Zuiden van Leie-Schelde -> je bent in zuiden, sluit NOORDEN uit
@@ -656,7 +654,7 @@ function createExclusionLayer(answer) {
             ...lineCoords.slice().reverse(),
             [lineCoords[0][0], largeBounds.west]
         ];
-        return L.polygon(northBox, exclusionStyle).bindPopup('Uitgesloten: Noorden Leie-Schelde');
+        return L.polygon(northBox, exclusionStyle);
     }
     
     // Dichter bij Weba -> je bent dichter bij Weba, sluit gebied dat dichter bij IKEA is uit
@@ -737,7 +735,7 @@ function createExclusionLayer(answer) {
         const cy = points.reduce((s, p) => s + p.lng, 0) / points.length;
         points.sort((a, b) => Math.atan2(a.lat - cx, a.lng - cy) - Math.atan2(b.lat - cx, b.lng - cy));
         
-        return L.polygon(points.map(p => [p.lat, p.lng]), exclusionStyle).bindPopup('Uitgesloten: Dichter bij IKEA');
+        return L.polygon(points.map(p => [p.lat, p.lng]), exclusionStyle);
     }
     
     // Dichter bij IKEA -> je bent dichter bij IKEA, sluit gebied dat dichter bij Weba is uit
@@ -803,7 +801,7 @@ function createExclusionLayer(answer) {
         const cy = points.reduce((s, p) => s + p.lng, 0) / points.length;
         points.sort((a, b) => Math.atan2(a.lat - cx, a.lng - cy) - Math.atan2(b.lat - cx, b.lng - cy));
         
-        return L.polygon(points.map(p => [p.lat, p.lng]), exclusionStyle).bindPopup('Uitgesloten: Dichter bij Weba');
+        return L.polygon(points.map(p => [p.lat, p.lng]), exclusionStyle);
     }
     
     // Oosten van Dampoort -> je bent in oosten, sluit WESTEN uit
@@ -814,7 +812,7 @@ function createExclusionLayer(answer) {
             [largeBounds.south, LOCATIONS.dampoort.lng],
             [largeBounds.south, largeBounds.west]
         ];
-        return L.polygon(westBox, exclusionStyle).bindPopup('Uitgesloten: Westen Dampoort');
+        return L.polygon(westBox, exclusionStyle);
     }
     
     // Westen van Dampoort -> je bent in westen, sluit OOSTEN uit
@@ -825,7 +823,7 @@ function createExclusionLayer(answer) {
             [largeBounds.south, largeBounds.east],
             [largeBounds.south, LOCATIONS.dampoort.lng]
         ];
-        return L.polygon(eastBox, exclusionStyle).bindPopup('Uitgesloten: Oosten Dampoort');
+        return L.polygon(eastBox, exclusionStyle);
     }
     
     // Oosten van watersportbaan tip -> je bent in oosten, sluit WESTEN uit
@@ -836,7 +834,7 @@ function createExclusionLayer(answer) {
             [largeBounds.south, LOCATIONS.watersportbaan_tip.lng],
             [largeBounds.south, largeBounds.west]
         ];
-        return L.polygon(westBox, exclusionStyle).bindPopup('Uitgesloten: Westen Watersportbaan');
+        return L.polygon(westBox, exclusionStyle);
     }
     
     // Westen van watersportbaan tip -> je bent in westen, sluit OOSTEN uit
@@ -847,7 +845,7 @@ function createExclusionLayer(answer) {
             [largeBounds.south, largeBounds.east],
             [largeBounds.south, LOCATIONS.watersportbaan_tip.lng]
         ];
-        return L.polygon(eastBox, exclusionStyle).bindPopup('Uitgesloten: Oosten Watersportbaan');
+        return L.polygon(eastBox, exclusionStyle);
     }
     
     // Binnen 800m van spoorlijn -> je bent binnen buffer, sluit alles BUITEN buffer uit
@@ -859,13 +857,13 @@ function createExclusionLayer(answer) {
             [largeBounds.south, largeBounds.west]
         ];
         const bufferCoords = RAILWAY_BUFFER.map(point => [point.lat, point.lng]);
-        return L.polygon([outerBox, bufferCoords], exclusionStyle).bindPopup('Uitgesloten: Buiten 800m buffer spoorlijn');
+        return L.polygon([outerBox, bufferCoords], exclusionStyle);
     }
     
     // Buiten 800m van spoorlijn -> je bent buiten buffer, sluit alles BINNEN buffer uit
     if (answer === 'Buiten 800m van spoorlijn') {
         const bufferCoords = RAILWAY_BUFFER.map(point => [point.lat, point.lng]);
-        return L.polygon(bufferCoords, exclusionStyle).bindPopup('Uitgesloten: Binnen 800m buffer spoorlijn');
+        return L.polygon(bufferCoords, exclusionStyle);
     }
     
     return null;
@@ -909,9 +907,7 @@ function createExclusionLayerFromData(exclusionData) {
         // Teken alle uitgesloten wijken
         const layers = excludedNeighborhoods.map(neighborhood => {
             const coords = neighborhood.polygon.map(point => [point.lat, point.lng]);
-            return L.polygon(coords, exclusionStyle).bindPopup(
-                `Uitgesloten wijk: ${neighborhood.name}`
-            );
+            return L.polygon(coords, exclusionStyle);
         });
         
         // Return een FeatureGroup van alle layers
@@ -931,9 +927,7 @@ function createExclusionLayerFromData(exclusionData) {
         
         // Teken de geëlimineerde wijk in het rood
         const coords = neighborhoodData.polygon.map(point => [point.lat, point.lng]);
-        return L.polygon(coords, exclusionStyle).bindPopup(
-            `Geëlimineerde wijk: ${neighborhoodData.name}`
-        );
+        return L.polygon(coords, exclusionStyle);
     }
     
     // Radius Proximity exclusions (bijv. bibliotheken binnen 1km)
@@ -962,8 +956,7 @@ function createExclusionLayerFromData(exclusionData) {
             if (excluded.length === 0) {
                 return null;
             }
-            return L.polygon(excluded, exclusionStyle)
-                .bindPopup(`Uitgesloten: Binnen ${radius / 1000}km van een ${poiType}`);
+            return L.polygon(excluded, exclusionStyle);
         } else {
             // "Ja" = er IS een POI binnen radius
             // Rood = speelveld MIN de unie van alle cirkels,
@@ -973,8 +966,7 @@ function createExclusionLayerFromData(exclusionData) {
             if (excluded.length === 0) {
                 return null;
             }
-            return L.polygon(excluded, exclusionStyle)
-                .bindPopup(`Uitgesloten: Buiten ${radius / 1000}km van alle ${poiType}`);
+            return L.polygon(excluded, exclusionStyle);
         }
     }
     
@@ -1052,9 +1044,7 @@ function createExclusionLayerFromData(exclusionData) {
                 [largeBounds.south, largeBounds.west]
             ];
             
-            return L.polygon([outerBox, circlePoints], exclusionStyle).bindPopup(
-                `Uitgesloten: Buiten ${radius}m van seeker`
-            );
+            return L.polygon([outerBox, circlePoints], exclusionStyle);
         } else {
             // "Nee" = seeker is BUITEN radius van de fiets
             // Sluit alles BINNEN de cirkel uit (rood)
@@ -1068,7 +1058,7 @@ function createExclusionLayerFromData(exclusionData) {
                 dashArray: exclusionStyle.dashArray,
                 interactive: false,
                 pane: 'exclusionPane'
-            }).bindPopup(`Uitgesloten: Binnen ${radius}m van seeker`);
+            });
             
             return circle;
         }

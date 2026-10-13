@@ -497,6 +497,6 @@ function getAnswerButtonsForQuestion(question) {
     if (question.includes('Dichter bij Weba of IKEA')) return ['Dichter bij Weba', 'Dichter bij IKEA'];
     if (question.includes('Dampoort')) return ['Oosten van Dampoort', 'Westen van Dampoort'];
     if (question.includes('watersportbaan')) return ['Oosten van watersportbaan tip', 'Westen van watersportbaan tip'];
-    if (question.includes('800m van het de spoorlijn') || question.includes('spoorlijn')) return ['Binnen 800m van spoorlijn', 'Buiten 800m van spoorlijn'];
+    if (question.includes('spoorlijn')) return ['Binnen 800m van spoorlijn', 'Buiten 800m van spoorlijn'];
     return ['Ja', 'Nee'];
 }
