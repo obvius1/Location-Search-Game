@@ -526,8 +526,15 @@ function remainingFieldPercent() {
     return percentOpen(mergedExclusion);
 }
 
+let fieldAreaCache = null;
+
 function percentOpen(excluded, round = true) {
-    const fieldArea = Math.PI * GAME_RADIUS * GAME_RADIUS;
+    // Zelfde cirkel als waarop de zones afgeknipt worden, anders klopt de verhouding net niet
+    if (fieldAreaCache === null) {
+        const center = LOCATIONS.center;
+        fieldAreaCache = multiPolygonArea([[getCirclePoints(center.lat, center.lng, GAME_RADIUS, 1)]]);
+    }
+    const fieldArea = fieldAreaCache;
     const area = excluded ? multiPolygonArea(excluded) : 0;
     const pct = Math.max(0, Math.min(100, 100 * (1 - area / fieldArea)));
     return round ? Math.round(pct) : pct;
