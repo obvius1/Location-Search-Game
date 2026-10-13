@@ -19,6 +19,7 @@ const ui = {
     confirmReset: false,
     importOpen: false,      // tekstvak om de stand van je teamgenoot te plakken
     importError: null,
+    plan: null,             // een plek uitproberen voor een positievraag: { cardId, pos, result }
     wizard: null
 };
 
@@ -208,6 +209,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Klik op de kaart tijdens het instellen van de locatie: fiets daar zetten
     map.on('click', (event) => {
         if (ui.screen === 'wizard' && ui.wizard.step === 2) setWizardLocation(event.latlng);
+        else if (planActive()) setPlanPos(event.latlng);
     });
 
     render();
@@ -303,6 +305,7 @@ function renderMapOverlay() {
         <div class="map-tl">
             <div class="map-chip pct" title="Deel van het speelveld waar de fiets van de tegenstander nog kan liggen"><strong>${remainingFieldPercent()}%</strong> nog mogelijk</div>
             ${ctxCard ? `<div class="map-chip ctx-chip">${ui.returnSheet ? `<button class="ctx-back" id="ctx-back" aria-label="Terug naar de kaart">‹ <span>${esc(ui.mapCtx.title)}</span></button>` : `<span>${esc(ui.mapCtx.title)}</span>`}<button id="clear-ctx" aria-label="Context wissen">×</button></div>` : ''}
+            ${planActive() ? planChip() : ''}
         </div>
         <div class="map-tr">
             ${iconButton('data-open="coords"', ICONS.coords, 'Coördinaten')}
@@ -477,6 +480,7 @@ function seekControls(card, current) {
     if (Game.needsPosition(card)) {
         extra = `<div class="field"><label for="seek-pos">Jouw positie (stuur door naar de tegenstander)</label>
             <div class="inline"><input class="input mono" id="seek-pos" value="${esc(sh.position)}" placeholder="51.0543, 3.7234" inputmode="decimal"><button class="btn" id="copy-seek-pos">Kopieer</button></div>
+            ${canShowBigMap() ? '<button class="link" id="plan-pos">Probeer een plek op de kaart</button>' : ''}
             ${Game.wijkFromPosition(card) ? `<p class="why" id="seek-wijk-info">${seekWijkInfo(card)}</p>` : ''}</div>`;
     }
     if (card.answerType === 'SameOrAdjacentNeighborhood') {
@@ -921,6 +925,7 @@ function bigMapExtra() {
 /** Sluit het kaartvenster en toon de context van de kaart op de Kaart-tab */
 function openBigMap() {
     const target = sheetTarget();
+    ui.plan = null;
     ui.returnSheet = {
         ...ui.sheet,
         three: ui.sheet.three ? [...ui.sheet.three] : ui.sheet.three,
@@ -941,6 +946,7 @@ function openBigMap() {
 function returnToCard() {
     const back = ui.returnSheet;
     ui.returnSheet = null;
+    ui.plan = null;
     if (!back || !Game.card(back.cardId)) return false;
     const { hideInputs, ...sheet } = back;
     ui.sheet = sheet;
@@ -954,6 +960,49 @@ function returnToCard() {
     else showSheetContext();
     fitAboveSheet();
     return true;
+}
+
+/* ===== Een plek uitproberen voor een positievraag ===== */
+
+function planActive() {
+    return !!(ui.plan && ui.mapCtx && ui.mapCtx.cardId === ui.plan.cardId && mapVisible());
+}
+
+/** Teken de vraag vanaf de aangetikte plek en reken uit wat er bij elk antwoord overblijft */
+function setPlanPos(latlng) {
+    const card = Game.card(ui.plan.cardId);
+    const pos = { lat: latlng.lat, lng: latlng.lng };
+    Object.assign(ui.plan, { pos, result: null });
+    ui.mapCtx.extra = { ...ui.mapCtx.extra, position: pos };
+    showCardContext(card, ui.mapCtx.extra);
+    renderMapOverlay();
+    // Eerst het scherm bijwerken, dan rekenen (dat kan op een tragere gsm even duren)
+    setTimeout(() => {
+        if (!ui.plan || ui.plan.pos !== pos) return;
+        const wijk = Game.wijkFromPosition(card) ? getNeighborhoodAtLocation(pos.lat, pos.lng) : null;
+        ui.plan.result = Game.wijkFromPosition(card) && !wijk ? 'geen wijk'
+            : Game.answerOptions(card).map(option => {
+                const data = loadGameData();
+                Game.applyZone(data, card, { answer: option, position: pos, wijk: wijk && wijk.name }, card.id);
+                return [option, remainingPercentFor(data)];
+            });
+        renderMapOverlay();
+    }, 30);
+}
+
+/** Onder 10% met één cijfer na de komma, zodat je kleine verschillen ziet */
+function fmtPct(pct) {
+    if (pct === null) return '?';
+    return (pct < 10 ? pct.toFixed(1).replace('.', ',') : Math.round(pct)) + '%';
+}
+
+function planChip() {
+    const { pos, result } = ui.plan;
+    const body = !pos ? 'Tik een plek aan'
+        : !result ? 'Berekenen…'
+        : result === 'geen wijk' ? 'Geen wijk op die plek'
+        : result.map(([option, pct]) => `<span>${esc(option)} <strong>${fmtPct(pct)}</strong></span>`).join('');
+    return `<div class="map-chip plan-chip" aria-live="polite">${body}</div>`;
 }
 
 /* ===== Interactie ===== */
@@ -1004,7 +1053,14 @@ document.addEventListener('click', (event) => {
         return;
     }
     if (t.id === 'ctx-big') { openBigMap(); return; }
-    if (t.id === 'clear-ctx') { ui.mapCtx = null; ui.returnSheet = null; clearCardContext(); render(); fitToField(); return; }
+    if (t.id === 'plan-pos') {
+        const target = sheetTarget();
+        openBigMap();
+        ui.plan = { cardId: target.id, pos: null, result: null };
+        renderMapOverlay();
+        return;
+    }
+    if (t.id === 'clear-ctx') { ui.plan = null; ui.mapCtx = null; ui.returnSheet = null; clearCardContext(); render(); fitToField(); return; }
     if (t.id === 'ctx-back') { returnToCard(); return; }
 
     // Kaart

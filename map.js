@@ -465,16 +465,7 @@ function updateExclusionZones() {
     exclusionLayers = [];
     mergedExclusion = null;
 
-    const gameData = loadGameData();
-    const zoneLayers = [];
-    (gameData.cardAnswers || []).forEach(answerData => {
-        const layer = createExclusionLayer(answerData.opponentAnswer);
-        if (layer) zoneLayers.push(layer);
-    });
-    (gameData.exclusionZones || []).forEach(exclusionData => {
-        const layer = createExclusionLayerFromData(exclusionData);
-        if (layer) zoneLayers.push(layer);
-    });
+    const zoneLayers = zoneLayersFor(loadGameData());
 
     // Lukt samenvoegen niet, dan worden de zones apart getekend zodat er nooit een zone ontbreekt
     const mergedLayer = mergeExclusionLayers(zoneLayers);
@@ -485,6 +476,29 @@ function updateExclusionZones() {
 
     if (inverseMask) inverseMask.bringToFront();
     onMapStateChanged();
+}
+
+/** De losse uitsluitingslagen voor deze spelgegevens (nog niet getekend) */
+function zoneLayersFor(gameData) {
+    const layers = [];
+    (gameData.cardAnswers || []).forEach(answerData => {
+        const layer = createExclusionLayer(answerData.opponentAnswer);
+        if (layer) layers.push(layer);
+    });
+    (gameData.exclusionZones || []).forEach(exclusionData => {
+        const layer = createExclusionLayerFromData(exclusionData);
+        if (layer) layers.push(layer);
+    });
+    return layers;
+}
+
+/**
+ * Welk deel (%) van het speelveld zou nog open zijn met deze spelgegevens, zonder iets te tekenen.
+ * Voor het plannen van een vraag. Geeft null als samenvoegen niet lukt.
+ */
+function remainingPercentFor(gameData) {
+    const excluded = excludedGeometry(zoneLayersFor(gameData));
+    return excluded === null ? null : percentOpen(excluded, false);
 }
 
 /**
@@ -509,9 +523,14 @@ function multiPolygonArea(multi) {
  * Welk deel (%) van het speelveld is nog niet uitgesloten
  */
 function remainingFieldPercent() {
+    return percentOpen(mergedExclusion);
+}
+
+function percentOpen(excluded, round = true) {
     const fieldArea = Math.PI * GAME_RADIUS * GAME_RADIUS;
-    const excluded = mergedExclusion ? multiPolygonArea(mergedExclusion) : 0;
-    return Math.max(0, Math.min(100, Math.round(100 * (1 - excluded / fieldArea))));
+    const area = excluded ? multiPolygonArea(excluded) : 0;
+    const pct = Math.max(0, Math.min(100, 100 * (1 - area / fieldArea)));
+    return round ? Math.round(pct) : pct;
 }
 
 /* ===== Live locatie ===== */
@@ -567,20 +586,28 @@ function layerToPolygons(layer) {
  */
 function mergeExclusionLayers(layers) {
     if (layers.length === 0) return null;
+    const excluded = excludedGeometry(layers);
+    if (!excluded || excluded.length === 0) {
+        if (excluded) mergedExclusion = excluded;
+        return excluded ? L.featureGroup([]) : null;
+    }
+    mergedExclusion = excluded;
+    return L.polygon(excluded, EXCLUSION_AREA_STYLE);
+}
 
+/**
+ * Alle lagen samen als één MultiPolygon, afgeknipt aan het speelveld.
+ * [] als er niets uitgesloten is, null als samenvoegen niet lukt.
+ */
+function excludedGeometry(layers) {
     try {
         const parts = layers.map(layerToPolygons);
         if (parts.includes(null)) return null;
-
         const polygons = parts.flat().filter(rings => rings.length > 0 && rings[0].length >= 3);
-        if (polygons.length === 0) return null;
-
+        if (polygons.length === 0) return [];
         const center = LOCATIONS.center;
         const gameArea = [getCirclePoints(center.lat, center.lng, GAME_RADIUS, 1)];
-        const excluded = polygonClipping.intersection(gameArea, polygonClipping.union(...polygons));
-        mergedExclusion = excluded;
-
-        return excluded.length > 0 ? L.polygon(excluded, EXCLUSION_AREA_STYLE) : L.featureGroup([]);
+        return polygonClipping.intersection(gameArea, polygonClipping.union(...polygons));
     } catch (error) {
         console.warn('Samenvoegen van uitgesloten zones mislukt, zones worden apart getekend:', error);
         return null;

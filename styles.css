@@ -179,6 +179,8 @@ h1, h2, h3 { font-family: var(--f-head); font-stretch: 75%; font-weight: 800; li
 .map-chip.ctx-chip button { border: 0; background: none; font-size: 20px; line-height: 1; padding: 2px 4px; }
 .map-chip.ctx-chip .ctx-back { display: flex; align-items: center; gap: 4px; min-width: 0; font: inherit; font-weight: 700; font-size: 13px; padding: 0; text-align: left; text-decoration: underline; text-underline-offset: 3px; }
 .zone-chip { border-left: 5px solid var(--ok); }
+.plan-chip { display: flex; flex-wrap: wrap; gap: 4px 12px; border-left: 5px solid var(--water); font-weight: 700; }
+.plan-chip strong { font-family: var(--f-head); font-stretch: 75%; font-size: 18px; font-variant-numeric: tabular-nums; }
 .zone-chip.bad { background: var(--zone); color: #fff; border-color: var(--zone); font-weight: 700; }
 .map-btn { width: 42px; height: 42px; display: grid; place-items: center; background: var(--surface); border: 1.5px solid var(--ink); border-radius: 6px; color: var(--ink); }
 .map-btn svg { width: 22px; height: 22px; }
