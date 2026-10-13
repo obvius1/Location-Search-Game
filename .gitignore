@@ -14,3 +14,7 @@ Thumbs.db
 # Temporary files
 *.tmp
 *~
+
+# Lokale Claude Code-instellingen
+.claude/settings.local.json
+.claude/launch.json
