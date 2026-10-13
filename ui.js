@@ -303,7 +303,7 @@ function renderMapOverlay() {
     }
     overlay.innerHTML = `
         <div class="map-tl">
-            <div class="map-chip pct" title="Deel van het speelveld waar de fiets van de tegenstander nog kan liggen"><strong>${remainingFieldPercent()}%</strong> nog mogelijk</div>
+            <div class="map-chip pct" title="Deel van het speelveld waar de fiets van de tegenstander nog kan liggen"><strong>${fmtPct(percentOpen(mergedExclusion, false))}</strong> nog mogelijk</div>
             ${ctxCard ? `<div class="map-chip ctx-chip">${ui.returnSheet ? `<button class="ctx-back" id="ctx-back" aria-label="Terug naar de kaart">‹ <span>${esc(ui.mapCtx.title)}</span></button>` : `<span>${esc(ui.mapCtx.title)}</span>`}<button id="clear-ctx" aria-label="Context wissen">×</button></div>` : ''}
             ${planActive() ? planChip() : ''}
         </div>
@@ -993,6 +993,8 @@ function setPlanPos(latlng) {
 /** Onder 10% met één cijfer na de komma, zodat je kleine verschillen ziet */
 function fmtPct(pct) {
     if (pct === null) return '?';
+    if (pct === 0) return '0%';
+    if (pct < 0.1) return '<0,1%';
     return (pct < 10 ? pct.toFixed(1).replace('.', ',') : Math.round(pct)) + '%';
 }
 
