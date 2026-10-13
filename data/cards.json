@@ -55,7 +55,7 @@
     },
     {
       "task": "Rij 5 stops mee met het openbaar vervoer",
-      "question": "Is de fiets binnen 2km van jouw huidige positie?",
+      "question": "Is de fiets binnen 2km van mijn huidige positie?",
       "phase": 1,
       "answerType": "distanceFromBike",
       "radius": 2000,
@@ -146,7 +146,7 @@
     },
     {
       "task": "Neem een foto van een origineel schilderij. Het mag geen kopie of reproductie zijn",
-      "question": "Is de fiets binnen 1km van jouw huidige positie?",
+      "question": "Is de fiets binnen 1km van mijn huidige positie?",
       "phase": 2,
       "answerType": "distanceFromBike",
       "radius": 1000,
@@ -154,7 +154,7 @@
     },
     {
       "task": "Aai een levend dier",
-      "question": "Is de fiets binnen 750m van jouw huidige positie?",
+      "question": "Is de fiets binnen 750m van mijn huidige positie?",
       "phase": 2,
       "answerType": "distanceFromBike",
       "radius": 750,
@@ -182,7 +182,7 @@
     },
     {
       "task": "Vind een vlag van een land dat niet België is en maak er een foto van",
-      "question": "Is de fiets binnen 500m van jouw huidige positie?",
+      "question": "Is de fiets binnen 500m van mijn huidige positie?",
       "phase": 3,
       "answerType": "distanceFromBike",
       "radius": 500,
