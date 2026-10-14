@@ -96,6 +96,13 @@ async function loadRulesData() {
         console.error('Fout bij laden spelregels:', error);
     }
 }
+// De optionele regel zit in de spelcode: "-Z" achteraan betekent "geen taken in uitgesloten zones".
+// Zo hebben beide teams vanzelf dezelfde keuze, en geeft een andere keuze ook andere kaarten.
+const RULE_SUFFIX = '-Z';
+const codeBase = (code) => String(code || '').trim().toUpperCase().replace(/-Z$/, '');
+const codeWithRule = (code, on) => codeBase(code) + (on ? RULE_SUFFIX : '');
+const ruleFromCode = (code) => String(code || '').trim().toUpperCase().endsWith(RULE_SUFFIX);
+
 function newWizard() {
     return {
         step: 1, code: generateSeed(), zoneLock: true, location: null, accuracy: null, gpsBusy: false, gpsError: null,
@@ -704,7 +711,7 @@ function renderWizard() {
     if (w.step === 1) {
         return `<div class="pad">${steps}
             <h2 class="step-title">Spelcode en regels</h2>
-            <input class="input code-in" id="wiz-code" value="${esc(w.code)}" maxlength="8" autocomplete="off" aria-label="Spelcode">
+            <input class="input code-in" id="wiz-code" value="${esc(codeWithRule(w.code, w.zoneLock))}" maxlength="8" autocomplete="off" aria-label="Spelcode">
             <button class="link" id="wiz-gen" style="align-self:center">Maak een nieuwe code</button>
             <button class="row" data-open="tour"><div class="txt"><div class="q">Eerste keer? Hoe werkt het spel</div></div>${ARROW}</button>
             <section class="block"><h2 class="head">Optionele spelregels</h2>${ruleToggle(false, w.zoneLock)}</section>
@@ -784,7 +791,7 @@ function startGame() {
     const w = ui.wizard;
     const photos = {};
     (GAME_CARDS.hiderChecklist || []).slice(0, 6).forEach((item, i) => { photos[i] = !!w.photos[i]; });
-    Game.start({ seed: w.code, location: w.location, checklist: { photos, notes: { ...w.notes, straat: w.notes.straat.trim() } }, zoneLock: w.zoneLock });
+    Game.start({ seed: codeWithRule(w.code, w.zoneLock), location: w.location, checklist: { photos, notes: { ...w.notes, straat: w.notes.straat.trim() } }, zoneLock: w.zoneLock });
     ui.screen = 'game';
     ui.tab = 'cards';
     ui.mapCtx = null;
@@ -1116,11 +1123,11 @@ document.addEventListener('click', (event) => {
     }
 
     // Wizard
-    if (t.id === 'wiz-gen') { ui.wizard.code = generateSeed(); $('#wiz-code').value = ui.wizard.code; return; }
+    if (t.id === 'wiz-gen') { ui.wizard.code = generateSeed(); $('#wiz-code').value = codeWithRule(ui.wizard.code, ui.wizard.zoneLock); return; }
     if (t.id === 'wiz-next') {
         const code = $('#wiz-code').value.trim().toUpperCase();
-        if (!code) { $('#wiz-code').focus(); return; }
-        ui.wizard.code = code; ui.wizard.step = 2;
+        if (!codeBase(code)) { $('#wiz-code').focus(); return; }
+        ui.wizard.code = codeBase(code); ui.wizard.zoneLock = ruleFromCode(code); ui.wizard.step = 2;
         render();
         if (ui.wizard.location) setWizardLocation(ui.wizard.location, ui.wizard.accuracy);
         fitToField($('.sheet') ? $('.sheet').offsetHeight : 0);
@@ -1176,7 +1183,17 @@ document.addEventListener('input', (event) => {
     }
     if (t.id === 'wiz-straat') { ui.wizard.notes.straat = t.value; $('#wiz-straat-n').textContent = `${t.value.length} tekens`; refreshStartButton(); return; }
     if (t.dataset.photo !== undefined) { ui.wizard.photos[t.dataset.photo] = t.checked; renderPanel(); return; }
-    if (t.id === 'zone-rule' && ui.screen === 'wizard') { ui.wizard.zoneLock = t.checked; return; }
+    if (t.id === 'zone-rule' && ui.screen === 'wizard') {
+        ui.wizard.zoneLock = t.checked;
+        ui.wizard.code = codeBase($('#wiz-code').value) || ui.wizard.code;
+        $('#wiz-code').value = codeWithRule(ui.wizard.code, t.checked);
+        return;
+    }
+    if (t.id === 'wiz-code') {
+        ui.wizard.zoneLock = ruleFromCode(t.value);
+        if ($('#zone-rule')) $('#zone-rule').checked = ui.wizard.zoneLock;
+        return;
+    }
     if (t.id === 'live-toggle') {
         try { localStorage.setItem(LIVE_KEY, String(t.checked)); } catch { /* enkel deze sessie */ }
         if (t.checked) startLiveLocation(); else stopLiveLocation();
